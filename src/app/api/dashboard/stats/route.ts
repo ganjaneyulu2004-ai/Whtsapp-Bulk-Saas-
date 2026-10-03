@@ -153,6 +153,17 @@ export async function GET(req: Request) {
 
     const chartData = Object.values(dailyMap);
 
+    const currentBiz = await getCurrentBusiness();
+    const waConfig = await prisma.whatsAppConfig.findUnique({
+      where: { businessId: currentBiz.id },
+      select: {
+        isConnected: true,
+        displayPhoneNumber: true,
+        verifiedName: true,
+        connectionMethod: true,
+      },
+    });
+
     return NextResponse.json({
       stats: {
         totalSent,
@@ -165,6 +176,7 @@ export async function GET(req: Request) {
       failureReasons,
       chartData,
       recentCampaigns: formattedCampaigns,
+      whatsappConfig: waConfig,
       isAdmin,
     });
   } catch (err: any) {

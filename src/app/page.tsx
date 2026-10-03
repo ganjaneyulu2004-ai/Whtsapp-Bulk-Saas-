@@ -98,9 +98,42 @@ export default function DashboardPage() {
   const chartData = statsData?.chartData || [];
   const recentCampaigns = statsData?.recentCampaigns || [];
   const failureReasons = statsData?.failureReasons || [];
+  const waConfig = statsData?.whatsappConfig;
+  const isWhatsAppConnected = !!waConfig?.isConnected;
 
   return (
     <div className="space-y-8 pb-12">
+
+      {/* WhatsApp Easy Setup Callout Banner if not connected */}
+      {!isWhatsAppConnected && !loading && (
+        <div className="bg-gradient-to-r from-brand-900 via-brand-purple to-brand-blue rounded-3xl p-6 text-white shadow-card flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0 text-2xl">
+              💬
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold font-heading text-white">
+                  Connect Your Business WhatsApp in 2 Minutes
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-400 text-brand-900">
+                  Easy Setup
+                </span>
+              </div>
+              <p className="text-xs text-brand-100/90 mt-1">
+                Link your phone number via official Meta Embedded Signup. Meta charges (~₹0.80/msg) are billed directly to your card with zero markups.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/settings"
+            className="px-5 py-2.5 rounded-xl font-bold text-xs bg-white text-brand-purple hover:bg-brand-50 transition shadow-sm flex items-center gap-2 shrink-0"
+          >
+            Connect WhatsApp Now
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
       
       {/* Hero Welcome & Filter Bar */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
@@ -109,7 +142,14 @@ export default function DashboardPage() {
             <span className="px-3 py-1 rounded-full bg-brand-light text-brand-purple text-xs font-heading font-bold uppercase tracking-wider">
               WhatsApp Broadcast Hub
             </span>
-            <span className="text-xs text-slate-muted">• Live Delivery Engine</span>
+            {isWhatsAppConnected ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-heading font-bold border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                WhatsApp: {waConfig?.displayPhoneNumber || "Active"} • Direct Meta Billing
+              </span>
+            ) : (
+              <span className="text-xs text-slate-muted">• Live Delivery Engine</span>
+            )}
           </div>
           <h1 className="text-2xl sm:text-3xl font-heading font-extrabold text-text-main">
             Campaign Performance Dashboard

@@ -73,17 +73,22 @@ model Business {
 }
 
 model WhatsAppConfig {
-  id                  String   @id @default(uuid())
-  businessId          String   @unique
-  business            Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  id                  String    @id @default(uuid())
+  businessId          String    @unique
+  business            Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   waToken             String?
   waPhoneNumberId     String?
   waBusinessAccountId String?
-  waApiVersion        String   @default("v19.0")
+  waApiVersion        String    @default("v19.0")
   metaAppId           String?
-  messagingLimitTier  String   @default("TIER_250")
-  isConnected         Boolean  @default(false)
-  updatedAt           DateTime @updatedAt
+  messagingLimitTier  String    @default("TIER_250")
+  isConnected         Boolean   @default(false)
+  connectionMethod    String?   @default("MANUAL") // "EMBEDDED_SIGNUP" | "MANUAL"
+  displayPhoneNumber  String?
+  verifiedName        String?
+  qualityRating       String?
+  embeddedSignupAt    DateTime?
+  updatedAt           DateTime  @updatedAt
 }
 
 model Template {

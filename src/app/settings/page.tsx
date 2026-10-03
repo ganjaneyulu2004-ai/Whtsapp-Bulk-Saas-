@@ -16,8 +16,11 @@ import {
   Send,
   Webhook,
   Copy,
-  Check
+  Check,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
+import WhatsAppEmbeddedSignup from "@/components/WhatsAppEmbeddedSignup";
 
 export default function SettingsPage() {
   const { t, lang, setLang } = useLanguage();
@@ -26,6 +29,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [showManualConfig, setShowManualConfig] = useState(false);
+  const [fullConfig, setFullConfig] = useState<any>(null);
 
   // Business Profile Form
   const [name, setName] = useState("");
@@ -54,7 +59,7 @@ export default function SettingsPage() {
   const [optOutContacts, setOptOutContacts] = useState<any[]>([]);
   const [optOutCount, setOptOutCount] = useState(0);
 
-  useEffect(() => {
+  const loadSettings = () => {
     fetch("/api/settings")
       .then((res) => res.json())
       .then((data) => {
@@ -70,6 +75,7 @@ export default function SettingsPage() {
           setPrefLang(data.business.language || "en");
         }
         if (data.whatsappConfig) {
+          setFullConfig(data.whatsappConfig);
           setWaToken(data.whatsappConfig.waToken || "");
           setWaPhoneNumberId(data.whatsappConfig.waPhoneNumberId || "");
           setWaBusinessAccountId(data.whatsappConfig.waBusinessAccountId || "");
@@ -86,6 +92,10 @@ export default function SettingsPage() {
         console.error(e);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    loadSettings();
 
     // Fetch Webhook Status
     fetch("/api/webhooks/status")
@@ -391,39 +401,66 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* 3. Meta WhatsApp Credentials Section */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-emerald-100 shadow-card space-y-6">
+      {/* 3. Primary WhatsApp Connection: Embedded Signup */}
+      <WhatsAppEmbeddedSignup
+        initialConfig={fullConfig}
+        metaAppId={metaAppId || "1083272431077581"}
+        onConfigUpdated={loadSettings}
+      />
+
+      {/* 4. Advanced: Manual Meta WhatsApp Credentials Section */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-card space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
               <KeyRound className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-heading font-bold text-slate-heading">
-                {t("settings.metaCredentials")}
-              </h2>
-              <p className="text-xs text-slate-muted">Official Meta WhatsApp Graph API keys (Encrypted)</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-heading font-bold text-slate-heading">
+                  Advanced: Manual API Keys Setup
+                </h2>
+                <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                  Optional
+                </span>
+              </div>
+              <p className="text-xs text-slate-muted">For developers or businesses with their own Meta Developer Apps</p>
             </div>
           </div>
 
-          <button
-            onClick={handleTestConnection}
-            disabled={testing}
-            className="flex items-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-heading font-bold text-xs px-4 py-2 rounded-xl transition-all"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>{testing ? "Testing..." : t("settings.testConnection")}</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowManualConfig(!showManualConfig)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-brand-purple hover:text-brand-purple/80 px-3 py-1.5 rounded-lg border border-brand-200 bg-brand-50/50 transition"
+            >
+              <span>{showManualConfig ? "Hide Manual Fields" : "Show Manual Fields"}</span>
+              {showManualConfig ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {showManualConfig && (
+              <button
+                onClick={handleTestConnection}
+                disabled={testing}
+                className="flex items-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-heading font-bold text-xs px-4 py-2 rounded-xl transition-all"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{testing ? "Testing..." : t("settings.testConnection")}</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {testResult && (
-          <div className={`p-4 rounded-2xl text-xs font-heading font-semibold flex items-center gap-2 ${
-            testResult.ok ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-          }`}>
-            {testResult.ok ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-            <span>{testResult.message}</span>
-          </div>
-        )}
+        {showManualConfig && (
+          <>
+            {testResult && (
+              <div className={`p-4 rounded-2xl text-xs font-heading font-semibold flex items-center gap-2 ${
+                testResult.ok ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+              }`}>
+                {testResult.ok ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                <span>{testResult.message}</span>
+              </div>
+            )}
 
         <div className="space-y-4">
           <div className="space-y-1.5">
@@ -467,6 +504,8 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        </>
+      )}
       </div>
 
       {/* 4. Opt-Out List Section */}
