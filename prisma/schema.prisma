@@ -1,0 +1,198 @@
+// Prisma Schema for iBrainLabs (WhatsApp Bulk Campaign Platform)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  username      String         @unique
+  email         String?        @unique
+  passwordHash  String
+  businessName  String?
+  mobile        String?
+  role          String         @default("USER") // "ADMIN" | "USER"
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  businesses    Business[]
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan           String
+  amount         Float
+  status         String    @default("AWAITING_PAYMENT") // "AWAITING_PAYMENT" | "PENDING_VERIFICATION" | "ACTIVE" | "REJECTED" | "EXPIRED"
+  utrNumber      String?   @unique
+  screenshotPath String?
+  payerName      String?
+  businessName   String?
+  payerEmail     String?
+  payerMobile    String?
+  payerGst       String?
+  payerCity      String?
+  adminNote      String?
+  submittedAt    DateTime?
+  approvedAt     DateTime?
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+
+model Business {
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  category         String          @default("Retail Shop")
+  logoUrl          String?
+  phone            String?
+  address          String?
+  website          String?
+  defaultBookingLink String?
+  currency         String          @default("INR")
+  perMessageCost   Float           @default(0.80) // INR per message
+  language         String          @default("en") // 'en' | 'te'
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  whatsappConfig   WhatsAppConfig?
+  templates        Template[]
+  contactLists     ContactList[]
+  contacts         Contact[]
+  campaigns        Campaign[]
+}
+
+model WhatsAppConfig {
+  id                  String   @id @default(uuid())
+  businessId          String   @unique
+  business            Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  waToken             String?
+  waPhoneNumberId     String?
+  waBusinessAccountId String?
+  waApiVersion        String   @default("v19.0")
+  metaAppId           String?
+  messagingLimitTier  String   @default("TIER_250")
+  isConnected         Boolean  @default(false)
+  updatedAt           DateTime @updatedAt
+}
+
+model Template {
+  id              String     @id @default(uuid())
+  businessId      String
+  business        Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name            String     // lowercase_with_underscores
+  category        String     @default("MARKETING")
+  language        String     @default("en")
+  headerType      String     @default("IMAGE")
+  headerMediaUrl  String?
+  headerHandle    String?
+  bodyText        String
+  footerText      String?
+  buttonsJson     String?
+  metaTemplateId  String?
+  status          String     @default("APPROVED") // PENDING, APPROVED, REJECTED
+  rejectionReason String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  campaigns       Campaign[]
+}
+
+model ContactList {
+  id           String     @id @default(uuid())
+  businessId   String
+  business     Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  contactCount Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  contacts     Contact[]
+  campaigns    Campaign[]
+}
+
+model Contact {
+  id           String       @id @default(uuid())
+  businessId   String
+  business     Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  listId       String?
+  contactList  ContactList? @relation(fields: [listId], references: [id], onDelete: SetNull)
+  name         String
+  phone        String
+  optedOut     Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  messageLogs  MessageLog[]
+
+  @@unique([businessId, phone])
+}
+
+model Campaign {
+  id              String       @id @default(uuid())
+  businessId      String
+  business        Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name            String
+  type            String
+  customType      String?
+  note            String?
+  businessName    String?
+  bookingLink     String?
+  alwaysUseTemplate Boolean    @default(true)
+  templateId      String
+  template        Template     @relation(fields: [templateId], references: [id])
+  contactListId   String?
+  contactList     ContactList? @relation(fields: [contactListId], references: [id])
+  scheduledAt     DateTime?
+  status          String       @default("DRAFT") // DRAFT, SCHEDULED, WAITING_APPROVAL, SENDING, COMPLETED, PAUSED, CANCELLED
+  totalRecipients Int          @default(0)
+  sentCount       Int          @default(0)
+  deliveredCount  Int          @default(0)
+  readCount       Int          @default(0)
+  failedCount     Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  messageLogs     MessageLog[]
+}
+
+model MessageLog {
+  id               String    @id @default(uuid())
+  campaignId       String
+  campaign         Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId        String?
+  contact          Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  phone            String
+  recipientName    String    @default("Customer")
+  waMessageId      String?   @unique
+  status           String    @default("PENDING")
+  errorCode        String?
+  errorMessage     String?
+  sentOfferText    String?
+  sentBusinessName String?
+  sentBookingLink  String?
+  parametersJson   String?
+  sentAt           DateTime?
+  deliveredAt      DateTime?
+  readAt           DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model IncomingMessage {
+  id           String   @id @default(uuid())
+  businessId   String?
+  fromPhone    String
+  customerName String?
+  messageText  String
+  waMessageId  String?  @unique
+  timestamp    DateTime @default(now())
+  createdAt    DateTime @default(now())
+}
