@@ -311,88 +311,138 @@ export default function CompletePaymentPage() {
 
         {/* STEP 2: PAY VIA UPI */}
         {selectedPlan && (
-          <section className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card">
+          <section className="bg-white rounded-3xl p-5 sm:p-8 border border-brand-soft shadow-card">
             <div className="flex items-center gap-3 mb-6">
-              <span className="w-8 h-8 rounded-full bg-brand-purple text-white flex items-center justify-center font-heading font-bold text-sm">
+              <span className="w-8 h-8 rounded-full bg-brand-purple text-white flex items-center justify-center font-heading font-bold text-sm shrink-0">
                 2
               </span>
               <div>
                 <h2 className="text-xl font-heading font-bold text-text-main">
-                  Step 2: Scan & Pay via UPI
+                  Step 2: Pay via UPI
                 </h2>
                 <p className="text-xs text-slate-muted">
-                  Use any UPI app on your phone to scan the QR or pay to the UPI ID.
+                  Instant mobile payment via PhonePe, Google Pay, Paytm, or scan QR.
                 </p>
               </div>
             </div>
 
+            {/* Mobile First: Instant Pay with UPI App Banner (High priority on phones) */}
+            <div className="mb-8 p-5 rounded-2xl bg-gradient-to-r from-brand-900 via-brand-purple to-brand-blue text-white shadow-md">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <span className="text-xs font-semibold text-brand-100 uppercase tracking-wider block">
+                    Paying on your phone?
+                  </span>
+                  <div className="text-2xl sm:text-3xl font-extrabold font-heading mt-0.5">
+                    ₹{selectedPlan.price.toLocaleString("en-IN")}
+                    <span className="text-xs font-normal text-brand-100 ml-2">({selectedPlan.name} Plan)</span>
+                  </div>
+                </div>
+
+                {/* Primary Mobile Action Button */}
+                <a
+                  href={upiLink}
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-white hover:bg-brand-50 text-brand-purple font-heading font-bold text-sm shadow-lg flex items-center justify-center gap-2.5 transition active:scale-95"
+                >
+                  <Smartphone className="w-4 h-4 text-brand-purple" />
+                  <span>Pay with any UPI App</span>
+                  <ExternalLink className="w-4 h-4 opacity-80" />
+                </a>
+              </div>
+
+              {/* Instant App Specific Launchers */}
+              <div className="mt-4 pt-3 border-t border-white/20 flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-brand-100/90 font-medium">Or choose your app:</span>
+                <a
+                  href={`phonepe://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${selectedPlan.price}&cu=INR`}
+                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium flex items-center gap-1.5 transition"
+                >
+                  <span>🟣 PhonePe</span>
+                </a>
+                <a
+                  href={`tez://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${selectedPlan.price}&cu=INR`}
+                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium flex items-center gap-1.5 transition"
+                >
+                  <span>🔵 Google Pay</span>
+                </a>
+                <a
+                  href={`paytmmp://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${selectedPlan.price}&cu=INR`}
+                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium flex items-center gap-1.5 transition"
+                >
+                  <span>🔷 Paytm</span>
+                </a>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              {/* QR Code Display */}
+              {/* QR Code Display (Great for Desktop / Paying from another phone) */}
               <div className="lg:col-span-5 flex flex-col items-center text-center">
-                <div className="p-4 bg-white rounded-3xl border-2 border-brand-soft shadow-md relative">
+                <div className="p-4 bg-white rounded-3xl border-2 border-brand-soft shadow-md relative w-full max-w-[280px]">
                   {qrCodeUrl ? (
                     <Image
                       src={qrCodeUrl}
                       alt="UPI Payment QR Code"
                       width={250}
                       height={250}
-                      className="rounded-2xl"
+                      className="rounded-2xl mx-auto w-full h-auto"
                       priority
                     />
                   ) : (
-                    <div className="w-[250px] h-[250px] flex items-center justify-center">
+                    <div className="w-[240px] h-[240px] flex items-center justify-center">
                       <Loader2 className="w-8 h-8 text-brand-purple animate-spin" />
                     </div>
                   )}
                   <div className="mt-3 text-[11px] font-heading font-semibold text-slate-muted">
-                    Scan with any UPI App
+                    Scan with any UPI Scanner
                   </div>
-                </div>
-
-                {/* Mobile Direct Pay Button */}
-                <div className="w-full max-w-xs mt-4">
-                  <a
-                    href={upiLink}
-                    className="w-full py-3 px-5 rounded-2xl bg-brand-gradient hover:opacity-95 text-white font-heading font-semibold text-sm shadow-md shadow-brand-purple/20 flex items-center justify-center gap-2 transition-transform active:scale-95"
-                  >
-                    <Smartphone className="w-4 h-4" />
-                    <span>Pay with UPI App</span>
-                    <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-                  </a>
-                  <span className="text-[11px] text-slate-muted mt-1 block">
-                    (Opens GPay, PhonePe, Paytm or BHIM)
-                  </span>
                 </div>
               </div>
 
               {/* Payment Details Card */}
               <div className="lg:col-span-7 space-y-4">
-                <div className="p-6 rounded-2xl bg-brand-light/80 border border-brand-soft">
-                  <div className="text-xs font-heading font-bold text-slate-muted uppercase tracking-wider mb-1">
-                    Amount Payable
+                {/* 1-Tap Copy Amount Row */}
+                <div className="p-4 rounded-2xl border border-brand-soft bg-brand-light/60 flex items-center justify-between">
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-muted uppercase">
+                      Exact Amount
+                    </span>
+                    <span className="font-heading font-bold text-brand-purple text-lg sm:text-xl">
+                      ₹{selectedPlan.price.toLocaleString("en-IN")}
+                    </span>
                   </div>
-                  <div className="text-4xl font-heading font-extrabold text-brand-purple">
-                    ₹{selectedPlan.price.toLocaleString("en-IN")}
-                  </div>
-                  <div className="text-xs text-slate-muted mt-1">
-                    For {selectedPlan.name} Plan ({selectedPlan.messages.toLocaleString()} msgs/month)
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(String(selectedPlan.price), "amount")}
+                    className="px-3 py-1.5 rounded-xl border border-brand-soft bg-white text-brand-purple hover:bg-brand-50 text-xs font-heading font-semibold flex items-center gap-1.5 transition"
+                  >
+                    {copiedField === "amount" ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-600">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy Amount</span>
+                      </>
+                    )}
+                  </button>
                 </div>
 
                 {/* UPI ID Row */}
                 <div className="p-4 rounded-2xl border border-brand-soft bg-white flex items-center justify-between">
-                  <div>
+                  <div className="overflow-hidden mr-2">
                     <span className="block text-[11px] font-semibold text-slate-muted uppercase">
                       UPI ID / VPA
                     </span>
-                    <span className="font-heading font-bold text-text-main text-base">
+                    <span className="font-heading font-bold text-text-main text-sm sm:text-base break-all">
                       {upiId}
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(upiId, "upiId")}
-                    className="px-3.5 py-1.5 rounded-xl border border-brand-soft text-brand-purple hover:bg-brand-50 text-xs font-heading font-semibold flex items-center gap-1.5 transition-colors"
+                    className="px-3.5 py-1.5 rounded-xl border border-brand-soft text-brand-purple hover:bg-brand-50 text-xs font-heading font-semibold flex items-center gap-1.5 transition-colors shrink-0"
                   >
                     {copiedField === "upiId" ? (
                       <>
@@ -414,14 +464,14 @@ export default function CompletePaymentPage() {
                     <span className="block text-[11px] font-semibold text-slate-muted uppercase">
                       Pay to Phone Number
                     </span>
-                    <span className="font-heading font-bold text-text-main text-base">
+                    <span className="font-heading font-bold text-text-main text-sm sm:text-base">
                       {paymentPhone} ({payeeName})
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(paymentPhone, "phone")}
-                    className="px-3.5 py-1.5 rounded-xl border border-brand-soft text-brand-purple hover:bg-brand-50 text-xs font-heading font-semibold flex items-center gap-1.5 transition-colors"
+                    className="px-3.5 py-1.5 rounded-xl border border-brand-soft text-brand-purple hover:bg-brand-50 text-xs font-heading font-semibold flex items-center gap-1.5 transition-colors shrink-0"
                   >
                     {copiedField === "phone" ? (
                       <>
@@ -435,23 +485,6 @@ export default function CompletePaymentPage() {
                       </>
                     )}
                   </button>
-                </div>
-
-                {/* Supported UPI Apps Row */}
-                <div className="pt-2 flex flex-wrap items-center gap-3 text-xs text-slate-muted">
-                  <span className="font-semibold text-text-main">Supported Apps:</span>
-                  <span className="px-2.5 py-1 bg-white border border-brand-soft rounded-lg font-medium text-brand-purple">
-                    PhonePe
-                  </span>
-                  <span className="px-2.5 py-1 bg-white border border-brand-soft rounded-lg font-medium text-brand-blue">
-                    Google Pay
-                  </span>
-                  <span className="px-2.5 py-1 bg-white border border-brand-soft rounded-lg font-medium text-text-main">
-                    Paytm
-                  </span>
-                  <span className="px-2.5 py-1 bg-white border border-brand-soft rounded-lg font-medium text-emerald-700">
-                    BHIM UPI
-                  </span>
                 </div>
               </div>
             </div>
@@ -666,6 +699,29 @@ export default function CompletePaymentPage() {
         </section>
 
       </div>
+
+      {/* Sticky Mobile Pay Bar for 1-Tap Payment on smartphones */}
+      {selectedPlan && (
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-brand-200 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] flex items-center justify-between gap-3">
+          <div>
+            <span className="text-[10px] text-slate-muted uppercase font-bold tracking-wider block">
+              {selectedPlan.name} Plan
+            </span>
+            <span className="text-xl font-heading font-extrabold text-brand-purple">
+              ₹{selectedPlan.price.toLocaleString("en-IN")}
+            </span>
+          </div>
+
+          <a
+            href={upiLink}
+            className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue text-white font-heading font-bold text-xs shadow-md flex items-center justify-center gap-1.5 active:scale-95 transition"
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Pay via UPI App</span>
+            <ExternalLink className="w-3 h-3 opacity-80" />
+          </a>
+        </div>
+      )}
     </div>
   );
 }
