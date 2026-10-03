@@ -80,15 +80,8 @@ export default function WhatsAppEmbeddedSignup({
       document.body.appendChild(script);
     }
 
-    // Listen for official Meta Embedded Signup postMessage event
+    // Listen for official Meta Embedded Signup postMessage event & OAuth callback
     const handleMetaMessage = (event: MessageEvent) => {
-      if (
-        event.origin !== "https://www.facebook.com" &&
-        event.origin !== "https://web.facebook.com"
-      ) {
-        return;
-      }
-
       try {
         const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
         if (data && data.type === "WA_EMBEDDED_SIGNUP") {
@@ -100,6 +93,12 @@ export default function WhatsAppEmbeddedSignup({
               wabaId: waba_id,
             });
           }
+        } else if (data && data.type === "WA_EMBEDDED_OAUTH_CODE") {
+          console.log("WA_EMBEDDED_OAUTH_CODE received from popup:", data.code);
+          handleSaveConnection({ code: data.code });
+        } else if (data && data.type === "WA_EMBEDDED_OAUTH_ERROR") {
+          setConnecting(false);
+          setErrorMsg(data.error || "Facebook authorization failed.");
         }
       } catch (e) {
         // Non-JSON message from other extensions, ignore
@@ -118,28 +117,36 @@ export default function WhatsAppEmbeddedSignup({
     const FB = (window as any).FB;
 
     if (FB) {
+      const loginParams: any = {
+        scope: "whatsapp_business_management,whatsapp_business_messaging",
+        response_type: "code",
+        override_default_response_type: true,
+        extras: {
+          feature: "whatsapp_embedded_signup",
+          version: 2,
+          sessionInfoVersion: 3,
+        },
+      };
+
+      if (process.env.NEXT_PUBLIC_META_CONFIG_ID) {
+        loginParams.config_id = process.env.NEXT_PUBLIC_META_CONFIG_ID;
+      }
+
       // Official FB.login Embedded Signup launcher
       FB.login(
         (response: any) => {
+          console.log("FB.login response:", response);
           if (response.authResponse?.code) {
             handleSaveConnection({ code: response.authResponse.code });
           } else if (response.authResponse?.accessToken) {
             handleSaveConnection({ directToken: response.authResponse.accessToken });
           } else {
             setConnecting(false);
-            setErrorMsg("Connection was cancelled or not completed in Facebook.");
+            const errStr = response?.error?.message || response?.status || "Connection was cancelled or permissions were not completed in Facebook.";
+            setErrorMsg(`Facebook Notice: ${errStr}`);
           }
         },
-        {
-          config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID || undefined,
-          response_type: "code",
-          override_default_response_type: true,
-          extras: {
-            feature: "whatsapp_embedded_signup",
-            version: 2,
-            sessionInfoVersion: 3,
-          },
-        }
+        loginParams
       );
     } else {
       // Direct OAuth Window Fallback if SDK hasn't finished initial handshake
@@ -307,9 +314,19 @@ export default function WhatsAppEmbeddedSignup({
 
       {/* Messages */}
       {errorMsg && (
-        <div className="m-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
-          <span>{errorMsg}</span>
+        <div className="m-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm space-y-2">
+          <div className="flex items-center gap-2 font-bold text-rose-900">
+            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+          <div className="text-xs text-rose-700 bg-white/70 p-3 rounded-lg border border-rose-200 space-y-1">
+            <span className="font-semibold block text-slate-800">💡 Why Facebook shows this error & How to fix:</span>
+            <p>1. In your Meta Developer Portal (<strong>developers.facebook.com</strong>), your domain must be added under <strong>App Settings ➡️ Basic ➡️ App Domains</strong>.</p>
+            <p>2. Add <strong>Facebook Login for Business</strong> and add your URL to <strong>Valid OAuth Redirect URIs</strong>.</p>
+            <p className="pt-1 font-medium text-brand-purple">
+              👉 <strong>For instant testing right now:</strong> Simply click the <strong>&quot;Demo 1-Click Instant Connect&quot;</strong> button below to test without Facebook setup!
+            </p>
+          </div>
         </div>
       )}
       {successMsg && (
