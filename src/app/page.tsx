@@ -131,8 +131,8 @@ export default function DashboardPage() {
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-heading font-extrabold text-text-main tracking-tight leading-tight">
-            Send Real WhatsApp Offers to Customers at{" "}
-            <span className="text-brand-purple">20 Msgs/Sec</span>
+            Send Exclusive WhatsApp Offers Directly to Customers{" "}
+            <span className="text-brand-purple">at Lightning Speed</span>
           </h1>
 
           <p className="text-sm sm:text-base text-slate-muted max-w-2xl mx-auto leading-relaxed">
