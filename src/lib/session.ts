@@ -48,11 +48,27 @@ export async function getCurrentBusiness() {
   }
 
   // Fallback to first business in database
-  let business = await prisma.business.findFirst({
-    include: {
-      whatsappConfig: true,
-    },
-  });
+  let business;
+  try {
+    business = await prisma.business.findFirst({
+      include: {
+        whatsappConfig: true,
+      },
+    });
+  } catch (dbErr: any) {
+    // If table does not exist yet in cloud Postgres, auto-initialize
+    if (dbErr?.message?.includes("does not exist") || dbErr?.code === "P2021") {
+      const { initializeDatabase } = await import("./init-db");
+      await initializeDatabase();
+      business = await prisma.business.findFirst({
+        include: {
+          whatsappConfig: true,
+        },
+      });
+    } else {
+      throw dbErr;
+    }
+  }
 
   if (!business) {
     const user = await prisma.user.upsert({

@@ -24,9 +24,22 @@ export async function POST(req: Request) {
     }
 
     const cleanUsername = username.trim().toLowerCase();
-    const existing = await prisma.user.findUnique({
-      where: { username: cleanUsername },
-    });
+    let existing;
+    try {
+      existing = await prisma.user.findUnique({
+        where: { username: cleanUsername },
+      });
+    } catch (dbErr: any) {
+      if (dbErr?.message?.includes("does not exist") || dbErr?.code === "P2021") {
+        const { initializeDatabase } = await import("@/lib/init-db");
+        await initializeDatabase();
+        existing = await prisma.user.findUnique({
+          where: { username: cleanUsername },
+        });
+      } else {
+        throw dbErr;
+      }
+    }
 
     if (existing) {
       return NextResponse.json({ error: "Username is already taken" }, { status: 409 });
