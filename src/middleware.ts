@@ -23,7 +23,8 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/register") ||
     pathname === "/api/campaigns/send-test" ||
-    pathname === "/api/campaigns/status"
+    pathname === "/api/campaigns/status" ||
+    pathname === "/api/init-db"
   ) {
     return NextResponse.next();
   }
