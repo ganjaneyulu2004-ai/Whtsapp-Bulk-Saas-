@@ -382,6 +382,8 @@ export async function sendWhatsAppTemplateMessage(
             },
           ],
         });
+      } else if (templateName === "student_welcome") {
+        // student_welcome has NO header component in Meta Cloud API
       } else if (mediaUrl) {
         components.unshift({
           type: "header",
