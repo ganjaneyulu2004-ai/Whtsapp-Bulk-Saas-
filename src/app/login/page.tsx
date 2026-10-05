@@ -624,35 +624,68 @@ function LoginForm() {
                     </button>
                   ))}
                 </div>
-                            {/* Real Smartphone WhatsApp Delivery Mockup */}
+                {/* Clean WhatsApp Message Delivery Preview */}
                 <div className="mb-4 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-0.5">
                     <span className="flex items-center gap-1.5 text-brand-purple">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      📱 Real Customer WhatsApp Screen:
+                      📱 WhatsApp Message Preview:
                     </span>
                     <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                      Official Meta View
+                      Official Format
                     </span>
                   </div>
 
-                  {/* Real Photorealistic Phone Image Display */}
-                  <div className="relative rounded-2xl overflow-hidden border border-brand-soft shadow-lg bg-black group max-w-sm mx-auto">
-                    <Image 
-                      src="/brand/real-phone-mockup.jpg" 
-                      alt="Real WhatsApp Offer Phone Screen"
-                      width={600}
-                      height={800}
-                      className="w-full max-h-[300px] object-cover object-top rounded-2xl group-hover:scale-105 transition-transform duration-500"
-                      priority
-                    />
-                    <div className="absolute top-2.5 right-2.5 bg-black/80 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/20 text-[10px] font-bold text-white flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span>iBrainLabs Verified ✓</span>
+                  {/* Clean WhatsApp Chat Card */}
+                  <div className="rounded-2xl overflow-hidden border border-emerald-200/60 shadow-md bg-[#ECE5DD] flex flex-col">
+                    <div className="bg-[#075E54] text-white px-3 py-2 flex items-center justify-between shadow-xs">
+                      <div className="flex items-center gap-1.5">
+                        <div className="relative w-6 h-6 rounded-full bg-white flex items-center justify-center text-brand-purple font-black text-[10px]">
+                          iB
+                          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white flex items-center justify-center text-[6px] text-white font-bold">
+                            ✓
+                          </span>
+                        </div>
+                        <div className="leading-tight">
+                          <div className="flex items-center gap-0.5 font-bold text-[11px] text-white">
+                            <span>iBrainLabs Offers</span>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-300 fill-emerald-500 inline" />
+                          </div>
+                          <span className="text-[8px] text-emerald-100/80 block">Official Business</span>
+                        </div>
+                      </div>
+                      <span className="text-[9px] text-emerald-100/80 font-medium">10:45 AM</span>
                     </div>
-                    <div className="absolute bottom-2 inset-x-2 bg-slate-950/90 backdrop-blur-md p-2 rounded-xl border border-white/15 text-[11px] text-white flex items-center justify-between">
-                      <span className="text-amber-300 font-bold truncate max-w-[200px]">{testCustomOffer}</span>
-                      <span className="text-emerald-400 font-bold text-[10px] shrink-0">10:45 AM ✓✓</span>
+
+                    <div 
+                      className="p-3 space-y-1.5"
+                      style={{
+                        backgroundColor: "#ECE5DD",
+                        backgroundImage: `radial-gradient(#d3cabb 1px, transparent 1px)`,
+                        backgroundSize: "14px 14px"
+                      }}
+                    >
+                      <div className="relative max-w-[96%] bg-white rounded-xl rounded-tl-sm p-3 shadow-xs border border-black/5 text-slate-800 space-y-1.5">
+                        <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-light text-brand-purple text-[9px] font-bold">
+                          <Sparkles className="w-2.5 h-2.5 text-brand-purple" />
+                          ⭐ Exclusive Offer for You
+                        </div>
+                        <p className="text-[10px] text-slate-600 font-medium">Dear Customer,</p>
+                        <div className="text-[11px] leading-snug font-semibold text-slate-900 bg-amber-50 p-2 rounded-lg border border-amber-200/60">
+                          We have an offer for you:{" "}
+                          <span className="text-brand-purple font-bold block mt-0.5">
+                            {testCustomOffer}
+                          </span>
+                        </div>
+                        <p className="text-[9px] text-slate-500">Thank you for shopping with iBrainLabs!</p>
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[9px] text-slate-400">
+                          <span className="italic text-[8px]">Reply STOP to unsubscribe</span>
+                          <div className="flex items-center gap-0.5 text-emerald-600 font-medium">
+                            <span>Just now</span>
+                            <CheckCheck className="w-3 h-3 text-[#34B7F1]" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
