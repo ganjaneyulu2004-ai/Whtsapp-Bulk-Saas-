@@ -64,6 +64,26 @@ export async function PUT(req: Request) {
       },
     });
 
+    // Fetch WhatsApp details from Meta if token & phoneId provided
+    let displayPhoneNumber: string | undefined;
+    let verifiedName: string | undefined;
+    let qualityRating: string | undefined;
+
+    if (waToken && waPhoneNumberId && !waToken.startsWith("EAAG...")) {
+      try {
+        const version = waApiVersion || "v26.0";
+        const metaRes = await fetch(`https://graph.facebook.com/${version}/${waPhoneNumberId}`, {
+          headers: { Authorization: `Bearer ${waToken}` },
+        });
+        if (metaRes.ok) {
+          const metaData = await metaRes.json();
+          displayPhoneNumber = metaData.display_phone_number || undefined;
+          verifiedName = metaData.verified_name || undefined;
+          qualityRating = metaData.quality_rating || undefined;
+        }
+      } catch {}
+    }
+
     // Update WhatsApp credentials
     const updatedConfig = await prisma.whatsAppConfig.upsert({
       where: { businessId: business.id },
@@ -71,18 +91,26 @@ export async function PUT(req: Request) {
         waToken: waToken !== undefined ? waToken : undefined,
         waPhoneNumberId: waPhoneNumberId !== undefined ? waPhoneNumberId : undefined,
         waBusinessAccountId: waBusinessAccountId !== undefined ? waBusinessAccountId : undefined,
-        waApiVersion: waApiVersion || "v19.0",
+        waApiVersion: waApiVersion || "v26.0",
         metaAppId: metaAppId !== undefined ? metaAppId : undefined,
-        isConnected: true,
+        displayPhoneNumber: displayPhoneNumber || undefined,
+        verifiedName: verifiedName || undefined,
+        qualityRating: qualityRating || undefined,
+        isConnected: !!(waToken && waPhoneNumberId),
+        connectionMethod: "MANUAL",
       },
       create: {
         businessId: business.id,
         waToken,
         waPhoneNumberId,
         waBusinessAccountId,
-        waApiVersion: waApiVersion || "v19.0",
+        waApiVersion: waApiVersion || "v26.0",
         metaAppId,
-        isConnected: true,
+        displayPhoneNumber,
+        verifiedName,
+        qualityRating,
+        isConnected: !!(waToken && waPhoneNumberId),
+        connectionMethod: "MANUAL",
       },
     });
 

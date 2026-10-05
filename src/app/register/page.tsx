@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { 
   User, 
   Store, 
@@ -67,8 +68,18 @@ export default function RegisterPage() {
         return;
       }
 
-      // Success -> Redirect to login
-      router.push("/login?registered=1");
+      // Auto sign-in and direct immediately to payment collection
+      const signInRes = await signIn("credentials", {
+        username: form.username.trim(),
+        password: form.password,
+        redirect: false,
+      });
+
+      if (signInRes?.ok) {
+        router.replace("/complete-payment");
+      } else {
+        router.push("/login?registered=1");
+      }
     } catch (err: any) {
       setError("Network error. Please try again.");
       setLoading(false);

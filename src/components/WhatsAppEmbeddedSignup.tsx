@@ -438,20 +438,32 @@ export default function WhatsAppEmbeddedSignup({
               )}
             </div>
 
-            {/* Disconnect Action */}
-            <div className="flex justify-between items-center pt-2">
+            {/* Disconnect & Reconnect Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-brand-100">
               <span className="text-xs text-slate-muted">
                 Need to switch to a different phone number or reconnect?
               </span>
-              <button
-                type="button"
-                onClick={handleDisconnect}
-                disabled={disconnecting}
-                className="px-4 py-2 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition border border-rose-200 flex items-center gap-1.5"
-              >
-                {disconnecting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                Disconnect Number
-              </button>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleLaunchEmbeddedSignup}
+                  disabled={connecting || loading}
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#1877F2] hover:bg-[#166fe5] rounded-xl transition shadow-xs flex items-center gap-2 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${connecting ? "animate-spin" : ""}`} />
+                  <span>Connect with Facebook</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDisconnect}
+                  disabled={disconnecting}
+                  className="px-4 py-2 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition border border-rose-200 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {disconnecting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  Disconnect Number
+                </button>
+              </div>
             </div>
           </div>
         ) : (
@@ -518,17 +530,6 @@ export default function WhatsAppEmbeddedSignup({
                     Connect WhatsApp Business with Facebook
                   </>
                 )}
-              </button>
-
-              {/* Developer / Demo Quick Connect */}
-              <button
-                type="button"
-                onClick={handleQuickTestConnect}
-                disabled={connecting || loading}
-                className="w-full sm:w-auto px-5 py-3.5 rounded-xl font-semibold text-brand-purple bg-brand-50 hover:bg-brand-100 border border-brand-200 transition flex items-center justify-center gap-2 text-sm"
-              >
-                <Zap className="w-4 h-4 text-amber-500" />
-                Demo 1-Click Instant Connect
               </button>
             </div>
 

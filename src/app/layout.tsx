@@ -40,18 +40,18 @@ export default function RootLayout({
           <LanguageProvider>
             <SubscriptionGuard>
               <Navbar />
-              <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 lg:pb-8">
                 {children}
               </main>
-              <footer className="mt-auto border-t border-brand-soft bg-white/70 backdrop-blur-md py-6 text-center text-xs text-slate-muted font-medium">
+              <footer className="mt-auto border-t border-brand-soft bg-white/70 backdrop-blur-md py-6 pb-24 lg:pb-6 text-center text-xs text-slate-muted font-medium">
                 <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <p>iBrainLabs © 2026 – Expertise In Every Execution</p>
-                  <div className="flex items-center gap-4 text-brand-purple">
-                    <span>⚡ 20 Msgs/Sec Bulk Engine</span>
+                  <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4 text-brand-purple text-[11px] sm:text-xs">
+                    <span>⚡ 20 Msgs/Sec Engine</span>
                     <span>•</span>
-                    <span>🔒 Official Meta WhatsApp Cloud API</span>
+                    <span>🔒 Official Meta WhatsApp API</span>
                     <span>•</span>
-                    <span>📊 Real-Time Delivery & Read Tracking</span>
+                    <span>📊 Real-Time Read Tracking</span>
                   </div>
                 </div>
               </footer>

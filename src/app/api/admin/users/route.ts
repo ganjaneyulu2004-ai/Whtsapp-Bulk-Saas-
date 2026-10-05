@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
+import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -59,6 +60,75 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const { userId, action, days = 30, plan = "Growth" } = body;
+
+    // Direct Client Creation by Admin
+    if (action === "CREATE") {
+      const { name, businessName, mobile, username, password } = body;
+      if (!name?.trim() || !username?.trim() || !password) {
+        return NextResponse.json({ error: "Name, username, and password are required" }, { status: 400 });
+      }
+
+      const cleanUsername = username.trim().toLowerCase();
+      const existing = await prisma.user.findUnique({
+        where: { username: cleanUsername },
+      });
+      if (existing) {
+        return NextResponse.json({ error: "Username is already registered" }, { status: 409 });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      const newUser = await prisma.user.create({
+        data: {
+          name: name.trim(),
+          username: cleanUsername,
+          passwordHash,
+          businessName: businessName?.trim() || null,
+          mobile: mobile?.trim() || null,
+          role: "USER",
+        },
+      });
+
+      const userBusiness = await prisma.business.create({
+        data: {
+          userId: newUser.id,
+          name: businessName?.trim() || `${name.trim()}'s Business`,
+          category: "Retail & Business",
+          phone: mobile?.trim() || null,
+          language: "en",
+        },
+      });
+
+      await prisma.whatsAppConfig.create({
+        data: {
+          businessId: userBusiness.id,
+          waApiVersion: "v26.0",
+          messagingLimitTier: "TIER_250",
+          isConnected: false,
+        },
+      });
+
+      const now = new Date();
+      const newEndDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+      await prisma.subscription.create({
+        data: {
+          userId: newUser.id,
+          plan,
+          amount: 0,
+          status: "ACTIVE",
+          startDate: now,
+          endDate: newEndDate,
+          approvedAt: now,
+          adminNote: "Directly created and activated by Admin",
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Client ${name} created and activated with ${days} days on ${plan} plan!`,
+        user: { id: newUser.id, username: cleanUsername },
+      });
+    }
 
     if (!userId) {
       return NextResponse.json({ error: "userId is required" }, { status: 400 });

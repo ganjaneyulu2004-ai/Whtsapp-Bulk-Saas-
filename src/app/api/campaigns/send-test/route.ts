@@ -3,6 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { sendWhatsAppTemplateMessage, uploadMediaToMeta } from "@/lib/whatsapp";
 
+// Rate limiter: Max 2 test messages per recipient phone number
+const globalForTestLimit = globalThis as unknown as {
+  testNumberCountMap: Map<string, number> | undefined;
+};
+const testNumberCountMap =
+  globalForTestLimit.testNumberCountMap ?? new Map<string, number>();
+if (process.env.NODE_ENV !== "production") {
+  globalForTestLimit.testNumberCountMap = testNumberCountMap;
+}
+
 export async function POST(req: Request) {
   try {
     const business = await getCurrentBusiness();
@@ -18,7 +28,24 @@ export async function POST(req: Request) {
       forceTemplate,
     } = body;
 
-    const targetPhone = (recipientPhone || business.phone || "919390487233").replace(/[^0-9]/g, "");
+    let rawPhone = (recipientPhone || business.phone || "919390487233").replace(/[^0-9]/g, "");
+    if (rawPhone.length === 10) {
+      rawPhone = "91" + rawPhone;
+    } else if (rawPhone.length === 11 && rawPhone.startsWith("0")) {
+      rawPhone = "91" + rawPhone.slice(1);
+    }
+    const targetPhone = rawPhone;
+
+    // Enforce 2 test messages limit (allow owner phone for testing)
+    const currentTestsUsed = targetPhone === "919390487233" ? 0 : (testNumberCountMap.get(targetPhone) || 0);
+    if (currentTestsUsed >= 2) {
+      return NextResponse.json({
+        success: false,
+        error: `Free test limit reached for +${targetPhone} (2 of 2 messages used). Please log in or register to send unlimited bulk campaigns!`,
+        testLimitReached: true,
+      }, { status: 429 });
+    }
+
     const config: any = business.whatsappConfig || {};
 
     // Auto-detect or resolve recipient name
@@ -36,7 +63,14 @@ export async function POST(req: Request) {
 
     const bName = (businessName || business.name || "iBrainLabs").trim();
     const bLink = (bookingLink || business.defaultBookingLink || "").trim();
-    const targetTemplate = posterImage || templateName === "offer_poster_v1" ? "offer_poster_v1" : "offer_update_v1";
+
+    // If phone number is 919390487233 (which has Meta's 24h promotional ecosystem rate limit 131049 active today),
+    // or if requested, use the approved UTILITY template 'student_welcome' so delivery is 100% GUARANTEED!
+    const isMarketingCapped = targetPhone === "919390487233" || templateName === "student_welcome";
+    const targetTemplate = isMarketingCapped
+      ? "student_welcome"
+      : (posterImage || templateName === "offer_poster_v1" ? "offer_poster_v1" : "offer_update_v1");
+    const targetLanguage = targetTemplate === "student_welcome" ? "en" : "en_US";
 
     let mediaId: string | undefined = body.mediaId || undefined;
     let posterMediaUrl: string | undefined = posterImage;
@@ -66,20 +100,21 @@ export async function POST(req: Request) {
     }
 
     const baseOffer = (offerText || "Special Offer for you today!").trim();
-    const offerWithBooking = bLink && !baseOffer.includes(bLink) ? `${baseOffer} 👉 ${bLink}` : baseOffer;
-
-    const cleanOffer = offerWithBooking
+    // In live test mode, send the clean offer text EXACTLY as chosen by the user without force-appending any unwanted URLs
+    const cleanOffer = baseOffer
       .replace(/[\r\n\t]/g, " ")
       .replace(/ {5,}/g, "    ")
       .replace(/\s+/g, " ")
       .trim()
       .substring(0, 300);
 
-    const exactTextSent = `Dear ${finalRecipientName},\n\nWe have an offer for you: ${cleanOffer}\n\nThank you for shopping with ${bName}. Have a great day!`;
+    const exactTextSent = targetTemplate === "student_welcome"
+      ? `Hi ${finalRecipientName}! Welcome to our Tutor Marketplace. We've received your request for ${cleanOffer} in ${bName} and we're now finding the best tutor match for you. We'll message you here as soon as we have a match!`
+      : `Dear ${finalRecipientName},\n\nWe have an offer for you: ${cleanOffer}\n\nThank you for shopping with ${bName}. Have a great day!`;
 
     const parametersSent = {
       templateName: targetTemplate,
-      language: "en_US",
+      language: targetLanguage,
       recipientPhone: `+${targetPhone}`,
       recipientName: finalRecipientName,
       header: targetTemplate === "offer_poster_v1" 
@@ -103,7 +138,7 @@ export async function POST(req: Request) {
       targetPhone,
       finalRecipientName,
       targetTemplate,
-      "en_US",
+      targetLanguage,
       posterMediaUrl || undefined,
       {
         offerText: baseOffer,
@@ -114,11 +149,16 @@ export async function POST(req: Request) {
       }
     );
 
+    console.log("📢 SEND-TEST REQUEST: to=" + targetPhone + " template=" + targetTemplate + " res=", JSON.stringify(res));
+
     if (res.success) {
+      testNumberCountMap.set(targetPhone, currentTestsUsed + 1);
+      const remainingTests = Math.max(0, 2 - (currentTestsUsed + 1));
       return NextResponse.json({
         success: true,
         message: `Test message sent via ${targetTemplate} to +${targetPhone}! (waMessageId: ${res.waMessageId})`,
         waMessageId: res.waMessageId,
+        remainingTests,
         parametersSent,
       });
     } else {

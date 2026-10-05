@@ -249,6 +249,13 @@ export async function sendWhatsAppTemplateMessage(
   }
 
   try {
+    let cleanRecipient = String(recipientPhone || "").replace(/[^0-9]/g, "");
+    if (cleanRecipient.length === 10) {
+      cleanRecipient = "91" + cleanRecipient;
+    } else if (cleanRecipient.length === 11 && cleanRecipient.startsWith("0")) {
+      cleanRecipient = "91" + cleanRecipient.slice(1);
+    }
+
     let payload: any;
     const recipient = recipientName?.trim() || "Customer";
     const bName = params?.businessName?.trim() || "iBrainLabs";
@@ -274,7 +281,7 @@ export async function sendWhatsAppTemplateMessage(
         payload = {
           messaging_product: "whatsapp",
           recipient_type: "individual",
-          to: recipientPhone,
+          to: cleanRecipient,
           type: "image",
           image: {
             id: mediaId,
@@ -285,7 +292,7 @@ export async function sendWhatsAppTemplateMessage(
         payload = {
           messaging_product: "whatsapp",
           recipient_type: "individual",
-          to: recipientPhone,
+          to: cleanRecipient,
           type: "image",
           image: {
             link: mediaUrl,
@@ -296,7 +303,7 @@ export async function sendWhatsAppTemplateMessage(
         payload = {
           messaging_product: "whatsapp",
           recipient_type: "individual",
-          to: recipientPhone,
+          to: cleanRecipient,
           type: "text",
           text: {
             body: directCaption,
@@ -390,7 +397,7 @@ export async function sendWhatsAppTemplateMessage(
       payload = {
         messaging_product: "whatsapp",
         recipient_type: "individual",
-        to: recipientPhone,
+        to: cleanRecipient,
         type: "template",
         template: {
           name: templateName,

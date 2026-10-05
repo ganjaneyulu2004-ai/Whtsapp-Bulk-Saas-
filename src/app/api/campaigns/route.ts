@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { processCampaignSending } from "@/lib/queue";
@@ -39,6 +41,24 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "ADMIN") {
+      const sub = await prisma.subscription.findFirst({
+        where: { userId: session.user.id },
+        orderBy: { createdAt: "desc" },
+      });
+      if (!sub || sub.status !== "ACTIVE") {
+        return NextResponse.json(
+          { error: "Payment required. Active subscription needed to launch campaigns." },
+          { status: 403 }
+        );
+      }
+    }
+
     const business = await getCurrentBusiness();
     const body = await req.json();
 

@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { processCampaignSending } from "@/lib/queue";
 
-import { setLastWebhookReceivedAt } from "@/lib/webhook-state";
+import { setLastWebhookReceivedAt, recordMessageDeliveryStatus } from "@/lib/webhook-state";
 
 function verifyMetaSignature(rawBody: string, signatureHeader: string | null, secret: string): boolean {
   if (!signatureHeader || !signatureHeader.startsWith("sha256=")) {
@@ -61,6 +61,8 @@ export async function POST(req: Request) {
     } catch {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
+
+    console.log("📥 META WEBHOOK EVENT:", JSON.stringify(body));
 
     processWebhookPayload(body).catch((err) => {
       console.error("Error processing background webhook payload:", err);
@@ -143,6 +145,19 @@ async function processWebhookPayload(body: any) {
       const timestamp = statusObj.timestamp
         ? new Date(parseInt(statusObj.timestamp, 10) * 1000)
         : new Date();
+
+      const errObj = statusObj.errors?.[0];
+      const errCode = errObj?.code ? String(errObj.code) : undefined;
+      const errMsg = errObj?.error_data?.details || errObj?.title || errObj?.message || undefined;
+
+      recordMessageDeliveryStatus({
+        waMessageId: waMsgId,
+        recipientId: statusObj.recipient_id || "",
+        status: statusType as any,
+        errorCode: errCode,
+        errorMessage: errMsg,
+        timestamp,
+      });
 
       const log = await prisma.messageLog.findUnique({
         where: { waMessageId: waMsgId },

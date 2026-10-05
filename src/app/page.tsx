@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageContext";
 import { 
   PlusCircle, 
@@ -29,20 +30,12 @@ import {
   HelpCircle,
   Loader2
 } from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend
-} from "recharts";
+import FreeTrialScannerSection from "@/components/FreeTrialScannerSection";
 
 export default function DashboardPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { data: session, status } = useSession();
 
   const [filterRange, setFilterRange] = useState<"today" | "7days" | "30days" | "custom">("30days");
   const [customStart, setCustomStart] = useState("");
@@ -78,13 +71,30 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchStats();
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(() => {
+    if (session) {
+      if (session.user?.role !== "ADMIN") {
+        fetch("/api/subscription/status")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.status === "PENDING_VERIFICATION") {
+              router.replace("/payment-pending");
+            } else if (data?.status !== "ACTIVE") {
+              router.replace("/complete-payment");
+            }
+          })
+          .catch(() => {});
+      }
+
       fetchStats();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [filterRange, customStart, customEnd]);
+      // Auto-refresh every 30 seconds
+      const interval = setInterval(() => {
+        fetchStats();
+      }, 30000);
+      return () => clearInterval(interval);
+    } else {
+      setLoading(false);
+    }
+  }, [session, filterRange, customStart, customEnd, router]);
 
   const stats = statsData?.stats || {
     totalSent: 0,
@@ -101,6 +111,100 @@ export default function DashboardPage() {
   const waConfig = statsData?.whatsappConfig;
   const isWhatsAppConnected = !!waConfig?.isConnected;
 
+  if (status === "loading") {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-brand-purple animate-spin" />
+      </div>
+    );
+  }
+
+  // PUBLIC HOME PAGE (When Not Logged In)
+  if (!session) {
+    return (
+      <div className="space-y-10 pb-16">
+        {/* Hero Section */}
+        <div className="text-center max-w-3xl mx-auto space-y-4 pt-4 sm:pt-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-light border border-brand-soft text-brand-purple text-xs font-heading font-bold shadow-xs">
+            <ShieldCheck className="w-4 h-4 text-brand-blue" />
+            Official Meta Cloud API • 100% Anti-Ban Guarantee
+          </div>
+
+          <h1 className="text-3xl sm:text-5xl font-heading font-extrabold text-text-main tracking-tight leading-tight">
+            Send Real WhatsApp Offers to Customers at{" "}
+            <span className="bg-brand-gradient bg-clip-text text-transparent">20 Msgs/Sec</span>
+          </h1>
+
+          <p className="text-sm sm:text-base text-slate-muted max-w-2xl mx-auto leading-relaxed">
+            The official WhatsApp marketing engine built for retail stores, restaurants, showrooms, and local businesses. 98% open rates with zero third-party ban risk.
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Link
+              href="/register"
+              className="px-6 py-3 rounded-2xl bg-brand-gradient text-white font-heading font-bold text-sm shadow-md shadow-brand-purple/20 hover:opacity-95 transition flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Create Free Account
+            </Link>
+            <Link
+              href="/login"
+              className="px-6 py-3 rounded-2xl bg-white border border-brand-soft text-brand-purple font-heading font-bold text-sm shadow-xs hover:bg-brand-light transition flex items-center gap-2"
+            >
+              Account Login
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+
+        {/* EXACT Free Trial Live WhatsApp Scanner Section (with Brand Colors & Direct Create Account/Login) */}
+        <div id="live-demo" className="max-w-5xl mx-auto">
+          <FreeTrialScannerSection maxTestLimit={2} showLoginRedirect={true} />
+        </div>
+
+        {/* 3 Pillar Features */}
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+          <div className="p-6 bg-white rounded-3xl border border-brand-soft shadow-card space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-brand-light text-brand-purple flex items-center justify-center">
+              <Zap className="w-6 h-6 text-brand-purple" />
+            </div>
+            <h3 className="font-heading font-bold text-base text-text-main">
+              Lightning-Fast Bulk Blasts
+            </h3>
+            <p className="text-xs text-slate-muted leading-relaxed">
+              Broadcast festive sales, flash discounts, and VIP offers to thousands of customers simultaneously at 20 msgs/second.
+            </p>
+          </div>
+
+          <div className="p-6 bg-white rounded-3xl border border-brand-soft shadow-card space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-brand-light text-brand-blue flex items-center justify-center">
+              <ShieldCheck className="w-6 h-6 text-brand-blue" />
+            </div>
+            <h3 className="font-heading font-bold text-base text-text-main">
+              100% Anti-Ban Guarantee
+            </h3>
+            <p className="text-xs text-slate-muted leading-relaxed">
+              Verified directly through official Meta Cloud API. No risky third-party QR scanners, no phone disconnection, zero ban risk.
+            </p>
+          </div>
+
+          <div className="p-6 bg-white rounded-3xl border border-brand-soft shadow-card space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-brand-light text-emerald-600 flex items-center justify-center">
+              <BarChart3 className="w-6 h-6 text-emerald-600" />
+            </div>
+            <h3 className="font-heading font-bold text-base text-text-main">
+              Live Delivery & Read Tracking
+            </h3>
+            <p className="text-xs text-slate-muted leading-relaxed">
+              Watch messages deliver with real-time double ticks. Track who opened your offers and trigger 1-click follow-up blasts.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // AUTHENTICATED DASHBOARD (After Login - Test Button is completely removed)
   return (
     <div className="space-y-8 pb-12">
 
@@ -134,7 +238,38 @@ export default function DashboardPage() {
           </Link>
         </div>
       )}
-      
+
+      {/* WhatsApp Connection Action Callout for Active Clients */}
+      {!isWhatsAppConnected && (
+        <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50 to-brand-50 border-2 border-emerald-300 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md">
+              <span className="text-2xl">📱</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-heading font-bold uppercase tracking-wider">
+                  Next Step
+                </span>
+                <h3 className="text-base sm:text-lg font-heading font-extrabold text-slate-heading">
+                  Subscription Active! Connect Your Business WhatsApp Number
+                </h3>
+              </div>
+              <p className="text-xs text-slate-muted mt-1 max-w-xl">
+                Link your official WhatsApp Business phone number via Meta Embedded Signup in Settings to start sending marketing offers and broadcasts.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/settings"
+            className="w-full md:w-auto px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-xs shadow-md transition-all shrink-0 flex items-center justify-center gap-2"
+          >
+            <span>Connect WhatsApp in Settings</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
+
       {/* Hero Welcome & Filter Bar */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
         <div className="relative z-10">
@@ -386,135 +521,66 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* QUICK ACTIONS & RECHARTS DELIVERY TIMELINE */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* QUICK ACTIONS & CAMPAIGN SHORTCUTS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* Recharts Chart: Daily Sent vs Delivered vs Read */}
-        <div className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-heading font-bold text-text-main flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-brand-purple" />
-                <span>Daily Sent vs Delivered vs Read</span>
-              </h2>
-              <p className="text-xs text-slate-muted">
-                Track how fast recipients receive and read your promotional messages.
-              </p>
+        {/* Launch Bulk Campaign Card */}
+        <div className="bg-brand-gradient rounded-3xl p-6 sm:p-8 text-white shadow-card flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white mb-4 shadow-sm">
+              <Zap className="w-6 h-6" />
             </div>
+            <h3 className="text-xl sm:text-2xl font-heading font-bold mb-2">
+              Launch Bulk Campaign
+            </h3>
+            <p className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-md">
+              Reach thousands of verified shoppers instantly using pre-approved WhatsApp templates and AI offer generator.
+            </p>
           </div>
 
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="purpleSent" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6B2D8F" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#6B2D8F" stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="blueDelivered" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4A66B0" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#4A66B0" stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="cyanRead" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E9E4F5" />
-                <XAxis dataKey="date" tick={{ fill: "#645D7E", fontSize: 11 }} />
-                <YAxis tick={{ fill: "#645D7E", fontSize: 11 }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#FFFFFF",
-                    borderColor: "#E9E4F5",
-                    borderRadius: "16px",
-                    boxShadow: "0 10px 25px -5px rgba(107, 45, 143, 0.1)",
-                    color: "#2B2350",
-                    fontSize: "12px",
-                  }}
-                />
-                <Legend iconType="circle" />
-                <Area
-                  type="monotone"
-                  dataKey="sent"
-                  name="Sent"
-                  stroke="#6B2D8F"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#purpleSent)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="delivered"
-                  name="Delivered"
-                  stroke="#4A66B0"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#blueDelivered)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="read"
-                  name="Read"
-                  stroke="#8B5CF6"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#cyanRead)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Quick Launch & Campaign Shortcuts */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="bg-brand-gradient rounded-3xl p-6 sm:p-7 text-white shadow-card flex flex-col justify-between relative overflow-hidden">
-            <div>
-              <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white mb-4">
-                <Zap className="w-5 h-5" />
-              </div>
-              <h3 className="text-xl font-heading font-bold mb-2">
-                Launch Bulk Campaign
-              </h3>
-              <p className="text-xs text-white/80 leading-relaxed">
-                Reach thousands of verified shoppers instantly using pre-approved WhatsApp templates and AI offer generator.
-              </p>
-            </div>
-
+          <div className="relative z-10 pt-6">
             <Link
               href="/create-campaign"
-              className="mt-6 w-full py-3 px-5 rounded-2xl bg-white text-brand-purple hover:bg-brand-light font-heading font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center py-3.5 px-6 rounded-2xl bg-white text-brand-purple hover:bg-brand-light font-heading font-bold text-xs sm:text-sm gap-2 shadow-md transition-transform active:scale-95 cursor-pointer"
             >
               <PlusCircle className="w-4 h-4" />
               <span>Create Campaign</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
+        </div>
 
-          <div className="bg-white rounded-3xl p-6 border border-brand-soft shadow-card space-y-3">
-            <h4 className="font-heading font-bold text-sm text-text-main">
-              Outreach Shortcuts
+        {/* Outreach Shortcuts Card */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card space-y-4 flex flex-col justify-between">
+          <div>
+            <h4 className="font-heading font-bold text-base text-text-main flex items-center gap-2 mb-1">
+              <Sparkles className="w-4 h-4 text-brand-purple" />
+              <span>Outreach Shortcuts</span>
             </h4>
-            <div className="space-y-2">
+            <p className="text-xs text-slate-muted mb-4">
+              Quick access to your contact lists, customer live chats, and billing.
+            </p>
+            <div className="space-y-2.5">
               <Link
                 href="/create-campaign"
-                className="p-3 rounded-2xl bg-brand-light hover:bg-brand-soft/70 transition-colors flex items-center justify-between text-xs font-semibold text-text-main"
+                className="p-3.5 rounded-2xl bg-brand-light hover:bg-brand-soft/70 transition-colors flex items-center justify-between text-xs font-semibold text-text-main group"
               >
-                <span>Upload CSV Contact List</span>
+                <span className="group-hover:text-brand-purple transition-colors">📁 Upload CSV Contact List</span>
                 <ChevronRight className="w-4 h-4 text-brand-purple" />
               </Link>
               <Link
                 href="/inbox"
-                className="p-3 rounded-2xl bg-brand-light hover:bg-brand-soft/70 transition-colors flex items-center justify-between text-xs font-semibold text-text-main"
+                className="p-3.5 rounded-2xl bg-brand-light hover:bg-brand-soft/70 transition-colors flex items-center justify-between text-xs font-semibold text-text-main group"
               >
-                <span>Customer Chat Inbox</span>
+                <span className="group-hover:text-brand-purple transition-colors">💬 Customer Chat Inbox</span>
                 <ChevronRight className="w-4 h-4 text-brand-purple" />
               </Link>
               <Link
                 href="/billing"
-                className="p-3 rounded-2xl bg-brand-light hover:bg-brand-soft/70 transition-colors flex items-center justify-between text-xs font-semibold text-text-main"
+                className="p-3.5 rounded-2xl bg-brand-light hover:bg-brand-soft/70 transition-colors flex items-center justify-between text-xs font-semibold text-text-main group"
               >
-                <span>Billing & Subscription</span>
+                <span className="group-hover:text-brand-purple transition-colors">💳 Billing & Subscription</span>
                 <ChevronRight className="w-4 h-4 text-brand-purple" />
               </Link>
             </div>
