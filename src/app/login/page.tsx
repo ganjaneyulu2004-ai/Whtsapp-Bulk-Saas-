@@ -624,67 +624,125 @@ function LoginForm() {
                     </button>
                   ))}
                 </div>
-                {/* Clean WhatsApp Message Delivery Preview */}
+                           {/* Isolated Transparent Background Mobile Phone Mockup */}
                 <div className="mb-4 space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-0.5">
                     <span className="flex items-center gap-1.5 text-brand-purple">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      📱 WhatsApp Message Preview:
+                      📱 Customer WhatsApp Screen:
                     </span>
                     <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                      Official Format
+                      Official Meta View
                     </span>
                   </div>
 
-                  {/* Clean WhatsApp Chat Card */}
-                  <div className="rounded-2xl overflow-hidden border border-emerald-200/60 shadow-md bg-[#ECE5DD] flex flex-col">
-                    <div className="bg-[#075E54] text-white px-3 py-2 flex items-center justify-between shadow-xs">
-                      <div className="flex items-center gap-1.5">
-                        <div className="relative w-6 h-6 rounded-full bg-white flex items-center justify-center text-brand-purple font-black text-[10px]">
-                          iB
-                          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white flex items-center justify-center text-[6px] text-white font-bold">
-                            ✓
-                          </span>
-                        </div>
-                        <div className="leading-tight">
-                          <div className="flex items-center gap-0.5 font-bold text-[11px] text-white">
-                            <span>iBrainLabs Offers</span>
-                            <CheckCircle2 className="w-3 h-3 text-emerald-300 fill-emerald-500 inline" />
-                          </div>
-                          <span className="text-[8px] text-emerald-100/80 block">Official Business</span>
-                        </div>
-                      </div>
-                      <span className="text-[9px] text-emerald-100/80 font-medium">10:45 AM</span>
-                    </div>
+                  {/* Transparent Floating Phone Chassis */}
+                  <div className="relative mx-auto w-full max-w-[320px] pt-1 pb-1">
+                    {/* Right Side Buttons */}
+                    <div className="absolute -right-[3px] top-20 w-[3px] h-8 bg-zinc-600 rounded-r-xs" />
+                    <div className="absolute -right-[3px] top-32 w-[3px] h-12 bg-zinc-600 rounded-r-xs" />
 
-                    <div 
-                      className="p-3 space-y-1.5"
-                      style={{
-                        backgroundColor: "#ECE5DD",
-                        backgroundImage: `radial-gradient(#d3cabb 1px, transparent 1px)`,
-                        backgroundSize: "14px 14px"
-                      }}
-                    >
-                      <div className="relative max-w-[96%] bg-white rounded-xl rounded-tl-sm p-3 shadow-xs border border-black/5 text-slate-800 space-y-1.5">
-                        <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-light text-brand-purple text-[9px] font-bold">
-                          <Sparkles className="w-2.5 h-2.5 text-brand-purple" />
-                          ⭐ Exclusive Offer for You
-                        </div>
-                        <p className="text-[10px] text-slate-600 font-medium">Dear Customer,</p>
-                        <div className="text-[11px] leading-snug font-semibold text-slate-900 bg-amber-50 p-2 rounded-lg border border-amber-200/60">
-                          We have an offer for you:{" "}
-                          <span className="text-brand-purple font-bold block mt-0.5">
-                            {testCustomOffer}
-                          </span>
-                        </div>
-                        <p className="text-[9px] text-slate-500">Thank you for shopping with iBrainLabs!</p>
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[9px] text-slate-400">
-                          <span className="italic text-[8px]">Reply STOP to unsubscribe</span>
-                          <div className="flex items-center gap-0.5 text-emerald-600 font-medium">
-                            <span>Just now</span>
-                            <CheckCheck className="w-3 h-3 text-[#34B7F1]" />
+                    <div className="relative rounded-[40px] p-2 bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-950 border-[3px] border-zinc-600/90 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.1)]">
+                      <div className="relative rounded-[32px] overflow-hidden bg-[#ECE5DD] border border-black/40 flex flex-col shadow-inner">
+                        
+                        {/* Punch-hole camera status bar */}
+                        <div className="relative bg-[#075E54] text-white px-4 pt-1.5 pb-1 flex items-center justify-between text-[10px] select-none">
+                          <span>11:33</span>
+                          <div className="absolute left-1/2 -translate-x-1/2 top-1.5 w-3 h-3 bg-black rounded-full ring-1 ring-zinc-800 flex items-center justify-center">
+                            <div className="w-1 h-1 bg-[#0a1526] rounded-full border border-blue-900/50" />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[9px] font-bold">5G</span>
+                            <Wifi className="w-2.5 h-2.5" />
+                            <Battery className="w-3 h-3" />
                           </div>
                         </div>
+
+                        {/* WhatsApp Header */}
+                        <div className="bg-[#075E54] text-white px-2.5 py-1.5 flex items-center justify-between border-t border-white/10">
+                          <div className="flex items-center gap-1.5">
+                            <ChevronLeft className="w-4 h-4 text-white/90 -ml-1 cursor-pointer" />
+                            <div className="relative w-6 h-6 rounded-full bg-white flex items-center justify-center text-brand-purple font-black text-[10px]">
+                              iB
+                              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white flex items-center justify-center text-[6px] text-white font-bold">
+                                ✓
+                              </span>
+                            </div>
+                            <div className="leading-tight">
+                              <div className="flex items-center gap-0.5 font-bold text-[11px] text-white">
+                                <span>iBrainLabs Offers</span>
+                                <CheckCircle2 className="w-3 h-3 text-emerald-300 fill-emerald-500 inline" />
+                              </div>
+                              <span className="text-[8px] text-emerald-100/80 block">Official Business</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-white/80">
+                            <Video className="w-3.5 h-3.5" />
+                            <Phone className="w-3 h-3" />
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </div>
+                        </div>
+
+                        {/* Chat Body */}
+                        <div 
+                          className="p-2.5 space-y-1.5 min-h-[160px]"
+                          style={{
+                            backgroundColor: "#ECE5DD",
+                            backgroundImage: `radial-gradient(#d3cabb 1px, transparent 1px)`,
+                            backgroundSize: "14px 14px"
+                          }}
+                        >
+                          <div className="flex justify-center">
+                            <span className="px-2 py-0.5 rounded-md bg-white/80 text-[8px] font-semibold text-slate-600 uppercase">
+                              Today
+                            </span>
+                          </div>
+
+                          <div className="relative max-w-[96%] bg-white rounded-xl rounded-tl-none p-2.5 shadow-xs border border-black/5 text-slate-800 space-y-1">
+                            <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-light text-brand-purple text-[9px] font-bold">
+                              <Sparkles className="w-2.5 h-2.5 text-brand-purple" />
+                              ⭐ Exclusive Offer for You
+                            </div>
+                            <p className="text-[10px] text-slate-600 font-medium">Dear Customer,</p>
+                            <div className="text-[11px] leading-snug font-semibold text-slate-900 bg-amber-50 p-2 rounded-lg border border-amber-200/60">
+                              We have an offer for you:{" "}
+                              <span className="text-brand-purple font-bold block mt-0.5">
+                                {testCustomOffer}
+                              </span>
+                            </div>
+                            <p className="text-[9px] text-slate-500">Thank you for shopping with iBrainLabs!</p>
+                            <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[9px] text-slate-400">
+                              <span className="italic text-[8px]">Reply STOP to unsubscribe</span>
+                              <div className="flex items-center gap-0.5 text-emerald-600 font-medium">
+                                <span>Just now</span>
+                                <CheckCheck className="w-3 h-3 text-[#34B7F1]" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Bottom Bar */}
+                        <div className="bg-[#F0F2F5] px-2 py-1 flex items-center gap-1.5 border-t border-slate-200">
+                          <div className="flex-1 bg-white rounded-full px-2 py-1 flex items-center justify-between text-slate-400 text-[10px]">
+                            <div className="flex items-center gap-1">
+                              <Smile className="w-3 h-3 text-slate-500" />
+                              <span>Message</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-slate-500">
+                              <Paperclip className="w-3 h-3" />
+                              <Camera className="w-3 h-3" />
+                            </div>
+                          </div>
+                          <div className="w-6 h-6 rounded-full bg-[#00A884] text-white flex items-center justify-center shadow-xs">
+                            <Mic className="w-3 h-3" />
+                          </div>
+                        </div>
+
+                        {/* Bottom gesture line */}
+                        <div className="bg-[#F0F2F5] pb-1.5 flex justify-center">
+                          <div className="w-20 h-1 bg-zinc-800/80 rounded-full" />
+                        </div>
+
                       </div>
                     </div>
                   </div>
