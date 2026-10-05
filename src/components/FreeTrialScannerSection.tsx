@@ -10,7 +10,6 @@ import {
   Sparkles, 
   ShieldCheck, 
   Zap, 
-  ArrowRight,
   Smartphone,
   Check,
   TrendingUp,
@@ -436,28 +435,7 @@ export default function FreeTrialScannerSection({
             </div>
           </div>
 
-          {/* Call to action for full campaigns */}
-          <div className="bg-brand-gradient/30 p-5 rounded-2xl border border-brand-purple/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <span className="text-xs font-bold text-white block">Satisfied with the speed?</span>
-              <span className="text-[11px] text-slate-200">Start full bulk blast to your customer list</span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Link
-                href="/register"
-                className="px-4 py-2.5 rounded-xl font-heading font-extrabold text-xs bg-white text-brand-purple hover:bg-brand-50 transition shadow-md flex items-center gap-1.5"
-              >
-                Create Account
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-              <Link
-                href="/login"
-                className="px-3.5 py-2.5 rounded-xl font-heading font-bold text-xs bg-white/10 hover:bg-white/20 text-white border border-white/20 transition flex items-center gap-1"
-              >
-                Login
-              </Link>
-            </div>
-          </div>
+
 
         </div>
 
