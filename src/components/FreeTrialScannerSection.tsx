@@ -281,7 +281,7 @@ export default function FreeTrialScannerSection({
             {/* Real Photorealistic Phone Image Display */}
             <div className="relative rounded-[28px] overflow-hidden border-2 border-white/20 shadow-2xl bg-gradient-to-b from-slate-900 to-black group max-w-md mx-auto">
               <Image 
-                src="/real-phone-mockup.jpg" 
+                src="/brand/real-phone-mockup.jpg" 
                 alt="Real Customer WhatsApp Offer on Smartphone"
                 width={700}
                 height={933}

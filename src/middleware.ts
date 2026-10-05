@@ -10,6 +10,7 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/brand") ||
     pathname.startsWith("/uploads") ||
     pathname.startsWith("/_next") ||
+    pathname.match(/\.(jpg|jpeg|png|gif|svg|ico|webp|avif|mp3|wav|ogg)$/i) ||
     pathname === "/favicon.ico" ||
     pathname === "/favicon.png"
   ) {
@@ -159,6 +160,6 @@ export const config = {
     /*
      * Match all request paths except for static files
      */
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:jpg|jpeg|gif|png|svg|ico|webp|mp3)$).*)",
   ],
 };

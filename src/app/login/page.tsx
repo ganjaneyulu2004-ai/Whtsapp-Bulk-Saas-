@@ -639,7 +639,7 @@ function LoginForm() {
                   {/* Real Photorealistic Phone Image Display */}
                   <div className="relative rounded-2xl overflow-hidden border border-brand-soft shadow-lg bg-black group max-w-sm mx-auto">
                     <Image 
-                      src="/real-phone-mockup.jpg" 
+                      src="/brand/real-phone-mockup.jpg" 
                       alt="Real WhatsApp Offer Phone Screen"
                       width={600}
                       height={800}
