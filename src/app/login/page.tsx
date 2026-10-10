@@ -201,25 +201,16 @@ function LoginForm() {
   const [welcomeName, setWelcomeName] = useState("");
   const [celebrationSubtitle, setCelebrationSubtitle] = useState("Signing you into iBrainLabs workspace...");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performLogin = async (loginUser: string, loginPass: string) => {
     setErrorMessage(null);
-
-    if (!username.trim()) {
-      setErrorMessage("Please enter username");
-      return;
-    }
-    if (!password) {
-      setErrorMessage("Please enter password");
-      return;
-    }
-
+    setUsername(loginUser);
+    setPassword(loginPass);
     setLoading(true);
 
     try {
       const res = await signIn("credentials", {
-        username: username.trim(),
-        password,
+        username: loginUser.trim(),
+        password: loginPass,
         redirect: false,
       });
 
@@ -234,7 +225,7 @@ function LoginForm() {
       const statusRes = await fetch("/api/subscription/status");
       const statusData = await statusRes.json();
 
-      const displayName = statusData?.subscription?.payerName || username.trim();
+      const displayName = statusData?.subscription?.payerName || loginUser.trim();
       setWelcomeName(displayName);
 
       if (statusData?.role === "ADMIN") {
@@ -269,6 +260,33 @@ function LoginForm() {
       setErrorMessage("An unexpected error occurred. Please try again.");
       setLoading(false);
     }
+  };
+
+  // Auto-login trigger if accessed with ?autologin=demo or ?autologin=admin or ?quick=true
+  useEffect(() => {
+    const autologin = searchParams.get("autologin");
+    const demo = searchParams.get("demo");
+    const admin = searchParams.get("admin");
+    const quick = searchParams.get("quick");
+
+    if (autologin === "admin" || admin === "true") {
+      performLogin("ADMIN_IbrainTest", "ADMIN_IbrainTest123");
+    } else if (autologin === "demo" || demo === "true" || quick === "true") {
+      performLogin("demo_client", "demo123");
+    }
+  }, [searchParams]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim()) {
+      setErrorMessage("Please enter username");
+      return;
+    }
+    if (!password) {
+      setErrorMessage("Please enter password");
+      return;
+    }
+    await performLogin(username, password);
   };
 
   return (
@@ -549,6 +567,39 @@ function LoginForm() {
                       </>
                     )}
                   </button>
+
+                  {/* 1-Click Instant Demo Access (No Typing Needed) */}
+                  <div className="pt-2">
+                    <div className="relative flex py-2 items-center">
+                      <div className="flex-grow border-t border-brand-soft"></div>
+                      <span className="flex-shrink mx-3 text-[11px] font-heading font-bold text-slate-muted uppercase tracking-wider">
+                        ⚡ 1-Click Instant Login (No Typing)
+                      </span>
+                      <div className="flex-grow border-t border-brand-soft"></div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => performLogin("demo_client", "demo123")}
+                        disabled={loading || celebrating}
+                        className="w-full py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-heading font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                      >
+                        <Zap className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600" />
+                        <span>1-Click Demo User</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => performLogin("ADMIN_IbrainTest", "ADMIN_IbrainTest123")}
+                        disabled={loading || celebrating}
+                        className="w-full py-2.5 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-300 text-purple-800 font-heading font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-brand-purple fill-brand-purple/20" />
+                        <span>1-Click Admin Access</span>
+                      </button>
+                    </div>
+                  </div>
                 </form>
 
                 {/* Switch to Test Banner */}

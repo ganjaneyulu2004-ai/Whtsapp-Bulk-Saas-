@@ -31,6 +31,7 @@ import {
   Loader2
 } from "lucide-react";
 import FreeTrialScannerSection from "@/components/FreeTrialScannerSection";
+import WhatsAppEmbeddedSignup from "@/components/WhatsAppEmbeddedSignup";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -204,488 +205,330 @@ export default function DashboardPage() {
     );
   }
 
-  // AUTHENTICATED DASHBOARD (After Login - Test Button is completely removed)
+  // AUTHENTICATED DASHBOARD (After Login)
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-6 pb-12">
 
-      {/* WhatsApp Easy Setup Callout Banner if not connected */}
-      {!isWhatsAppConnected && !loading && (
-        <div className="bg-gradient-to-r from-brand-900 via-brand-purple to-brand-blue rounded-3xl p-6 text-white shadow-card flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0 text-2xl">
-              💬
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold font-heading text-white">
-                  Connect Your Business WhatsApp in 2 Minutes
-                </h3>
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-400 text-brand-900">
-                  Easy Setup
-                </span>
-              </div>
-              <p className="text-xs text-brand-100/90 mt-1">
-                Link your phone number via official Meta Embedded Signup. Meta charges (~₹0.80/msg) are billed directly to your card with zero markups.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/settings"
-            className="px-5 py-2.5 rounded-xl font-bold text-xs bg-white text-brand-purple hover:bg-brand-50 transition shadow-sm flex items-center gap-2 shrink-0"
-          >
-            Connect WhatsApp Now
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      )}
+      {/* 1. Official Meta WhatsApp Embedded Signup */}
+      <WhatsAppEmbeddedSignup
+        initialConfig={waConfig}
+        metaAppId={waConfig?.metaAppId || "1083272431077581"}
+        onConfigUpdated={() => fetchStats(true)}
+      />
 
-      {/* WhatsApp Connection Action Callout for Active Clients */}
-      {!isWhatsAppConnected && (
-        <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50 to-brand-50 border-2 border-emerald-300 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md">
-              <span className="text-2xl">📱</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-heading font-bold uppercase tracking-wider">
-                  Next Step
-                </span>
-                <h3 className="text-base sm:text-lg font-heading font-extrabold text-slate-heading">
-                  Subscription Active! Connect Your Business WhatsApp Number
-                </h3>
-              </div>
-              <p className="text-xs text-slate-muted mt-1 max-w-xl">
-                Link your official WhatsApp Business phone number via Meta Embedded Signup in Settings to start sending marketing offers and broadcasts.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/settings"
-            className="w-full md:w-auto px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-xs shadow-md transition-all shrink-0 flex items-center justify-center gap-2"
-          >
-            <span>Connect WhatsApp in Settings</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      )}
-
-      {/* Hero Welcome & Filter Bar */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="px-3 py-1 rounded-full bg-brand-light text-brand-purple text-xs font-heading font-bold uppercase tracking-wider">
-              WhatsApp Broadcast Hub
-            </span>
-            {isWhatsAppConnected ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-heading font-bold border border-emerald-200">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                WhatsApp: {waConfig?.displayPhoneNumber || "Active"} • Direct Meta Billing
+      {/* 2. Top Header & Action Bar (Clean & Seamless) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+              Dashboard Overview
+            </h1>
+            {isWhatsAppConnected && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                {waConfig?.displayPhoneNumber || "Active"}
               </span>
-            ) : (
-              <span className="text-xs text-slate-muted">• Live Delivery Engine</span>
             )}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-heading font-extrabold text-text-main">
-            Campaign Performance Dashboard
-          </h1>
-          <p className="text-sm text-slate-muted mt-1">
-            Real-time delivery verification, read tracking, and customer conversion analytics.
+          <p className="text-xs text-slate-500 mt-1">
+            Real-time delivery verification and campaign statistics
           </p>
         </div>
 
-        {/* Date Filter Controls */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 relative z-10">
-          <div className="flex items-center bg-brand-light p-1 rounded-2xl border border-brand-soft">
-            <button
-              onClick={() => setFilterRange("today")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-heading font-semibold transition-all cursor-pointer ${
-                filterRange === "today"
-                  ? "bg-white text-brand-purple shadow-xs"
-                  : "text-slate-muted hover:text-text-main"
-              }`}
-            >
-              Today
-            </button>
-            <button
-              onClick={() => setFilterRange("7days")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-heading font-semibold transition-all cursor-pointer ${
-                filterRange === "7days"
-                  ? "bg-white text-brand-purple shadow-xs"
-                  : "text-slate-muted hover:text-text-main"
-              }`}
-            >
-              Last 7 Days
-            </button>
-            <button
-              onClick={() => setFilterRange("30days")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-heading font-semibold transition-all cursor-pointer ${
-                filterRange === "30days"
-                  ? "bg-white text-brand-purple shadow-xs"
-                  : "text-slate-muted hover:text-text-main"
-              }`}
-            >
-              Last 30 Days
-            </button>
-            <button
-              onClick={() => setFilterRange("custom")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-heading font-semibold transition-all cursor-pointer ${
-                filterRange === "custom"
-                  ? "bg-white text-brand-purple shadow-xs"
-                  : "text-slate-muted hover:text-text-main"
-              }`}
-            >
-              Custom
-            </button>
+        {/* Date Filter & New Campaign Action */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Filter Range Pills */}
+          <div className="inline-flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
+            {(["today", "7days", "30days"] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setFilterRange(r)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
+                  filterRange === r
+                    ? "bg-slate-900 text-white shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                }`}
+              >
+                {r === "today" ? "Today" : r === "7days" ? "7 Days" : "30 Days"}
+              </button>
+            ))}
           </div>
 
           {/* Refresh Button */}
           <button
+            type="button"
             onClick={() => fetchStats(true)}
             disabled={refreshing}
-            className="p-2.5 rounded-2xl border border-brand-soft bg-white text-text-main hover:bg-brand-light shadow-xs flex items-center justify-center cursor-pointer transition-colors"
-            title="Auto-refreshes every 30s. Click to refresh immediately."
+            className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 transition shadow-2xs cursor-pointer"
+            title="Refresh statistics"
           >
-            <RotateCw className={`w-4 h-4 text-brand-purple ${refreshing ? "animate-spin" : ""}`} />
+            <RotateCw className={`w-4 h-4 ${refreshing ? "animate-spin text-slate-900" : ""}`} />
           </button>
+
+          {/* Primary Create Campaign Button */}
+          <Link
+            href="/create-campaign"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium transition shadow-2xs cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Create Campaign</span>
+          </Link>
         </div>
       </div>
 
-      {/* Custom Date Range Picker (conditionally shown) */}
-      {filterRange === "custom" && (
-        <div className="bg-white p-4 rounded-2xl border border-brand-soft shadow-xs flex flex-wrap items-center gap-4 animate-in fade-in">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-heading font-semibold text-text-main">From:</span>
-            <input
-              type="date"
-              value={customStart}
-              onChange={(e) => setCustomStart(e.target.value)}
-              className="p-2 rounded-xl bg-brand-light border border-brand-soft text-xs text-text-main"
-            />
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-heading font-semibold text-text-main">To:</span>
-            <input
-              type="date"
-              value={customEnd}
-              onChange={(e) => setCustomEnd(e.target.value)}
-              className="p-2 rounded-xl bg-brand-light border border-brand-soft text-xs text-text-main"
-            />
-          </div>
-          <button
-            onClick={() => fetchStats(true)}
-            className="px-4 py-2 bg-brand-purple text-white text-xs font-heading font-bold rounded-xl"
-          >
-            Apply Range
-          </button>
-        </div>
-      )}
-
-      {/* Privacy Notice Banner */}
-      <div className="p-4 rounded-2xl bg-brand-light border border-brand-soft flex items-start gap-3 text-xs text-text-main">
-        <Info className="w-4 h-4 text-brand-purple shrink-0 mt-0.5" />
-        <p>
-          <strong className="text-brand-purple">WhatsApp Read Receipts Notice: </strong>
-          Read status depends on customer's WhatsApp privacy settings – if read receipts are off, the message shows as Delivered.
-        </p>
-      </div>
-
-      {/* TOP METRIC CARDS (2 per row on mobile, 6 across on desktop) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        
-        {/* 1. Total Sent */}
-        <div className="bg-white p-5 rounded-3xl border border-brand-soft shadow-card hover:border-brand-purple/40 transition-colors">
+      {/* 3. Core KPI Metric Cards (Matching Billing Cards Design) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Card 1: Total Sent */}
+        <div className="bg-white p-5 rounded-2xl border border-brand-soft shadow-card hover:shadow-md hover:border-brand-purple/40 hover:-translate-y-1 transition-all duration-300 ease-out group cursor-default">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-heading font-bold text-slate-muted uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-muted uppercase tracking-wider block">
               Total Sent
             </span>
-            <div className="w-8 h-8 rounded-xl bg-brand-light text-brand-purple flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 text-brand-purple flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-purple group-hover:text-white transition-all duration-300">
               <Send className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-heading font-extrabold text-text-main">
+          <div className="mt-2">
+            <div className="text-2xl sm:text-3xl font-extrabold text-brand-purple tracking-tight">
               {stats.totalSent.toLocaleString()}
-            </span>
-            <span className="text-[11px] text-slate-muted block mt-0.5">
+            </div>
+            <p className="text-xs text-slate-muted mt-1 font-medium">
               Messages dispatched
-            </span>
+            </p>
           </div>
         </div>
 
-        {/* 2. Delivered ✓✓ */}
-        <div className="bg-white p-5 rounded-3xl border border-brand-soft shadow-card hover:border-brand-purple/40 transition-colors">
+        {/* Card 2: Delivered */}
+        <div className="bg-white p-5 rounded-2xl border border-brand-soft shadow-card hover:shadow-md hover:border-brand-purple/40 hover:-translate-y-1 transition-all duration-300 ease-out group cursor-default">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-heading font-bold text-slate-muted uppercase tracking-wider flex items-center gap-1">
-              Delivered <CheckCheck className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-muted uppercase tracking-wider block">
+              Delivered
             </span>
-            <div className="w-8 h-8 rounded-xl bg-brand-light text-brand-purple flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
               <CheckCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-heading font-extrabold text-brand-purple">
+          <div className="mt-2">
+            <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 tracking-tight">
               {stats.totalDelivered.toLocaleString()}
-            </span>
-            <span className="text-[11px] text-slate-muted block mt-0.5">
-              Reached handset
-            </span>
+            </div>
+            <p className="text-xs text-slate-muted mt-1 font-medium">
+              Reached handsets
+            </p>
           </div>
         </div>
 
-        {/* 3. Read (Blue ✓✓) */}
-        <div className="bg-white p-5 rounded-3xl border border-brand-soft shadow-card hover:border-brand-blue/50 transition-colors">
+        {/* Card 3: Read */}
+        <div className="bg-white p-5 rounded-2xl border border-brand-soft shadow-card hover:shadow-md hover:border-brand-purple/40 hover:-translate-y-1 transition-all duration-300 ease-out group cursor-default">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-heading font-bold text-brand-blue uppercase tracking-wider flex items-center gap-1">
-              Read <CheckCheck className="w-3.5 h-3.5 text-brand-blue" />
+            <span className="text-xs font-semibold text-slate-muted uppercase tracking-wider block">
+              Read
             </span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-brand-blue flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-brand-blue flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-blue group-hover:text-white transition-all duration-300">
               <Eye className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-heading font-extrabold text-brand-blue">
-              {stats.totalRead.toLocaleString()}
-            </span>
-            <span className="text-[11px] text-brand-blue/80 block mt-0.5">
-              Opened by customer
-            </span>
-          </div>
-        </div>
-
-        {/* 4. Not Read (= delivered - read) */}
-        <div className="bg-white p-5 rounded-3xl border border-brand-soft shadow-card hover:border-brand-purple/40 transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-heading font-bold text-slate-muted uppercase tracking-wider">
-              Not Read
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-brand-light text-slate-muted flex items-center justify-center">
-              <Clock className="w-4 h-4" />
+          <div className="mt-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-extrabold text-brand-blue tracking-tight">
+                {stats.totalRead.toLocaleString()}
+              </span>
+              <span className="text-xs font-bold text-brand-blue bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">
+                {stats.readRate}%
+              </span>
             </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-heading font-extrabold text-text-main">
-              {stats.totalNotRead.toLocaleString()}
-            </span>
-            <span className="text-[11px] text-slate-muted block mt-0.5">
-              Delivered, not read yet
-            </span>
+            <p className="text-xs text-slate-muted mt-1 font-medium">
+              Opened by customer
+            </p>
           </div>
         </div>
 
-        {/* 5. Failed (Clickable) */}
+        {/* Card 4: Failed */}
         <div
           onClick={() => setShowFailureModal(true)}
-          className="bg-white p-5 rounded-3xl border border-brand-soft shadow-card hover:border-rose-300 transition-all cursor-pointer group"
+          className="bg-white p-5 rounded-2xl border border-brand-soft shadow-card hover:shadow-md hover:border-rose-300 hover:-translate-y-1 transition-all duration-300 ease-out group cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-heading font-bold text-rose-600 uppercase tracking-wider flex items-center gap-1">
-              Failed <HelpCircle className="w-3 h-3 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-semibold text-slate-muted uppercase tracking-wider block group-hover:text-rose-600 transition-colors">
+              Failed
             </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-rose-600 group-hover:text-white transition-all duration-300">
               <AlertTriangle className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-heading font-extrabold text-rose-600">
+          <div className="mt-2">
+            <div className="text-2xl sm:text-3xl font-extrabold text-rose-600 tracking-tight">
               {stats.totalFailed.toLocaleString()}
-            </span>
-            <span className="text-[11px] text-rose-700/80 block mt-0.5 underline decoration-rose-300 underline-offset-2">
-              Click to view reasons
-            </span>
-          </div>
-        </div>
-
-        {/* 6. Read Rate % */}
-        <div className="bg-white p-5 rounded-3xl border border-brand-soft shadow-card hover:border-brand-purple/40 transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-heading font-bold text-slate-muted uppercase tracking-wider">
-              Read Rate
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-brand-light text-brand-purple flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
             </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-heading font-extrabold text-brand-purple">
-              {stats.readRate}%
-            </span>
-            <div className="w-full bg-brand-soft rounded-full h-1.5 mt-2 overflow-hidden">
-              <div
-                className="bg-brand-gradient h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, stats.readRate)}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* QUICK ACTIONS & CAMPAIGN SHORTCUTS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        {/* Launch Bulk Campaign Card */}
-        <div className="bg-brand-gradient rounded-3xl p-6 sm:p-8 text-white shadow-card flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative z-10">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white mb-4 shadow-sm">
-              <Zap className="w-6 h-6" />
-            </div>
-            <h3 className="text-xl sm:text-2xl font-heading font-bold mb-2">
-              Launch Bulk Campaign
-            </h3>
-            <p className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-md">
-              Reach thousands of verified shoppers instantly using pre-approved WhatsApp templates and AI offer generator.
+            <p className="text-xs text-rose-500 group-hover:text-rose-600 transition-colors mt-1 flex items-center gap-1 font-medium">
+              <span>Click to view reasons</span>
+              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
             </p>
           </div>
-
-          <div className="relative z-10 pt-6">
-            <Link
-              href="/create-campaign"
-              className="w-full sm:w-auto inline-flex items-center justify-center py-3.5 px-6 rounded-2xl bg-white text-brand-purple hover:bg-brand-light font-heading font-bold text-xs sm:text-sm gap-2 shadow-md transition-transform active:scale-95 cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Create Campaign</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
         </div>
-
-        {/* Outreach Shortcuts Card */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card space-y-4 flex flex-col justify-between">
-          <div>
-            <h4 className="font-heading font-bold text-base text-text-main flex items-center gap-2 mb-1">
-              <Sparkles className="w-4 h-4 text-brand-purple" />
-              <span>Outreach Shortcuts</span>
-            </h4>
-            <p className="text-xs text-slate-muted mb-4">
-              Quick access to your contact lists, customer live chats, and billing.
-            </p>
-            <div className="space-y-2.5">
-              <Link
-                href="/create-campaign"
-                className="p-3.5 rounded-2xl bg-brand-light hover:bg-brand-soft/70 transition-colors flex items-center justify-between text-xs font-semibold text-text-main group"
-              >
-                <span className="group-hover:text-brand-purple transition-colors">📁 Upload CSV Contact List</span>
-                <ChevronRight className="w-4 h-4 text-brand-purple" />
-              </Link>
-              <Link
-                href="/inbox"
-                className="p-3.5 rounded-2xl bg-brand-light hover:bg-brand-soft/70 transition-colors flex items-center justify-between text-xs font-semibold text-text-main group"
-              >
-                <span className="group-hover:text-brand-purple transition-colors">💬 Customer Chat Inbox</span>
-                <ChevronRight className="w-4 h-4 text-brand-purple" />
-              </Link>
-              <Link
-                href="/billing"
-                className="p-3.5 rounded-2xl bg-brand-light hover:bg-brand-soft/70 transition-colors flex items-center justify-between text-xs font-semibold text-text-main group"
-              >
-                <span className="group-hover:text-brand-purple transition-colors">💳 Billing & Subscription</span>
-                <ChevronRight className="w-4 h-4 text-brand-purple" />
-              </Link>
-            </div>
-          </div>
-        </div>
-
       </div>
 
       {/* CAMPAIGN TABLE: Campaign name, date, Sent, Delivered, Read, Not Read, Failed, Read Rate % */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-heading font-bold text-text-main">
-              Recent Campaigns & Delivery Stats
-            </h2>
-            <p className="text-xs text-slate-muted">
-              Click any campaign row to inspect per-contact logs or trigger a resend to unread recipients.
-            </p>
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-soft pb-5">
+          <div className="flex items-center gap-2.5">
+            <BarChart3 className="w-5 h-5 text-brand-purple" />
+            <div>
+              <h2 className="text-base font-bold text-text-main uppercase tracking-wider">
+                Recent Campaigns & Delivery Stats
+              </h2>
+              <p className="text-xs text-slate-muted mt-0.5">
+                Click any campaign row to inspect per-contact logs or trigger a resend to unread recipients.
+              </p>
+            </div>
           </div>
 
           <Link
             href="/campaigns"
-            className="text-xs font-heading font-bold text-brand-purple hover:text-brand-blue flex items-center gap-1"
+            className="text-xs font-semibold text-brand-purple hover:text-brand-blue flex items-center gap-1 transition-colors group"
           >
             <span>View All Campaigns</span>
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
 
         {recentCampaigns.length === 0 ? (
-          <div className="py-16 text-center text-xs text-slate-muted">
-            No campaigns launched in this timeframe. Click "Create Campaign" to get started!
+          <div className="space-y-6 py-2">
+            <div className="p-5 rounded-2xl bg-brand-light/60 border border-brand-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-brand-purple flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-text-main">
+                    Ready to Launch Your First WhatsApp Broadcast?
+                  </h4>
+                  <p className="text-xs text-slate-muted mt-0.5">
+                    Follow these 3 easy steps to reach your customer audience with high open rates.
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href="/create-campaign"
+                className="px-5 py-2.5 rounded-xl bg-brand-gradient hover:opacity-95 text-white font-semibold text-xs shadow-md shadow-brand-purple/20 flex items-center justify-center gap-2 transition-all self-start sm:self-auto cursor-pointer"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Launch First Campaign</span>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="p-5 rounded-2xl bg-brand-light/70 border border-brand-soft hover:border-brand-purple/40 hover:-translate-y-0.5 transition-all duration-200">
+                <span className="text-xs font-semibold text-brand-purple uppercase tracking-wider block mb-1">
+                  Step 1
+                </span>
+                <h4 className="text-base font-bold text-text-main">
+                  Upload Audience List
+                </h4>
+                <p className="text-xs text-slate-muted mt-1 leading-relaxed">
+                  Import an Excel or CSV file containing customer phone numbers and names.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-brand-light/70 border border-brand-soft hover:border-brand-purple/40 hover:-translate-y-0.5 transition-all duration-200">
+                <span className="text-xs font-semibold text-brand-purple uppercase tracking-wider block mb-1">
+                  Step 2
+                </span>
+                <h4 className="text-base font-bold text-text-main">
+                  Select Meta Template
+                </h4>
+                <p className="text-xs text-slate-muted mt-1 leading-relaxed">
+                  Choose pre-approved marketing offers or personalized greeting templates.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-brand-light/70 border border-brand-soft hover:border-brand-purple/40 hover:-translate-y-0.5 transition-all duration-200">
+                <span className="text-xs font-semibold text-brand-purple uppercase tracking-wider block mb-1">
+                  Step 3
+                </span>
+                <h4 className="text-base font-bold text-text-main">
+                  Send & Track Live
+                </h4>
+                <p className="text-xs text-slate-muted mt-1 leading-relaxed">
+                  Watch real-time delivery double ticks and track customer read receipts.
+                </p>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-brand-light/70 border-b border-brand-soft text-slate-muted uppercase font-heading font-semibold text-[11px]">
-                  <th className="py-3 px-4">Campaign Name</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Sent</th>
-                  <th className="py-3 px-4">Delivered</th>
-                  <th className="py-3 px-4">Read</th>
-                  <th className="py-3 px-4">Not Read</th>
-                  <th className="py-3 px-4">Failed</th>
-                  <th className="py-3 px-4">Read Rate %</th>
-                  <th className="py-3 px-4 text-right">Action</th>
+                <tr className="bg-slate-50/70 border-b border-slate-100 text-slate-500 font-medium text-xs">
+                  <th className="py-3 px-4 font-medium">Campaign Name</th>
+                  <th className="py-3 px-4 font-medium">Date</th>
+                  <th className="py-3 px-4 font-medium">Sent</th>
+                  <th className="py-3 px-4 font-medium">Delivered</th>
+                  <th className="py-3 px-4 font-medium">Read</th>
+                  <th className="py-3 px-4 font-medium">Not Read</th>
+                  <th className="py-3 px-4 font-medium">Failed</th>
+                  <th className="py-3 px-4 font-medium">Read Rate</th>
+                  <th className="py-3 px-4 text-right font-medium">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-brand-soft text-text-main">
+              <tbody className="divide-y divide-slate-100 text-slate-800">
                 {recentCampaigns.map((c: any) => (
                   <tr
                     key={c.id}
                     onClick={() => router.push(`/campaigns/${c.id}`)}
-                    className="hover:bg-brand-light/40 transition-colors cursor-pointer group"
+                    className="hover:bg-slate-50/70 transition-colors duration-150 cursor-pointer group"
                   >
-                    <td className="py-4 px-4">
-                      <div className="font-heading font-bold text-text-main group-hover:text-brand-purple transition-colors text-sm">
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-slate-900 group-hover:text-purple-600 transition-colors text-xs">
                         {c.name}
                       </div>
-                      <span className="text-[10px] text-slate-muted uppercase font-medium">
+                      <span className="text-[11px] text-slate-400">
                         {c.type} • {c.status}
                       </span>
                     </td>
 
-                    <td className="py-4 px-4 text-slate-muted">
+                    <td className="py-3.5 px-4 text-slate-500">
                       {new Date(c.createdAt).toLocaleDateString()}
                     </td>
 
-                    <td className="py-4 px-4 font-semibold text-text-main">
-                      {c.sentCount}
+                    <td className="py-3.5 px-4 font-medium text-slate-900">
+                      {c.sentCount?.toLocaleString()}
                     </td>
 
-                    <td className="py-4 px-4 font-semibold text-brand-purple">
-                      {c.deliveredCount}
+                    <td className="py-3.5 px-4 font-medium text-emerald-600">
+                      {c.deliveredCount?.toLocaleString()}
                     </td>
 
-                    <td className="py-4 px-4 font-semibold text-brand-blue">
-                      {c.readCount}
+                    <td className="py-3.5 px-4 font-medium text-blue-600">
+                      {c.readCount?.toLocaleString()}
                     </td>
 
-                    <td className="py-4 px-4 font-semibold text-text-main">
-                      {c.notReadCount}
+                    <td className="py-3.5 px-4 font-medium text-slate-500">
+                      {c.notReadCount?.toLocaleString()}
                     </td>
 
-                    <td className="py-4 px-4 font-semibold text-rose-600">
-                      {c.failedCount}
+                    <td className="py-3.5 px-4 font-medium text-rose-600">
+                      {c.failedCount?.toLocaleString()}
                     </td>
 
-                    <td className="py-4 px-4">
+                    <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
-                        <span className="font-heading font-bold text-brand-purple">
+                        <span className="font-semibold text-slate-700 text-xs">
                           {c.readRate}%
                         </span>
-                        <div className="w-16 bg-brand-soft rounded-full h-1.5 overflow-hidden">
+                        <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
                           <div
-                            className="bg-brand-purple h-full rounded-full"
+                            className="bg-purple-600 h-full rounded-full transition-all duration-300"
                             style={{ width: `${Math.min(100, c.readRate)}%` }}
                           />
                         </div>
                       </div>
                     </td>
 
-                    <td className="py-4 px-4 text-right">
-                      <span className="inline-flex items-center gap-1 text-xs font-heading font-semibold text-brand-purple group-hover:translate-x-1 transition-transform">
+                    <td className="py-3.5 px-4 text-right">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-700 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all">
                         <span>Details</span>
                         <ChevronRight className="w-3.5 h-3.5" />
                       </span>

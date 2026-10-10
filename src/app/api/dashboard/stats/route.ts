@@ -160,7 +160,12 @@ export async function GET(req: Request) {
         isConnected: true,
         displayPhoneNumber: true,
         verifiedName: true,
+        qualityRating: true,
+        messagingLimitTier: true,
         connectionMethod: true,
+        waPhoneNumberId: true,
+        waBusinessAccountId: true,
+        metaAppId: true,
       },
     });
 

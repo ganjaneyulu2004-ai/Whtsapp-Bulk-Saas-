@@ -23,6 +23,7 @@ import {
   X,
   Sparkles
 } from "lucide-react";
+import { AccountDropdown } from "./AccountDropdown";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -204,102 +205,27 @@ export function Navbar() {
               </div>
             )}
 
-            {/* Right Controls: Business pill, Language, Profile & Mobile Hamburger */}
-            <div className="flex items-center gap-1.5 sm:gap-2.5">
-              {/* Business Name Badge (Desktop) */}
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-brand-light border border-brand-soft rounded-full text-text-main font-heading text-xs font-semibold">
-                <Store className="w-3.5 h-3.5 text-brand-purple" />
-                <span className="max-w-[130px] truncate">{session?.user?.name || businessName}</span>
-                {isAdmin && (
-                  <span className="text-[9px] bg-brand-purple text-white px-1.5 py-0.5 rounded-full uppercase font-bold">
-                    Admin
-                  </span>
-                )}
-              </div>
+            {/* Right Controls: Meta Suite Account Dropdown, Language & Mobile Hamburger */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Meta Business Suite Style All Accounts Dropdown (Desktop & Tablet) */}
+              {session && (
+                <div className="hidden sm:block">
+                  <AccountDropdown />
+                </div>
+              )}
 
               {/* Language toggle */}
               <button
                 type="button"
                 onClick={() => setLang(lang === "en" ? "te" : "en")}
-                className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-white border border-brand-soft rounded-full text-xs font-heading font-semibold text-text-main hover:bg-brand-light transition-all cursor-pointer shadow-2xs"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-white border border-slate-200/90 rounded-xl text-xs font-heading font-semibold text-text-main hover:bg-slate-50 transition-all cursor-pointer shadow-2xs"
                 title="Toggle Language"
               >
                 <Globe className="w-3.5 h-3.5 text-brand-purple" />
                 <span className="text-[11px] sm:text-xs font-bold">{lang === "en" ? "EN" : "TE"}</span>
               </button>
 
-              {/* Profile & Logout Dropdown (Desktop) */}
-              {session ? (
-                <div className="relative hidden sm:block">
-                  <button
-                    type="button"
-                    onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-brand-soft rounded-full text-xs font-heading font-semibold text-text-main hover:bg-brand-light transition-all cursor-pointer shadow-2xs"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-brand-gradient text-white flex items-center justify-center text-[11px] font-bold">
-                      {(session.user?.name || "U")[0].toUpperCase()}
-                    </div>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-muted" />
-                  </button>
-
-                  {showProfileMenu && (
-                    <div
-                      className="absolute right-0 mt-2 w-56 bg-white border border-brand-soft rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95"
-                      onMouseLeave={() => setShowProfileMenu(false)}
-                    >
-                      <div className="px-4 py-2 border-b border-brand-soft">
-                        <p className="font-heading font-bold text-xs text-text-main truncate">
-                          {session.user?.name}
-                        </p>
-                        <p className="text-[11px] text-slate-muted truncate">
-                          @{session.user?.username} ({session.user?.role})
-                        </p>
-                      </div>
-
-                      <Link
-                        href="/billing"
-                        onClick={() => setShowProfileMenu(false)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-xs text-text-main hover:bg-brand-light font-medium"
-                      >
-                        <CreditCard className="w-4 h-4 text-brand-purple" />
-                        <span>Subscription & Plan</span>
-                      </Link>
-
-                      {isAdmin && (
-                        <>
-                          <Link
-                            href="/admin/payments"
-                            onClick={() => setShowProfileMenu(false)}
-                            className="flex items-center gap-2 px-4 py-2 text-xs text-text-main hover:bg-brand-light font-medium"
-                          >
-                            <ShieldAlert className="w-4 h-4 text-brand-purple" />
-                            <span>Admin Approvals ({pendingPaymentsCount})</span>
-                          </Link>
-                          <Link
-                            href="/admin/users"
-                            onClick={() => setShowProfileMenu(false)}
-                            className="flex items-center gap-2 px-4 py-2 text-xs text-text-main hover:bg-brand-light font-medium"
-                          >
-                            <Users className="w-4 h-4 text-brand-purple" />
-                            <span>Admin Users</span>
-                          </Link>
-                        </>
-                      )}
-
-                      <div className="border-t border-brand-soft mt-1 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => signOut({ callbackUrl: "/login" })}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-rose-600 hover:bg-rose-50 font-semibold cursor-pointer"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          <span>Logout</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
+              {!session && (
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <Link
                     href="/login"
@@ -334,29 +260,9 @@ export function Navbar() {
         {/* Mobile Full Dropdown Menu Drawer */}
         {session && showMobileMenu && (
           <div className="lg:hidden bg-white/98 backdrop-blur-xl border-t border-brand-soft shadow-xl px-4 pt-3 pb-6 space-y-3 animate-in slide-in-from-top-3 duration-200">
-            {/* User details header */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-brand-light border border-brand-soft">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-brand-gradient text-white flex items-center justify-center font-bold text-sm shadow-xs">
-                  {(session.user?.name || "U")[0].toUpperCase()}
-                </div>
-                <div>
-                  <div className="font-heading font-bold text-xs text-text-main truncate max-w-[170px]">
-                    {session.user?.name || businessName}
-                  </div>
-                  <div className="text-[10px] text-slate-muted truncate">
-                    @{session.user?.username} • <span className="font-semibold text-brand-purple">{session.user?.role}</span>
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => signOut({ callbackUrl: "/login" })}
-                className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition"
-                title="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+            {/* Meta Suite Account Switcher in Mobile Drawer */}
+            <div className="pb-2">
+              <AccountDropdown className="w-full" />
             </div>
 
             {/* Navigation links grid */}

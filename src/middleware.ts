@@ -56,8 +56,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/complete-payment", req.url));
   }
 
-  // 5. Public pages for unauthenticated visitors (/login, /register, /test)
-  if (pathname === "/login" || pathname === "/register" || pathname === "/test") {
+  // 5. Public pages for unauthenticated visitors (/login, /register, /test, /demo-login)
+  if (pathname === "/login" || pathname === "/register" || pathname === "/test" || pathname === "/demo-login") {
     if (token) {
       // If already logged in, redirect away from login/register to appropriate page
       if (token.role === "ADMIN") {

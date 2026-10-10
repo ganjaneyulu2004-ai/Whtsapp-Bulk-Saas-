@@ -54,8 +54,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        heading: ["Poppins", "Noto Sans Telugu", "sans-serif"],
-        body: ["Inter", "Noto Sans Telugu", "sans-serif"],
+        heading: ["Inter", "Noto Sans Telugu", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+        body: ["Inter", "Noto Sans Telugu", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+        sans: ["Inter", "Noto Sans Telugu", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
         telugu: ["Noto Sans Telugu", "sans-serif"],
       },
       borderRadius: {
