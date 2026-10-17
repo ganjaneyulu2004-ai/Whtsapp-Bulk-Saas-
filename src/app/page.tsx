@@ -107,87 +107,14 @@ export default function DashboardPage() {
     );
   }
 
-  // PUBLIC HOME PAGE (When Not Logged In)
+  // When Not Logged In -> Redirect immediately to /login
   if (!session) {
+    if (typeof window !== "undefined") {
+      router.replace("/login");
+    }
     return (
-      <div className="space-y-10 pb-16">
-        {/* Hero Section */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 pt-4 sm:pt-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-light border border-brand-soft text-brand-purple text-xs font-heading font-bold shadow-xs">
-            <ShieldCheck className="w-4 h-4 text-brand-blue" />
-            Official Meta Cloud API • 100% Anti-Ban Guarantee
-          </div>
-
-          <h1 className="text-3xl sm:text-5xl font-heading font-extrabold text-text-main tracking-tight leading-tight">
-            Send Exclusive WhatsApp Offers Directly to Customers{" "}
-            <span className="text-brand-purple">at Lightning Speed</span>
-          </h1>
-
-          <p className="text-sm sm:text-base text-slate-muted max-w-2xl mx-auto leading-relaxed">
-            The official WhatsApp marketing engine built for retail stores, restaurants, showrooms, and local businesses. 98% open rates with zero third-party ban risk.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Link
-              href="/register"
-              className="px-6 py-3 rounded-2xl bg-brand-gradient text-white font-heading font-bold text-sm shadow-md shadow-brand-purple/20 hover:opacity-95 transition flex items-center gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Create Free Account
-            </Link>
-            <Link
-              href="/login"
-              className="px-6 py-3 rounded-2xl bg-white border border-brand-soft text-brand-purple font-heading font-bold text-sm shadow-xs hover:bg-brand-light transition flex items-center gap-2"
-            >
-              Account Login
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-
-        {/* EXACT Free Trial Live WhatsApp Scanner Section (with Brand Colors & Direct Create Account/Login) */}
-        <div id="live-demo" className="max-w-5xl mx-auto">
-          <FreeTrialScannerSection maxTestLimit={2} showLoginRedirect={true} />
-        </div>
-
-        {/* 3 Pillar Features */}
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-          <div className="p-6 bg-white rounded-3xl border border-brand-soft shadow-card space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-brand-light text-brand-purple flex items-center justify-center">
-              <Zap className="w-6 h-6 text-brand-purple" />
-            </div>
-            <h3 className="font-heading font-bold text-base text-text-main">
-              Lightning-Fast Bulk Blasts
-            </h3>
-            <p className="text-xs text-slate-muted leading-relaxed">
-              Broadcast festive sales, flash discounts, and VIP offers to thousands of customers simultaneously at 20 msgs/second.
-            </p>
-          </div>
-
-          <div className="p-6 bg-white rounded-3xl border border-brand-soft shadow-card space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-brand-light text-brand-blue flex items-center justify-center">
-              <ShieldCheck className="w-6 h-6 text-brand-blue" />
-            </div>
-            <h3 className="font-heading font-bold text-base text-text-main">
-              100% Anti-Ban Guarantee
-            </h3>
-            <p className="text-xs text-slate-muted leading-relaxed">
-              Verified directly through official Meta Cloud API. No risky third-party QR scanners, no phone disconnection, zero ban risk.
-            </p>
-          </div>
-
-          <div className="p-6 bg-white rounded-3xl border border-brand-soft shadow-card space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-brand-light text-emerald-600 flex items-center justify-center">
-              <BarChart3 className="w-6 h-6 text-emerald-600" />
-            </div>
-            <h3 className="font-heading font-bold text-base text-text-main">
-              Live Delivery & Read Tracking
-            </h3>
-            <p className="text-xs text-slate-muted leading-relaxed">
-              Watch messages deliver with real-time double ticks. Track who opened your offers and trigger 1-click follow-up blasts.
-            </p>
-          </div>
-        </div>
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-brand-purple animate-spin" />
       </div>
     );
   }

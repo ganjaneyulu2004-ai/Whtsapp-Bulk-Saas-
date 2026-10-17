@@ -37,7 +37,9 @@ export async function middleware(req: NextRequest) {
 
   // 4. Handle Root "/"
   if (pathname === "/") {
-    // Both unauthenticated (landing page) and authenticated (dashboard) handled smoothly
+    if (!token) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
     return NextResponse.next();
   }
 

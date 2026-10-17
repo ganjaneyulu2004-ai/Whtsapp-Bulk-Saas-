@@ -38,10 +38,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered");
 
-  // Default to 'login' tab first
-  const [activeTab, setActiveTab] = useState<"login" | "test">(
-    searchParams.get("tab") === "test" ? "test" : "login"
-  );
+  // Login only
+  const [activeTab, setActiveTab] = useState<"login">("login");
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -407,49 +405,8 @@ function LoginForm() {
               <p className="text-xs text-slate-muted font-medium">Expertise In Every Execution</p>
             </div>
 
-            {/* Mode Switcher: 1st Test Template, 2nd Account Login */}
-            <div className="flex items-center p-1.5 bg-brand-light rounded-2xl border border-brand-soft mb-6 shadow-xs">
-              <button
-                type="button"
-                onClick={() => { 
-                  playClickSound();
-                  setActiveTab("test"); 
-                  setErrorMessage(null); 
-                }}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeTab === "test"
-                    ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow-md shadow-brand-purple/25 scale-[1.01]"
-                    : "text-slate-muted hover:text-brand-purple"
-                }`}
-              >
-                <span className="text-sm">⚡</span>
-                <span>Test Template</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-bold text-amber-300">
-                  {remainingTests} Free
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => { 
-                  playClickSound();
-                  setActiveTab("login"); 
-                  setErrorMessage(null); 
-                }}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeTab === "login"
-                    ? "bg-white text-brand-purple shadow-sm border border-brand-soft scale-[1.01]"
-                    : "text-slate-muted hover:text-brand-purple"
-                }`}
-              >
-                <UserIcon className="w-3.5 h-3.5" />
-                <span>Account Login</span>
-              </button>
-            </div>
-
-            {/* TAB 1: ACCOUNT LOGIN */}
-            {activeTab === "login" && (
-              <div className="animate-in fade-in duration-200">
+            {/* ACCOUNT LOGIN */}
+            <div className="animate-in fade-in duration-200">
                 <div className="mb-6">
                   <h2 className="text-2xl sm:text-3xl font-heading font-bold text-text-main mb-1.5">
                     Account Login
@@ -586,20 +543,6 @@ function LoginForm() {
                   </div>
                 </form>
 
-                {/* Switch to Test Banner */}
-                <div className="mt-4 p-3 rounded-2xl bg-brand-light border border-brand-soft flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs text-slate-muted">
-                    <Zap className="w-4 h-4 text-brand-purple animate-pulse" />
-                    <span>Want to test our WhatsApp speed first?</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("test")}
-                    className="text-xs font-heading font-bold text-brand-purple hover:text-brand-blue flex items-center gap-1 transition cursor-pointer"
-                  >
-                    ⚡ Test Now →
-                  </button>
-                </div>
 
                 {/* Register Link */}
                 <div className="mt-6 pt-5 border-t border-brand-soft text-center">
@@ -614,10 +557,8 @@ function LoginForm() {
                   </p>
                 </div>
               </div>
-            )}
 
-            {/* TAB: TEST TEMPLATE (FIRST TAB - ATTRACTIVE CELEBRATIONS & SOUNDS) */}
-            {activeTab === "test" && (
+            {false && (
               <div className="animate-in fade-in duration-200">
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-1">
