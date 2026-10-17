@@ -221,19 +221,25 @@ function LoginForm() {
       }
 
       // Successful login!
-      // Fetch user subscription status
-      const statusRes = await fetch("/api/subscription/status");
-      const statusData = await statusRes.json();
-
-      const displayName = statusData?.subscription?.payerName || loginUser.trim();
-      setWelcomeName(displayName);
+      try {
+        const statusRes = await fetch("/api/subscription/status");
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          const displayName = statusData?.subscription?.payerName || loginUser.trim();
+          setWelcomeName(displayName);
+        } else {
+          setWelcomeName(loginUser.trim());
+        }
+      } catch {
+        setWelcomeName(loginUser.trim());
+      }
 
       setCelebrationSubtitle("Opening your workspace...");
       setCelebrating(true);
       fireBrandConfetti();
       setTimeout(() => {
-        router.replace("/");
-      }, 800);
+        window.location.href = "/";
+      }, 700);
     } catch (err: any) {
       setErrorMessage("An unexpected error occurred. Please try again.");
       setLoading(false);

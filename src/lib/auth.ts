@@ -25,9 +25,17 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Please enter username and password");
         }
 
-        const username = credentials.username.trim();
-        const user = await prisma.user.findUnique({
-          where: { username },
+        const raw = credentials.username.trim();
+        const clean = raw.toLowerCase();
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { username: clean },
+              { username: raw },
+              { mobile: raw },
+              { email: clean },
+            ],
+          },
         });
 
         if (!user) {
