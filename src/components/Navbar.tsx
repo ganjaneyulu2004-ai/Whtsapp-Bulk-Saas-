@@ -91,7 +91,7 @@ export function Navbar() {
   ];
 
   const bottomNavItems = [
-    { href: "/", label: "Home", icon: LayoutDashboard },
+    { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/campaigns", label: "Campaigns", icon: BarChart3 },
     { href: "/create-campaign", label: "Create", icon: PlusCircle, isPrimary: true },
     { href: "/inbox", label: "Inbox", icon: Inbox },
@@ -128,18 +128,7 @@ export function Navbar() {
 
             {/* Desktop Center Navigation Menu */}
             {session ? (
-              pathname === "/complete-payment" ? (
-                <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-heading font-semibold shadow-xs">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                  <span>Subscription Activation Required • Complete Payment Below</span>
-                </div>
-              ) : pathname === "/payment-pending" ? (
-                <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-heading font-semibold shadow-xs">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                  <span>Payment Verification in Progress • Unlocks Upon Approval</span>
-                </div>
-              ) : (
-                <nav className="hidden lg:flex items-center gap-1 bg-brand-light p-1.5 rounded-2xl border border-brand-soft">
+              <nav className="hidden lg:flex items-center gap-1 bg-brand-light p-1.5 rounded-2xl border border-brand-soft">
                   {navItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
@@ -321,8 +310,8 @@ export function Navbar() {
         )}
       </header>
 
-      {/* Floating Modern Mobile Bottom Navigation Bar (When Logged in & not in payment flow) */}
-      {session && pathname !== "/complete-payment" && pathname !== "/payment-pending" && (
+      {/* Floating Modern Mobile Bottom Navigation Bar (When Logged in) */}
+      {session && (
         <nav
           aria-label="Mobile Navigation"
           className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-brand-soft shadow-[0_-4px_25px_rgba(43,35,80,0.08)] py-1.5 px-3 flex items-center justify-around"

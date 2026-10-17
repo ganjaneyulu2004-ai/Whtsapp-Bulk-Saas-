@@ -73,19 +73,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (session) {
-      if (session.user?.role !== "ADMIN") {
-        fetch("/api/subscription/status")
-          .then((res) => res.json())
-          .then((data) => {
-            if (data?.status === "PENDING_VERIFICATION") {
-              router.replace("/payment-pending");
-            } else if (data?.status !== "ACTIVE") {
-              router.replace("/complete-payment");
-            }
-          })
-          .catch(() => {});
-      }
-
       fetchStats();
       // Auto-refresh every 30 seconds
       const interval = setInterval(() => {

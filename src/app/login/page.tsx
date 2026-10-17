@@ -228,34 +228,12 @@ function LoginForm() {
       const displayName = statusData?.subscription?.payerName || loginUser.trim();
       setWelcomeName(displayName);
 
-      if (statusData?.role === "ADMIN") {
-        setCelebrationSubtitle("Launching iBrainLabs Admin Command Center...");
-        setCelebrating(true);
-        fireBrandConfetti();
-        setTimeout(() => {
-          router.replace("/");
-        }, 900);
-      } else if (statusData?.status === "ACTIVE") {
-        setCelebrationSubtitle("Your subscription is active! Opening your workspace...");
-        setCelebrating(true);
-        fireBrandConfetti();
-        setTimeout(() => {
-          router.replace("/");
-        }, 900);
-      } else if (statusData?.status === "PENDING_VERIFICATION") {
-        setCelebrationSubtitle("Payment verification in progress. Directing to status tracker...");
-        setCelebrating(true);
-        setTimeout(() => {
-          router.replace("/payment-pending");
-        }, 900);
-      } else {
-        // Direct unpaid user straight to payment collection
-        setCelebrationSubtitle("Account requires activation. Directing to payment collection...");
-        setCelebrating(true);
-        setTimeout(() => {
-          router.replace("/complete-payment");
-        }, 800);
-      }
+      setCelebrationSubtitle("Opening your workspace...");
+      setCelebrating(true);
+      fireBrandConfetti();
+      setTimeout(() => {
+        router.replace("/");
+      }, 800);
     } catch (err: any) {
       setErrorMessage("An unexpected error occurred. Please try again.");
       setLoading(false);

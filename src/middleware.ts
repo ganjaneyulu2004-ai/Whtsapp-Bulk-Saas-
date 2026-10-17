@@ -37,40 +37,15 @@ export async function middleware(req: NextRequest) {
 
   // 4. Handle Root "/"
   if (pathname === "/") {
-    if (!token) {
-      // Unauthenticated visitor -> Public landing page & demo test scanner
-      return NextResponse.next();
-    }
-    // Authenticated user
-    if (token.role === "ADMIN") {
-      return NextResponse.next();
-    }
-    const subStatus = (token.subscriptionStatus as string) || "AWAITING_PAYMENT";
-    if (subStatus === "ACTIVE") {
-      return NextResponse.next();
-    }
-    if (subStatus === "PENDING_VERIFICATION") {
-      return NextResponse.redirect(new URL("/payment-pending", req.url));
-    }
-    // Direct unpaid user to payment collection
-    return NextResponse.redirect(new URL("/complete-payment", req.url));
+    // Both unauthenticated (landing page) and authenticated (dashboard) handled smoothly
+    return NextResponse.next();
   }
 
   // 5. Public pages for unauthenticated visitors (/login, /register, /test, /demo-login)
   if (pathname === "/login" || pathname === "/register" || pathname === "/test" || pathname === "/demo-login") {
     if (token) {
-      // If already logged in, redirect away from login/register to appropriate page
-      if (token.role === "ADMIN") {
-        return NextResponse.redirect(new URL("/", req.url));
-      }
-      const subStatus = (token.subscriptionStatus as string) || "AWAITING_PAYMENT";
-      if (subStatus === "ACTIVE") {
-        return NextResponse.redirect(new URL("/", req.url));
-      }
-      if (subStatus === "PENDING_VERIFICATION") {
-        return NextResponse.redirect(new URL("/payment-pending", req.url));
-      }
-      return NextResponse.redirect(new URL("/complete-payment", req.url));
+      // If already logged in, redirect directly to dashboard
+      return NextResponse.redirect(new URL("/", req.url));
     }
     return NextResponse.next();
   }
@@ -87,70 +62,12 @@ export async function middleware(req: NextRequest) {
 
   // 7. ADMIN role has full access
   if (token.role === "ADMIN") {
-    // If admin visits payment collection or pending pages, redirect to dashboard
-    if (pathname === "/complete-payment" || pathname === "/payment-pending") {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
     return NextResponse.next();
   }
 
   // 8. USER role: block /admin routes
   if (pathname.startsWith("/admin")) {
     return NextResponse.redirect(new URL("/", req.url));
-  }
-
-  const subStatus = (token.subscriptionStatus as string) || "AWAITING_PAYMENT";
-
-  // 9. Payment Collection Page (/complete-payment)
-  if (pathname === "/complete-payment") {
-    if (subStatus === "ACTIVE") {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
-    if (subStatus === "PENDING_VERIFICATION") {
-      return NextResponse.redirect(new URL("/payment-pending", req.url));
-    }
-    return NextResponse.next();
-  }
-
-  // 10. Payment Pending Verification Page (/payment-pending)
-  if (pathname === "/payment-pending") {
-    if (subStatus === "ACTIVE") {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
-    if (subStatus === "PENDING_VERIFICATION") {
-      return NextResponse.next();
-    }
-    return NextResponse.redirect(new URL("/complete-payment", req.url));
-  }
-
-  // 11. Allow essential APIs for subscription verification & payment
-  if (
-    pathname.startsWith("/api/subscription") ||
-    pathname === "/api/business/profile"
-  ) {
-    return NextResponse.next();
-  }
-
-  // 12. Protect all other pages & APIs (/create-campaign, /campaigns, /inbox, /settings, /billing, etc.)
-  if (subStatus !== "ACTIVE") {
-    if (subStatus === "PENDING_VERIFICATION") {
-      if (pathname.startsWith("/api/")) {
-        return NextResponse.json(
-          { error: "Payment verification pending. Access will unlock once approved.", code: "PAYMENT_PENDING" },
-          { status: 403 }
-        );
-      }
-      return NextResponse.redirect(new URL("/payment-pending", req.url));
-    }
-
-    // Direct user to payment collection
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json(
-        { error: "Active subscription required. Please collect and complete payment.", code: "PAYMENT_REQUIRED" },
-        { status: 403 }
-      );
-    }
-    return NextResponse.redirect(new URL("/complete-payment", req.url));
   }
 
   return NextResponse.next();
