@@ -223,7 +223,7 @@ export function Navbar() {
                   </Link>
                   <Link
                     href="/register"
-                    className="px-3 sm:px-4 py-1.5 rounded-full bg-brand-gradient text-white text-xs font-heading font-bold hover:opacity-95 shadow-xs transition"
+                    className="px-3 sm:px-4 py-1.5 rounded-full bg-slate-900 hover:bg-black text-white text-xs font-heading font-semibold shadow-xs transition"
                   >
                     Register
                   </Link>
@@ -265,7 +265,7 @@ export function Navbar() {
                     onClick={() => setShowMobileMenu(false)}
                     className={`flex items-center gap-2.5 p-3 rounded-xl text-xs font-heading font-semibold transition-all ${
                       isActive
-                        ? "bg-brand-gradient text-white shadow-sm"
+                        ? "bg-[#5A237A] text-white shadow-xs"
                         : "bg-slate-50 text-text-main hover:bg-brand-light"
                     }`}
                   >

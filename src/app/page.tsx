@@ -326,7 +326,7 @@ export default function DashboardPage() {
 
               <Link
                 href="/create-campaign"
-                className="px-5 py-2.5 rounded-xl bg-brand-gradient hover:opacity-95 text-white font-semibold text-xs shadow-md shadow-brand-purple/20 flex items-center justify-center gap-2 transition-all self-start sm:self-auto cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-[#5A237A] hover:bg-[#471A62] text-white font-semibold text-xs shadow-xs flex items-center justify-center gap-2 transition-all self-start sm:self-auto cursor-pointer active:scale-95"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 <span>Launch First Campaign</span>

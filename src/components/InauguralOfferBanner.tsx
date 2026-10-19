@@ -77,19 +77,19 @@ export default function InauguralOfferBanner({ onSuccess }: InauguralOfferProps)
 
   return (
     <>
-      {/* 1. Festive Header Ribbon / Banner */}
-      <div className="mb-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/15 to-purple-600/15 border border-amber-300/80 p-3 sm:p-4 shadow-sm relative overflow-hidden transition-all hover:border-amber-400">
+      {/* 1. Clean Modern Launch Banner */}
+      <div className="mb-5 rounded-2xl bg-amber-50/80 border border-amber-200/90 p-3 sm:p-4 shadow-xs relative overflow-hidden transition-all hover:border-amber-300">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
           <div className="flex items-start sm:items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shrink-0 shadow-xs shadow-amber-500/30">
-              <Gift className="w-5 h-5 animate-pulse" />
+            <div className="w-9 h-9 rounded-xl bg-amber-600 flex items-center justify-center text-white shrink-0 shadow-xs">
+              <Gift className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-bold text-amber-950 font-heading flex items-center gap-1">
                   🚀 Grand Inaugural Launch Offer
                 </span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500 text-white shadow-2xs animate-pulse">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white shadow-2xs">
                   FLAT 50% OFF
                 </span>
               </div>
@@ -106,7 +106,7 @@ export default function InauguralOfferBanner({ onSuccess }: InauguralOfferProps)
             <button
               type="button"
               onClick={() => setIsOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:opacity-95 text-white text-xs font-bold font-heading shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
             >
               <span>Claim Coupon</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -155,7 +155,7 @@ export default function InauguralOfferBanner({ onSuccess }: InauguralOfferProps)
                   </div>
                   <div className="w-full bg-amber-200/80 h-2 rounded-full overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-amber-500 to-rose-500 h-full rounded-full transition-all duration-500"
+                      className="bg-amber-600 h-full rounded-full transition-all duration-500"
                       style={{ width: `${stats.claimedCount}%` }}
                     />
                   </div>
@@ -199,7 +199,7 @@ export default function InauguralOfferBanner({ onSuccess }: InauguralOfferProps)
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:opacity-95 text-white font-bold text-sm shadow-md shadow-rose-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                    className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-black text-white font-semibold text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 active:scale-[0.99]"
                   >
                     {submitting ? (
                       <span>Generating Coupon...</span>
@@ -231,7 +231,7 @@ export default function InauguralOfferBanner({ onSuccess }: InauguralOfferProps)
                 </p>
 
                 {/* Coupon Code Display Box */}
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-rose-50 border-2 border-dashed border-amber-300 mb-4 text-center">
+                <div className="p-4 rounded-2xl bg-amber-50/90 border-2 border-dashed border-amber-300 mb-4 text-center">
                   <span className="text-[10px] font-bold tracking-widest text-amber-800 uppercase block mb-1">
                     Your Exclusive Inaugural Code
                   </span>

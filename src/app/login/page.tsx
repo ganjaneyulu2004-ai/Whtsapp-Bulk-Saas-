@@ -301,8 +301,8 @@ function LoginForm() {
       {/* Main Split Layout Card */}
       <div className="w-full max-w-5xl bg-white rounded-3xl shadow-card border border-brand-soft overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10 my-auto">
         
-        {/* Left: Brand Gradient Panel (Desktop Only) */}
-        <div className="hidden lg:flex lg:col-span-5 bg-brand-gradient p-8 sm:p-12 text-white flex-col justify-between relative overflow-hidden">
+        {/* Left: Brand Solid Panel (Desktop Only) */}
+        <div className="hidden lg:flex lg:col-span-5 bg-[#3B1553] p-8 sm:p-12 text-white flex-col justify-between relative overflow-hidden">
           {/* Subtle Circuit Overlay Lines */}
           <div className="absolute inset-0 opacity-15 pointer-events-none">
             <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -495,11 +495,11 @@ function LoginForm() {
                     </label>
                   </div>
 
-                  {/* Gradient Login Button */}
+                  {/* Solid Modern Login Button */}
                   <button
                     type="submit"
                     disabled={loading || celebrating}
-                    className="w-full py-3.5 px-6 rounded-2xl bg-brand-gradient hover:opacity-95 text-white font-heading font-semibold text-sm shadow-md shadow-brand-purple/20 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+                    className="w-full py-3.5 px-6 rounded-2xl bg-[#5A237A] hover:bg-[#471A62] text-white font-heading font-semibold text-sm shadow-xs transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer active:scale-[0.99]"
                   >
                     {loading || celebrating ? (
                       <>
