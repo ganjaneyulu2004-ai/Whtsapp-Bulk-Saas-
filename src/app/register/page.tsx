@@ -17,6 +17,7 @@ import {
   AlertCircle,
   CheckCircle2
 } from "lucide-react";
+import InauguralOfferBanner from "@/components/InauguralOfferBanner";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -109,6 +110,9 @@ export default function RegisterPage() {
             Start reaching customers with high-delivery WhatsApp campaigns.
           </p>
         </div>
+
+        {/* 🪔 Dasara Inaugural Launch Offer (First 100 Customers) */}
+        <InauguralOfferBanner />
 
         {error && (
           <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-3">

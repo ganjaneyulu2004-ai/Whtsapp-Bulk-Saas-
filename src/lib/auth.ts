@@ -12,7 +12,7 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     error: "/login",
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || "offerblast-secret-super-key-2026-production",
   providers: [
     CredentialsProvider({
       name: "Credentials",

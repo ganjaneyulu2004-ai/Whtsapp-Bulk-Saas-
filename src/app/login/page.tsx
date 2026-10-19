@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { fireBrandConfetti } from "@/lib/confetti";
 import { playClickSound, playCelebrationSound } from "@/lib/sounds";
+import InauguralOfferBanner from "@/components/InauguralOfferBanner";
 import { 
   Eye, 
   EyeOff, 
@@ -415,6 +416,9 @@ function LoginForm() {
                     Enter your credentials to access your campaign management portal.
                   </p>
                 </div>
+
+                {/* 🪔 Dasara Inaugural Launch Offer (First 100 Customers) */}
+                <InauguralOfferBanner />
 
                 {registered && (
                   <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3">

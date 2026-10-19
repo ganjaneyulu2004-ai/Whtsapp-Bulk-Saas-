@@ -72,9 +72,11 @@ fi
 # Set DATABASE_URL and NEXTAUTH_URL dynamically
 sed -i '/DATABASE_URL=/d' "$APP_DIR/.env" || true
 sed -i '/NEXTAUTH_URL=/d' "$APP_DIR/.env" || true
+sed -i '/NEXTAUTH_SECRET=/d' "$APP_DIR/.env" || true
 
 echo "DATABASE_URL=\"postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME?schema=public\"" >> "$APP_DIR/.env"
 echo "NEXTAUTH_URL=\"https://$DOMAIN\"" >> "$APP_DIR/.env"
+echo "NEXTAUTH_SECRET=\"offerblast-secret-super-key-2026-production\"" >> "$APP_DIR/.env"
 
 # 6. Install dependencies and Build Next.js
 echo "🔨 [6/7] Installing dependencies & Building SaaS..."
