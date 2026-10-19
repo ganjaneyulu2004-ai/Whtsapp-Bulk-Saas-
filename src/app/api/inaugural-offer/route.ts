@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       );
     `).catch(() => {});
 
-    const couponCode = `DASARA50-${cleanMobile.slice(-4)}`;
+    const couponCode = `LAUNCH50-${cleanMobile.slice(-4)}`;
     const id = "lead_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
     const cleanName = (name || "Valued Business").trim();
 
@@ -88,12 +88,12 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("Inaugural lead error:", err);
     // Even if database has any issue, deliver coupon gracefully to user
-    const fallbackCoupon = `DASARA50-IBRAINS`;
+    const fallbackCoupon = `LAUNCH50-IBRAINS`;
     return NextResponse.json({
       success: true,
       couponCode: fallbackCoupon,
       discount: "FLAT 50% OFF",
-      message: "Special Dasara Inaugural Coupon Claimed!",
+      message: "Special Launch Inaugural Coupon Claimed!",
     });
   }
 }

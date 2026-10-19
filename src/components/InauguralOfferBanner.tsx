@@ -54,13 +54,13 @@ export default function InauguralOfferBanner({ onSuccess }: InauguralOfferProps)
         }),
       });
       const data = await res.json();
-      const code = data?.couponCode || `DASARA50-${cleanMobile.slice(-4)}`;
+      const code = data?.couponCode || `LAUNCH50-${cleanMobile.slice(-4)}`;
       setClaimedCoupon(code);
       fireBrandConfetti();
       playCelebrationSound();
       if (onSuccess) onSuccess(code);
     } catch {
-      const code = `DASARA50-${cleanMobile.slice(-4)}`;
+      const code = `LAUNCH50-${cleanMobile.slice(-4)}`;
       setClaimedCoupon(code);
       fireBrandConfetti();
     } finally {
@@ -87,7 +87,7 @@ export default function InauguralOfferBanner({ onSuccess }: InauguralOfferProps)
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-bold text-amber-950 font-heading flex items-center gap-1">
-                  🪔 Dasara Inaugural Launch Offer
+                  🚀 Grand Inaugural Launch Offer
                 </span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500 text-white shadow-2xs animate-pulse">
                   FLAT 50% OFF
@@ -137,11 +137,11 @@ export default function InauguralOfferBanner({ onSuccess }: InauguralOfferProps)
               <div>
                 <div className="flex items-center gap-2 mb-2 text-amber-700 text-xs font-bold uppercase tracking-wider">
                   <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span>Inaugural Special Offer</span>
+                  <span>Official Launch Offer</span>
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 font-heading mb-1.5">
-                  Claim 50% Discount Coupon 🪔
+                  Claim 50% Launch Discount Coupon 🚀
                 </h3>
                 <p className="text-xs text-slate-600 mb-4">
                   Reserved exclusively for the <strong>first 100 businesses</strong>. Enter your WhatsApp number to unlock your instant coupon code.
@@ -266,7 +266,7 @@ export default function InauguralOfferBanner({ onSuccess }: InauguralOfferProps)
 
                   <a
                     href={`https://wa.me/919390487233?text=${encodeURIComponent(
-                      `Hello iBrainLabs, I claimed the Inaugural Dasara Coupon *${claimedCoupon}* for Flat 50% discount on OfferBlast SaaS. Please help me activate my subscription!`
+                      `Hello iBrainLabs, I claimed the Grand Launch Coupon *${claimedCoupon}* for Flat 50% discount on OfferBlast SaaS. Please help me activate my subscription!`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
