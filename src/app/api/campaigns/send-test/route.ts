@@ -1,17 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
-import { sendWhatsAppTemplateMessage, uploadMediaToMeta } from "@/lib/whatsapp";
 
-// Rate limiter: Max 2 test messages per recipient phone number
-const globalForTestLimit = globalThis as unknown as {
-  testNumberCountMap: Map<string, number> | undefined;
-};
-const testNumberCountMap =
-  globalForTestLimit.testNumberCountMap ?? new Map<string, number>();
-if (process.env.NODE_ENV !== "production") {
-  globalForTestLimit.testNumberCountMap = testNumberCountMap;
-}
+const FALLBACK_TOKEN = "EAAOe4PppfZCIBSyhPLLzoYmzWUB35U5XgC3RezCojrqvjqdJzRYHoaFSWxoN4PDZBMTlsL2g8zEZCHkqrZAWnirvjSccc6ZAjFlzJjV7JtCdVwoWRPYEoFaQ6yQW3psyxIj7gA69buLULa1X3zYZBv0PkFiFqbvWYMaWrDDUzYK2sledzyJjl0RXJCN7Ou7YuADAZDZD";
+const FALLBACK_PHONE_ID = "1443849605471143";
 
 export async function POST(req: Request) {
   try {
@@ -19,16 +11,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { 
       recipientPhone, 
+      phone,
       recipientName, 
       offerText, 
-      posterImage, 
-      templateName,
       businessName,
-      bookingLink,
-      forceTemplate,
     } = body;
 
-    let rawPhone = (recipientPhone || business.phone || "919390487233").replace(/[^0-9]/g, "");
+    let rawPhone = String(recipientPhone || phone || business.phone || "919390487233").replace(/[^0-9]/g, "");
     if (rawPhone.length === 10) {
       rawPhone = "91" + rawPhone;
     } else if (rawPhone.length === 11 && rawPhone.startsWith("0")) {
@@ -36,139 +25,85 @@ export async function POST(req: Request) {
     }
     const targetPhone = rawPhone;
 
-    // Enforce 2 test messages limit (allow owner phone for testing)
-    const currentTestsUsed = targetPhone === "919390487233" ? 0 : (testNumberCountMap.get(targetPhone) || 0);
-    if (currentTestsUsed >= 2) {
-      return NextResponse.json({
-        success: false,
-        error: `Free test limit reached for +${targetPhone} (2 of 2 messages used). Please log in or register to send unlimited bulk campaigns!`,
-        testLimitReached: true,
-      }, { status: 429 });
-    }
-
     const config: any = business.whatsappConfig || {};
-
-    // Auto-detect or resolve recipient name
-    let finalRecipientName = recipientName?.trim();
-    if (!finalRecipientName) {
-      const existingContact = await prisma.contact.findFirst({
-        where: { businessId: business.id, phone: targetPhone },
-      });
-      if (existingContact?.name && existingContact.name !== "Customer") {
-        finalRecipientName = existingContact.name.trim();
-      } else {
-        finalRecipientName = "Customer";
-      }
-    }
+    const token = config.waToken || process.env.WA_TOKEN || FALLBACK_TOKEN;
+    const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID || FALLBACK_PHONE_ID;
+    const apiVersion = process.env.WA_API_VERSION || config.waApiVersion || "v20.0";
 
     const bName = (businessName || business.name || "iBrainLabs").trim();
-    const bLink = (bookingLink || business.defaultBookingLink || "").trim();
+    const messageContent = (offerText || `Live Test Message from OneAmple by ${bName}! 🚀 Your WhatsApp Cloud API campaign setup is active, verified, and transmitting successfully.`).trim();
 
-    // Use approved template 'hello_world' for live demo test offers
-    // Guaranteed instant delivery to EVERY phone number!
-    const targetTemplate = (forceTemplate && templateName) ? templateName : (posterImage ? "offer_poster_v1" : "hello_world");
-    const targetLanguage = targetTemplate === "offer_poster_v1" ? "en" : "en_US";
-
-    let mediaId: string | undefined = body.mediaId || undefined;
-    let posterMediaUrl: string | undefined = posterImage;
-
-    if (!posterMediaUrl && targetTemplate === "offer_poster_v1") {
-      const existingTpl = await prisma.template.findFirst({
-        where: { businessId: business.id, name: "offer_poster_v1", headerMediaUrl: { not: null } },
-        orderBy: { createdAt: "desc" },
-      });
-      if (existingTpl?.headerMediaUrl) {
-        posterMediaUrl = existingTpl.headerMediaUrl;
-      }
-    }
-
-    if (posterMediaUrl && targetTemplate === "offer_poster_v1" && !mediaId) {
-      const uploadRes = await uploadMediaToMeta(
-        {
-          waToken: config.waToken || undefined,
-          waPhoneNumberId: config.waPhoneNumberId || undefined,
-          waApiVersion: process.env.WA_API_VERSION || config.waApiVersion || "v26.0",
-        },
-        posterMediaUrl
-      );
-      if (uploadRes.success && uploadRes.mediaId) {
-        mediaId = uploadRes.mediaId;
-      }
-    }
-
-    const baseOffer = (offerText || "Special Offer for you today!").trim();
-    // In live test mode, send the clean offer text EXACTLY as chosen by the user without force-appending any unwanted URLs
-    const cleanOffer = baseOffer
-      .replace(/[\r\n\t]/g, " ")
-      .replace(/ {5,}/g, "    ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .substring(0, 300);
-
-    const exactTextSent = targetTemplate === "student_welcome"
-      ? `Hi ${finalRecipientName}! Welcome to our Tutor Marketplace. We've received your request for ${cleanOffer} in ${bName} and we're now finding the best tutor match for you. We'll message you here as soon as we have a match!`
-      : `Dear ${finalRecipientName},\n\nWe have an offer for you: ${cleanOffer}\n\nThank you for shopping with ${bName}. Have a great day!`;
-
-    const parametersSent = {
-      templateName: targetTemplate,
-      language: targetLanguage,
-      recipientPhone: `+${targetPhone}`,
-      recipientName: finalRecipientName,
-      header: targetTemplate === "student_welcome"
-        ? null
-        : (targetTemplate === "offer_poster_v1" 
-            ? { type: "image", mediaId: mediaId || "uploaded_media_id" }
-            : { type: "text", text: finalRecipientName }),
-      bodyParameters: [
-        { variable: "{{1}}", value: finalRecipientName },
-        { variable: "{{2}}", value: cleanOffer },
-        { variable: "{{3}}", value: bName },
-      ],
-      bookingLink: bLink || null,
-      exactTextSent,
+    // 1. First attempt: Send live text message (works instantly in active 24-hour service window)
+    const directPayload = {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: targetPhone,
+      type: "text",
+      text: {
+        preview_url: false,
+        body: messageContent,
+      },
     };
 
-    const res = await sendWhatsAppTemplateMessage(
-      {
-        waToken: config.waToken || undefined,
-        waPhoneNumberId: config.waPhoneNumberId || undefined,
-        waApiVersion: process.env.WA_API_VERSION || config.waApiVersion || "v26.0",
+    let metaUrl = `https://graph.facebook.com/${apiVersion}/${phoneId}/messages`;
+    let res = await fetch(metaUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      targetPhone,
-      finalRecipientName,
-      targetTemplate,
-      targetLanguage,
-      posterMediaUrl || undefined,
-      {
-        offerText: baseOffer,
-        businessName: bName,
-        bookingLink: bLink || undefined,
-        is24HourWindow: forceTemplate === false ? undefined : false, // Forced template mode
-        mediaId,
-      }
-    );
+      body: JSON.stringify(directPayload),
+    });
 
-    console.log("📢 SEND-TEST REQUEST: to=" + targetPhone + " template=" + targetTemplate + " res=", JSON.stringify(res));
+    let data = await res.json();
 
-    if (res.success) {
-      testNumberCountMap.set(targetPhone, currentTestsUsed + 1);
-      const remainingTests = Math.max(0, 2 - (currentTestsUsed + 1));
+    // 2. If 24-hr window is closed (Error 131047), fall back to official approved template "hello_world"
+    if (!res.ok && data?.error?.code === 131047) {
+      const templatePayload = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: targetPhone,
+        type: "template",
+        template: {
+          name: "hello_world",
+          language: { code: "en_US" },
+        },
+      };
+
+      res = await fetch(metaUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(templatePayload),
+      });
+
+      data = await res.json();
+    }
+
+    if (res.ok && data?.messages?.[0]?.id) {
+      const realWamid = data.messages[0].id;
       return NextResponse.json({
         success: true,
-        message: `Test message sent via ${targetTemplate} to +${targetPhone}! (waMessageId: ${res.waMessageId})`,
-        waMessageId: res.waMessageId,
-        remainingTests,
-        parametersSent,
+        message: `Real Meta test message sent successfully to +${targetPhone}!`,
+        waMessageId: realWamid,
+        metaStatus: data.messages[0].message_status || "sent",
+        recipient: targetPhone,
       });
     } else {
+      const errorDetail = data?.error?.message || data?.error?.error_user_msg || "Meta API error";
+      const errorCode = data?.error?.code || res.status;
       return NextResponse.json({
         success: false,
-        error: res.errorMessage || "Failed to send test message",
-        errorCode: res.errorCode,
-        parametersSent,
+        error: `Meta Error (${errorCode}): ${errorDetail}`,
+        metaError: data?.error,
       }, { status: 400 });
     }
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({
+      success: false,
+      error: err.message || "Internal server error while sending test",
+    }, { status: 500 });
   }
 }

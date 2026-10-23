@@ -236,17 +236,11 @@ export async function sendWhatsAppTemplateMessage(
     mediaId?: string;
   }
 ): Promise<{ success: boolean; waMessageId?: string; errorCode?: string; errorMessage?: string }> {
-  const token = config.waToken || process.env.WA_TOKEN;
-  const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID;
-  const version = process.env.WA_API_VERSION || config.waApiVersion || "v26.0";
-
-  if (!token || token.startsWith("EAAG...") || !phoneId) {
-    await new Promise((r) => setTimeout(r, 60));
-    return {
-      success: true,
-      waMessageId: `wamid.HBgL${Date.now()}${Math.random().toString(36).substr(2, 6)}`,
-    };
-  }
+  const FALLBACK_TOKEN = "EAAOe4PppfZCIBSyhPLLzoYmzWUB35U5XgC3RezCojrqvjqdJzRYHoaFSWxoN4PDZBMTlsL2g8zEZCHkqrZAWnirvjSccc6ZAjFlzJjV7JtCdVwoWRPYEoFaQ6yQW3psyxIj7gA69buLULa1X3zYZBv0PkFiFqbvWYMaWrDDUzYK2sledzyJjl0RXJCN7Ou7YuADAZDZD";
+  const FALLBACK_PHONE_ID = "1443849605471143";
+  const token = config.waToken || process.env.WA_TOKEN || FALLBACK_TOKEN;
+  const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID || FALLBACK_PHONE_ID;
+  const version = process.env.WA_API_VERSION || config.waApiVersion || "v20.0";
 
   try {
     let cleanRecipient = String(recipientPhone || "").replace(/[^0-9]/g, "");
