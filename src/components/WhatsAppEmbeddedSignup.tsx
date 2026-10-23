@@ -117,20 +117,16 @@ export default function WhatsAppEmbeddedSignup({
     const FB = (window as any).FB;
 
     if (FB) {
+      const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID || "1620839459718786";
       const loginParams: any = {
-        scope: "whatsapp_business_management,whatsapp_business_messaging",
+        config_id: configId,
         response_type: "code",
         override_default_response_type: true,
         extras: {
           feature: "whatsapp_embedded_signup",
-          version: 2,
-          sessionInfoVersion: 3,
+          setup: {},
         },
       };
-
-      if (process.env.NEXT_PUBLIC_META_CONFIG_ID) {
-        loginParams.config_id = process.env.NEXT_PUBLIC_META_CONFIG_ID;
-      }
 
       // Official FB.login Embedded Signup launcher
       FB.login(
@@ -151,9 +147,10 @@ export default function WhatsAppEmbeddedSignup({
     } else {
       // Direct OAuth Window Fallback if SDK hasn't finished initial handshake
       const redirectUri = window.location.origin + "/api/whatsapp/embedded-signup/callback";
-      const oauthUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(
+      const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID || "1620839459718786";
+      const oauthUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${metaAppId}&config_id=${configId}&redirect_uri=${encodeURIComponent(
         redirectUri
-      )}&response_type=code&scope=whatsapp_business_management,whatsapp_business_messaging`;
+      )}&response_type=code`;
 
       const width = 600;
       const height = 700;
