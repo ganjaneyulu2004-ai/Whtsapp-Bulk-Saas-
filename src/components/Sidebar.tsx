@@ -22,7 +22,8 @@ import {
   Menu,
   X,
   HelpCircle,
-  PlusCircle
+  PlusCircle,
+  Sparkles
 } from "lucide-react";
 
 export function Sidebar() {
@@ -60,6 +61,7 @@ export function Sidebar() {
   const primaryNavItems = [
     { href: "/", label: "Home", icon: Home },
     { href: "/create-campaign", label: "Create Campaign", icon: PlusCircle },
+    { href: "/templates", label: "Templates", icon: Sparkles },
     { href: "/inbox", label: "Inbox", icon: MessageSquare },
     { href: "/campaigns", label: "Campaigns & Reports", icon: BarChart3 },
   ];
