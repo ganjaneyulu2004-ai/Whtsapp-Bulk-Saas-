@@ -15,7 +15,8 @@ import {
   EyeOff, 
   Loader2, 
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Instagram
 } from "lucide-react";
 import InauguralOfferBanner from "@/components/InauguralOfferBanner";
 
@@ -277,6 +278,22 @@ export default function RegisterPage() {
               )}
             </button>
           </div>
+
+          {/* Divider */}
+          <div className="relative my-3 flex items-center justify-center">
+            <div className="border-t border-brand-soft w-full" />
+            <span className="bg-white px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-muted">OR</span>
+            <div className="border-t border-brand-soft w-full" />
+          </div>
+
+          {/* Continue with Instagram Button */}
+          <a
+            href="/api/auth/instagram"
+            className="w-full py-3 px-5 rounded-2xl bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:opacity-95 text-white font-heading font-semibold text-sm shadow-sm transition-all duration-150 flex items-center justify-center gap-2.5 cursor-pointer active:scale-[0.99]"
+          >
+            <Instagram className="w-4 h-4" />
+            <span>Continue with Instagram</span>
+          </a>
         </form>
 
         <div className="mt-6 pt-6 border-t border-brand-soft text-center">

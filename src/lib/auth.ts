@@ -19,8 +19,74 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
+        isInstagram: { label: "isInstagram", type: "text" },
+        name: { label: "name", type: "text" },
       },
       async authorize(credentials) {
+        // 1. Direct Instagram One-Click Login / Onboarding
+        if (credentials?.isInstagram === "true" && credentials?.username) {
+          const clean = credentials.username.trim().toLowerCase();
+          let user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { username: clean },
+                { username: credentials.username.trim() },
+              ],
+            },
+          });
+
+          if (!user) {
+            const randomPass = await bcrypt.hash("ig_pass_" + Date.now(), 10);
+            user = await prisma.user.create({
+              data: {
+                name: credentials.name || credentials.username,
+                username: clean,
+                passwordHash: randomPass,
+                businessName: `${credentials.name || clean}'s Business`,
+                role: "USER",
+              },
+            });
+
+            const userBusiness = await prisma.business.create({
+              data: {
+                userId: user.id,
+                name: user.businessName || "My Business",
+                language: "en",
+              },
+            });
+
+            await prisma.whatsAppConfig.create({
+              data: {
+                businessId: userBusiness.id,
+                waApiVersion: "v26.0",
+                messagingLimitTier: "TIER_250",
+                isConnected: false,
+              },
+            });
+
+            await prisma.subscription.create({
+              data: {
+                userId: user.id,
+                plan: "Instagram Onboarding Plan",
+                amount: 0,
+                status: "ACTIVE",
+                startDate: new Date(),
+                endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+              },
+            });
+          }
+
+          return {
+            id: user.id,
+            name: user.name,
+            username: user.username,
+            role: user.role,
+            businessName: user.businessName,
+            mobile: user.mobile,
+          };
+        }
+
+        // 2. Standard Username & Password Login
         if (!credentials?.username || !credentials?.password) {
           throw new Error("Please enter username and password");
         }

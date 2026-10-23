@@ -31,13 +31,16 @@ import {
   CheckCheck,
   ExternalLink,
   Wifi,
-  Battery
+  Battery,
+  Instagram
 } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered");
+  const igUser = searchParams.get("ig_user");
+  const igName = searchParams.get("ig_name");
 
   // Login only
   const [activeTab, setActiveTab] = useState<"login">("login");
@@ -245,19 +248,48 @@ function LoginForm() {
     }
   };
 
-  // Auto-login trigger if accessed with ?autologin=demo or ?autologin=admin or ?quick=true
+  // Auto-login trigger if accessed with ?autologin=demo or ?autologin=admin or ?quick=true or via Instagram OAuth
   useEffect(() => {
     const autologin = searchParams.get("autologin");
     const demo = searchParams.get("demo");
     const admin = searchParams.get("admin");
     const quick = searchParams.get("quick");
 
+    if (igUser) {
+      setLoading(true);
+      signIn("credentials", {
+        username: igUser,
+        name: igName || igUser,
+        isInstagram: "true",
+        redirect: false,
+      })
+        .then((res) => {
+          if (res && !res.error) {
+            setWelcomeName(igName || igUser);
+            setCelebrationSubtitle("Signed in via Instagram! Opening workspace...");
+            setCelebrating(true);
+            fireBrandConfetti();
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 700);
+          } else {
+            setErrorMessage("Failed to login with Instagram. Please try again.");
+            setLoading(false);
+          }
+        })
+        .catch(() => {
+          setErrorMessage("Instagram login error.");
+          setLoading(false);
+        });
+      return;
+    }
+
     if (autologin === "admin" || admin === "true") {
       performLogin("ADMIN_IbrainTest", "ADMIN_IbrainTest123");
     } else if (autologin === "demo" || demo === "true" || quick === "true") {
       performLogin("demo_client", "demo123");
     }
-  }, [searchParams]);
+  }, [searchParams, igUser, igName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -513,6 +545,21 @@ function LoginForm() {
                     )}
                   </button>
 
+                  {/* Divider */}
+                  <div className="relative my-3 flex items-center justify-center">
+                    <div className="border-t border-brand-soft w-full" />
+                    <span className="bg-white px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-muted">OR</span>
+                    <div className="border-t border-brand-soft w-full" />
+                  </div>
+
+                  {/* Continue with Instagram Button */}
+                  <a
+                    href="/api/auth/instagram"
+                    className="w-full py-3 px-5 rounded-2xl bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:opacity-95 text-white font-heading font-semibold text-sm shadow-sm transition-all duration-150 flex items-center justify-center gap-2.5 cursor-pointer active:scale-[0.99]"
+                  >
+                    <Instagram className="w-4 h-4" />
+                    <span>Continue with Instagram</span>
+                  </a>
                 </form>
 
 
