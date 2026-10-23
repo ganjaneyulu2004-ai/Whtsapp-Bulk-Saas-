@@ -396,17 +396,30 @@ export async function sendWhatsAppTemplateMessage(
         });
       }
 
-      payload = {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: cleanRecipient,
-        type: "template",
-        template: {
-          name: templateName,
-          language: { code: templateLanguage || "en_US" },
-          components,
-        },
-      };
+      if (templateName === "hello_world") {
+        payload = {
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: cleanRecipient,
+          type: "template",
+          template: {
+            name: "hello_world",
+            language: { code: "en_US" },
+          },
+        };
+      } else {
+        payload = {
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: cleanRecipient,
+          type: "template",
+          template: {
+            name: templateName,
+            language: { code: templateLanguage || "en_US" },
+            components,
+          },
+        };
+      }
     }
 
     const url = `https://graph.facebook.com/${version}/${phoneId}/messages`;

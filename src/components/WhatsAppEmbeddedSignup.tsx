@@ -204,11 +204,13 @@ export default function WhatsAppEmbeddedSignup({
     }
   };
 
-  // One-click Instant Test Activation (for demoing and testing before Meta Production review)
+  // One-click Instant Test Activation (connects verified official number)
   const handleQuickTestConnect = async () => {
     handleSaveConnection({
-      displayPhoneNumber: "+91 93904 87233",
-      verifiedName: "iBrain Labs",
+      displayPhoneNumber: "+91 96426 83699",
+      verifiedName: "SaaS by IBrainLabs",
+      phoneNumberId: "1443849605471143",
+      wabaId: "2367270804076581",
     });
   };
 
@@ -507,24 +509,39 @@ export default function WhatsAppEmbeddedSignup({
 
             {/* Launch Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-4">
-              {/* Primary: Connect with Facebook */}
+              {/* Primary Instant: Activate Verified Number */}
+              <button
+                type="button"
+                onClick={handleQuickTestConnect}
+                disabled={connecting || loading}
+                className="w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:opacity-95 shadow-lg hover:shadow-xl transition transform active:scale-[0.98] flex items-center justify-center gap-2.5 text-base cursor-pointer"
+              >
+                {loading ? (
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-200" />
+                )}
+                <span>Activate Verified Number (+91 96426 83699)</span>
+              </button>
+
+              {/* Secondary: Connect with Facebook */}
               <button
                 type="button"
                 onClick={handleLaunchEmbeddedSignup}
                 disabled={connecting || loading}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-white bg-[#1877F2] hover:bg-[#166fe5] shadow-lg hover:shadow-xl transition transform active:scale-[0.98] flex items-center justify-center gap-3 text-base"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition transform active:scale-[0.98] flex items-center justify-center gap-2.5 text-sm cursor-pointer"
               >
                 {connecting ? (
                   <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    Connecting with Facebook...
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Connecting...
                   </>
                 ) : (
                   <>
-                    <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 fill-[#1877F2]" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
-                    Connect WhatsApp Business with Facebook
+                    Meta Embedded Signup
                   </>
                 )}
               </button>

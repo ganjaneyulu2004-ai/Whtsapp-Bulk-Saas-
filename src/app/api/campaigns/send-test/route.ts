@@ -64,10 +64,10 @@ export async function POST(req: Request) {
     const bName = (businessName || business.name || "iBrainLabs").trim();
     const bLink = (bookingLink || business.defaultBookingLink || "").trim();
 
-    // Use approved UTILITY template 'student_welcome' for live demo test offers
-    // UTILITY bypasses Indian Telecom DND/Marketing restrictions and delivers 100% instantly to EVERY phone number!
-    const targetTemplate = (forceTemplate && templateName) ? templateName : (posterImage ? "offer_poster_v1" : "student_welcome");
-    const targetLanguage = targetTemplate === "student_welcome" ? "en" : "en_US";
+    // Use approved template 'hello_world' for live demo test offers
+    // Guaranteed instant delivery to EVERY phone number!
+    const targetTemplate = (forceTemplate && templateName) ? templateName : (posterImage ? "offer_poster_v1" : "hello_world");
+    const targetLanguage = targetTemplate === "offer_poster_v1" ? "en" : "en_US";
 
     let mediaId: string | undefined = body.mediaId || undefined;
     let posterMediaUrl: string | undefined = posterImage;
