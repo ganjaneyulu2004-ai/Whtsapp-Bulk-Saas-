@@ -70,13 +70,20 @@ export async function POST(req: Request) {
       },
     });
 
-    // Create WhatsApp Config for this business
+    // Create WhatsApp Config for this business - Auto-connected with official office API
     await prisma.whatsAppConfig.create({
       data: {
         businessId: userBusiness.id,
         waApiVersion: "v26.0",
         messagingLimitTier: "TIER_250",
-        isConnected: false,
+        isConnected: true,
+        displayPhoneNumber: "+91 96426 83699",
+        verifiedName: "SaaS by IBrainLabs",
+        qualityRating: "High (Green)",
+        connectionMethod: "OFFICIAL_OFFICE_API",
+        waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
+        waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
+        waToken: process.env.WA_TOKEN || null,
       },
     });
 

@@ -30,15 +30,38 @@ export async function getCurrentBusiness() {
             },
             include: { whatsappConfig: true },
           });
+        }
 
-          await prisma.whatsAppConfig.create({
-            data: {
-              businessId: userBiz.id,
-              waApiVersion: "v26.0",
+        if (!userBiz.whatsappConfig || !userBiz.whatsappConfig.isConnected) {
+          const config = await prisma.whatsAppConfig.upsert({
+            where: { businessId: userBiz.id },
+            update: {
+              isConnected: true,
+              displayPhoneNumber: "+91 96426 83699",
+              verifiedName: "SaaS by IBrainLabs",
+              qualityRating: "High (Green)",
               messagingLimitTier: "TIER_250",
-              isConnected: false,
+              connectionMethod: "OFFICIAL_OFFICE_API",
+              waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
+              waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
+              waToken: process.env.WA_TOKEN || null,
+              waApiVersion: "v26.0",
+            },
+            create: {
+              businessId: userBiz.id,
+              isConnected: true,
+              displayPhoneNumber: "+91 96426 83699",
+              verifiedName: "SaaS by IBrainLabs",
+              qualityRating: "High (Green)",
+              messagingLimitTier: "TIER_250",
+              connectionMethod: "OFFICIAL_OFFICE_API",
+              waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
+              waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
+              waToken: process.env.WA_TOKEN || null,
+              waApiVersion: "v26.0",
             },
           });
+          userBiz.whatsappConfig = config;
         }
         return userBiz;
       }
