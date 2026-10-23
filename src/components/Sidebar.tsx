@@ -62,7 +62,6 @@ export function Sidebar() {
     { href: "/create-campaign", label: "Create Campaign", icon: PlusCircle },
     { href: "/inbox", label: "Inbox", icon: MessageSquare },
     { href: "/campaigns", label: "Campaigns & Reports", icon: BarChart3 },
-    { href: "/billing", label: "Billing", icon: CreditCard },
   ];
 
   const adminNavItems = [

@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { code, wabaId, phoneNumberId, directToken, displayPhoneNumber, verifiedName } = body;
 
-    const metaAppId = process.env.META_APP_ID || "1083272431077581";
+    const metaAppId = process.env.META_APP_ID || "2068663130431385";
     const metaAppSecret = process.env.META_APP_SECRET || "d477617005728986436f6e65384f9ca5";
     const apiVersion = process.env.WA_API_VERSION || "v20.0";
 

@@ -80,10 +80,22 @@ export async function POST(req: Request) {
       },
     });
 
+    // Automatically activate user with 1-Year Free Active Subscription
+    await prisma.subscription.create({
+      data: {
+        userId: newUser.id,
+        plan: "Full Access Testing Plan",
+        amount: 0,
+        status: "ACTIVE",
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year active
+      },
+    });
+
     return NextResponse.json(
       {
         success: true,
-        message: "Account created successfully! Please log in to complete your subscription.",
+        message: "Account created successfully! You can now log in and start sending campaigns.",
         userId: newUser.id,
       },
       { status: 201 }

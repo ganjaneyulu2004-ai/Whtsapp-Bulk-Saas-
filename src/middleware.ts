@@ -43,9 +43,18 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 5. Public pages for unauthenticated visitors (/login, /register, /test, /demo-login)
-  if (pathname === "/login" || pathname === "/register" || pathname === "/test" || pathname === "/demo-login") {
-    if (token) {
+  // 5. Public pages for unauthenticated visitors (/login, /register, /privacy, /terms, /test, /demo-login)
+  if (
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/privacy" ||
+    pathname === "/terms" ||
+    pathname.startsWith("/privacy") ||
+    pathname.startsWith("/terms") ||
+    pathname === "/test" ||
+    pathname === "/demo-login"
+  ) {
+    if (token && (pathname === "/login" || pathname === "/register")) {
       // If already logged in, redirect directly to dashboard
       return NextResponse.redirect(new URL("/", req.url));
     }

@@ -86,7 +86,6 @@ export function Navbar() {
     { href: "/create-campaign", label: t("nav.createCampaign"), icon: PlusCircle },
     { href: "/inbox", label: "Inbox", icon: Inbox },
     { href: "/campaigns", label: t("nav.campaigns"), icon: BarChart3 },
-    { href: "/billing", label: "Billing", icon: CreditCard },
     { href: "/settings", label: t("nav.settings"), icon: SettingsIcon },
   ];
 

@@ -273,7 +273,7 @@ export default function RegisterPage() {
                   <span>Creating Account...</span>
                 </>
               ) : (
-                <span>Register & Continue to Subscription</span>
+                <span>Create Account & Get Started</span>
               )}
             </button>
           </div>

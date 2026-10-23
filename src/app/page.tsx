@@ -126,7 +126,7 @@ export default function DashboardPage() {
       {/* 1. Official Meta WhatsApp Embedded Signup */}
       <WhatsAppEmbeddedSignup
         initialConfig={waConfig}
-        metaAppId={waConfig?.metaAppId || "1083272431077581"}
+        metaAppId={process.env.NEXT_PUBLIC_META_APP_ID || "2068663130431385"}
         onConfigUpdated={() => fetchStats(true)}
       />
 

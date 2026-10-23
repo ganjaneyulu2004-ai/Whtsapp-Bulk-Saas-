@@ -68,35 +68,8 @@ export const authOptions: NextAuthOptions = {
         token.mobile = user.mobile;
       }
 
-      // Populate latest subscriptionStatus
-      const userId = (token?.id || user?.id) as string | undefined;
-      if (userId) {
-        if (token.role === "ADMIN") {
-          token.subscriptionStatus = "ACTIVE";
-        } else {
-          try {
-            const latestSub = await prisma.subscription.findFirst({
-              where: { userId },
-              orderBy: { createdAt: "desc" },
-              select: { status: true, endDate: true },
-            });
-
-            if (!latestSub) {
-              token.subscriptionStatus = "AWAITING_PAYMENT";
-            } else if (
-              latestSub.status === "ACTIVE" &&
-              latestSub.endDate &&
-              new Date(latestSub.endDate).getTime() <= Date.now()
-            ) {
-              token.subscriptionStatus = "EXPIRED";
-            } else {
-              token.subscriptionStatus = latestSub.status;
-            }
-          } catch {
-            token.subscriptionStatus = token.subscriptionStatus || "AWAITING_PAYMENT";
-          }
-        }
-      }
+      // Populate latest subscriptionStatus - All users always ACTIVE
+      token.subscriptionStatus = "ACTIVE";
 
       return token;
     },
