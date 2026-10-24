@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { PlanConfig, TopUpPack, SUBSCRIPTION_PLANS, CREDIT_TOPUP_PACKS } from "@/config/plans";
 
-export default function CompletePaymentPage() {
+function CompletePaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedType = searchParams.get("type"); // "topup" | "plan"
@@ -753,5 +753,19 @@ export default function CompletePaymentPage() {
         </details>
       </section>
     </div>
+  );
+}
+
+export default function CompletePaymentPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-brand-purple animate-spin" />
+        </div>
+      }
+    >
+      <CompletePaymentContent />
+    </Suspense>
   );
 }
