@@ -225,12 +225,100 @@ export async function initializeDatabase() {
       data: {
         businessId: business.id,
         waToken: process.env.WA_TOKEN || null,
-        waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1182593274945416",
-        waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "1506138464594761",
+        waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
+        waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
         waApiVersion: process.env.WA_API_VERSION || "v26.0",
         metaAppId: process.env.META_APP_ID || "2068663130431385",
         messagingLimitTier: "TIER_250",
         isConnected: true,
+      },
+    });
+  }
+
+  // Seed VIP Client Account (Platform Fees Exempt)
+  const vipUsername = "VIP_Client";
+  const vipPassword = "VIP_Client123";
+  const vipPasswordHash = await bcrypt.hash(vipPassword, 10);
+
+  const vipUser = await prisma.user.upsert({
+    where: { username: vipUsername },
+    update: {
+      passwordHash: vipPasswordHash,
+      role: "USER",
+    },
+    create: {
+      username: vipUsername,
+      name: "VIP Client (Exempt)",
+      businessName: "VIP Retail Partner",
+      role: "USER",
+      passwordHash: vipPasswordHash,
+      mobile: "919390487233",
+    },
+  });
+
+  const vipBusiness = await prisma.business.upsert({
+    where: { id: "vip-client-business-id" },
+    update: {
+      name: "VIP Retail Partner",
+      userId: vipUser.id,
+    },
+    create: {
+      id: "vip-client-business-id",
+      userId: vipUser.id,
+      name: "VIP Retail Partner",
+      category: "Retail Showcase",
+      phone: "+91 93904 84762",
+      perMessageCost: 0.80,
+      language: "en",
+    },
+  });
+
+  await prisma.whatsAppConfig.upsert({
+    where: { businessId: vipBusiness.id },
+    update: {
+      isConnected: true,
+      connectionMethod: "OFFICIAL_OFFICE_API",
+      displayPhoneNumber: "+91 96426 83699",
+      waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
+      waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
+      waToken: process.env.WA_TOKEN || null,
+    },
+    create: {
+      businessId: vipBusiness.id,
+      isConnected: true,
+      connectionMethod: "OFFICIAL_OFFICE_API",
+      displayPhoneNumber: "+91 96426 83699",
+      waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
+      waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
+      waToken: process.env.WA_TOKEN || null,
+    },
+  });
+
+  const existingVipSub = await prisma.subscription.findFirst({
+    where: { userId: vipUser.id },
+  });
+  const now = new Date();
+  const tenYearsLater = new Date(now.getTime() + 10 * 365 * 24 * 60 * 60 * 1000);
+
+  if (existingVipSub) {
+    await prisma.subscription.update({
+      where: { id: existingVipSub.id },
+      data: {
+        plan: "VIP Pro (Platform Fee Exempt)",
+        status: "ACTIVE",
+        endDate: tenYearsLater,
+      },
+    });
+  } else {
+    await prisma.subscription.create({
+      data: {
+        userId: vipUser.id,
+        plan: "VIP Pro (Platform Fee Exempt)",
+        amount: 0,
+        status: "ACTIVE",
+        startDate: now,
+        endDate: tenYearsLater,
+        adminNote: "VIP Partner Lifetime Free Platform Access",
       },
     });
   }
