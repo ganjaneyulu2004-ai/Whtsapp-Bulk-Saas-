@@ -199,6 +199,36 @@ export async function processCampaignSending(campaignId: string) {
             sentCount: { increment: 1 },
           },
         });
+
+        // Track per-message API cost (cut from added card via threshold)
+        const costPerMsg = campaign.business.perMessageCost || 0.80;
+        try {
+          const updatedBusiness = await prisma.business.update({
+            where: { id: campaign.businessId },
+            data: {
+              unbilledApiSpend: { increment: costPerMsg },
+            },
+            select: {
+              unbilledApiSpend: true,
+              billingThreshold: true,
+            },
+          });
+
+          // Meta Threshold Auto-Debit (e.g. every ₹500)
+          const threshold = updatedBusiness.billingThreshold || 500.0;
+          if (updatedBusiness.unbilledApiSpend >= threshold) {
+            await prisma.business.update({
+              where: { id: campaign.businessId },
+              data: {
+                unbilledApiSpend: { decrement: threshold },
+                totalApiCharged: { increment: threshold },
+              },
+            });
+            console.log(`[Card Auto-Debit] Deducted ₹${threshold} for business ${campaign.businessId} at threshold.`);
+          }
+        } catch (cardErr) {
+          console.warn("Card spend tracking warning:", cardErr);
+        }
       } else {
         await prisma.messageLog.update({
           where: { id: log.id },

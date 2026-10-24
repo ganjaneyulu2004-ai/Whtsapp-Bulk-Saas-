@@ -47,6 +47,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const business: any = await getCurrentBusiness();
+
     let quota: any = null;
     if (session.user.role !== "ADMIN") {
       const sub = await prisma.subscription.findFirst({
@@ -60,6 +62,18 @@ export async function POST(req: Request) {
         );
       }
 
+      // 1. Mandatory API Card check (Official Meta Per-Message charges from 1st message)
+      if (!business.apiCardLinked) {
+        return NextResponse.json(
+          {
+            error: "⚠️ వాట్సాప్ అధికారిక API ఛార్జీల (~₹0.80/msg) కోసం దయచేసి మీ కార్డ్‌ని లింక్ చేయండి. కార్డ్ లింక్ చేసిన తర్వాత మాత్రమే బల్క్ మెసేజ్‌లు పంపవచ్చు.",
+            cardRequired: true,
+          },
+          { status: 403 }
+        );
+      }
+
+      // 2. Plan Volume Quota Check (Starter/Growth plan limit reached -> Top-up required)
       quota = await getUserMessageUsage(session.user.id);
       if (quota.isLimitReached) {
         return NextResponse.json(
@@ -73,7 +87,6 @@ export async function POST(req: Request) {
       }
     }
 
-    const business = await getCurrentBusiness();
     const body = await req.json();
 
     const {

@@ -63,6 +63,13 @@ model Business {
   currency         String          @default("INR")
   perMessageCost   Float           @default(0.80) // INR per message
   language         String          @default("en") // 'en' | 'te'
+  apiCardLinked    Boolean         @default(false)
+  apiCardLast4     String?
+  apiCardBrand     String?
+  apiCardToken     String?
+  unbilledApiSpend Float           @default(0.0)
+  billingThreshold Float           @default(500.0)
+  totalApiCharged  Float           @default(0.0)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   whatsappConfig   WhatsAppConfig?

@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import FreeTrialScannerSection from "@/components/FreeTrialScannerSection";
 import WhatsAppEmbeddedSignup from "@/components/WhatsAppEmbeddedSignup";
+import MetaApiCardModal from "@/components/MetaApiCardModal";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -48,6 +49,8 @@ export default function DashboardPage() {
 
   const [statsData, setStatsData] = useState<any>(null);
   const [usage, setUsage] = useState<any>(null);
+  const [cardData, setCardData] = useState<any>(null);
+  const [showCardModal, setShowCardModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -60,6 +63,16 @@ export default function DashboardPage() {
       if (res.ok) {
         const u = await res.json();
         setUsage(u);
+      }
+    } catch {}
+  };
+
+  const fetchCardData = async () => {
+    try {
+      const res = await fetch("/api/billing/card");
+      if (res.ok) {
+        const c = await res.json();
+        setCardData(c);
       }
     } catch {}
   };
@@ -90,10 +103,12 @@ export default function DashboardPage() {
     if (session) {
       fetchStats();
       fetchUsage();
+      fetchCardData();
       // Auto-refresh every 30 seconds
       const interval = setInterval(() => {
         fetchStats();
         fetchUsage();
+        fetchCardData();
       }, 30000);
       return () => clearInterval(interval);
     } else {
@@ -483,6 +498,73 @@ export default function DashboardPage() {
           </Link>
         </div>
       )}
+
+      {/* 💳 OFFICIAL META PER-MESSAGE API CARD BILLING BAR */}
+      {!isAdmin && (
+        cardData?.apiCardLinked ? (
+          <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 font-bold">
+                💳
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">
+                    Official Meta WhatsApp API Billing
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-800 text-[10px] font-bold">
+                    Card Linked ✓
+                  </span>
+                </div>
+                <div className="text-sm font-heading font-bold text-slate-800 mt-0.5">
+                  <span>{cardData.apiCardBrand || "Card"} ending in {cardData.apiCardLast4 || "••••"}</span>
+                  <span className="text-xs text-slate-500 font-normal ml-2">
+                    (Meter: ₹{(cardData.unbilledApiSpend || 0).toFixed(2)} / ₹{cardData.billingThreshold || 500} auto-debit threshold)
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowCardModal(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-emerald-300 text-emerald-800 font-heading font-bold text-xs transition shrink-0 cursor-pointer"
+            >
+              Update Card
+            </button>
+          </div>
+        ) : (
+          <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50 border-2 border-indigo-200 text-indigo-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0 text-indigo-700">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-heading font-extrabold text-sm sm:text-base text-indigo-900">
+                  💳 వాట్సాప్ అధికారిక API ఛార్జీల (~₹0.80/msg) కోసం కార్డ్ లింక్ చేయండి
+                </p>
+                <p className="text-xs text-indigo-800 mt-0.5">
+                  బల్క్ క్యాంపెయిన్స్ పంపడానికి ఇది తప్పనిసరి. మొదటి మెసేజ్ నుండే API ఖర్చు ఆటో-డెబిట్ అవుతుంది (Meta లాగానే).
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowCardModal(true)}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-heading font-extrabold text-xs shadow-md transition-all shrink-0 flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>💳 Link Card Now</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )
+      )}
+
+      {/* Meta API Card Linking Modal */}
+      <MetaApiCardModal
+        isOpen={showCardModal}
+        onClose={() => setShowCardModal(false)}
+        onSuccess={fetchCardData}
+      />
 
       {/* 2. Top Header & Action Bar (Clean & Seamless) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">

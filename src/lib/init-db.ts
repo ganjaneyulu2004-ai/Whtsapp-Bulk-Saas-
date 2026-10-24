@@ -170,6 +170,15 @@ export async function initializeDatabase() {
       "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
     );`,
+
+    // Auto-migrate Business table for per-message API card billing
+    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "apiCardLinked" BOOLEAN DEFAULT false;`,
+    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "apiCardLast4" TEXT;`,
+    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "apiCardBrand" TEXT;`,
+    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "apiCardToken" TEXT;`,
+    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "unbilledApiSpend" DOUBLE PRECISION DEFAULT 0.0;`,
+    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "billingThreshold" DOUBLE PRECISION DEFAULT 500.0;`,
+    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "totalApiCharged" DOUBLE PRECISION DEFAULT 0.0;`,
   ];
 
   for (const sql of ddlStatements) {
