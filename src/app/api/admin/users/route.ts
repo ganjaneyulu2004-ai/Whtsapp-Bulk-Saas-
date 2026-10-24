@@ -159,6 +159,9 @@ export async function POST(req: Request) {
       });
     }
 
+    const latestSub = user.subscriptions[0];
+    const now = new Date();
+
     if (action === "ACTIVATE" || action === "EXTEND") {
       let baseDate = now;
       if (action === "EXTEND" && latestSub?.endDate && new Date(latestSub.endDate) > now) {
