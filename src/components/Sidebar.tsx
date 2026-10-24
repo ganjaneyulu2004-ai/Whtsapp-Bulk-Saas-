@@ -107,12 +107,12 @@ export function Sidebar() {
       </div>
 
       {/* 2. Account Dropdown (1 SIDE - directly below logo) */}
-      <div className="p-3 border-b border-slate-100">
+      <div className="p-2.5 border-b border-slate-100">
         <AccountDropdown align="left" className="w-full" />
       </div>
 
       {/* 3. Navigation Links (Middle Scrollable) */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+      <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-0.5 custom-scrollbar">
         {primaryNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
@@ -121,13 +121,13 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-heading text-xs font-semibold transition-all duration-150 ${
+              className={`flex items-center justify-between px-3 py-2 rounded-xl font-heading text-xs font-semibold transition-all duration-150 ${
                 isActive
                   ? "bg-slate-900 text-white shadow-xs"
                   : "text-slate-700 hover:text-slate-900 hover:bg-slate-100/80"
               }`}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-500"}`} />
                 <span>{item.label}</span>
               </div>
@@ -137,9 +137,12 @@ export function Sidebar() {
 
         {/* Admin Navigation Section */}
         {isAdmin && (
-          <div className="pt-3 mt-3 border-t border-slate-100 space-y-1">
-            <div className="px-3.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-              Admin Suite
+          <div className="pt-2.5 mt-2 border-t border-slate-100 space-y-0.5">
+            <div className="px-3 py-1 flex items-center justify-between text-[10px] font-bold text-brand-purple uppercase tracking-wider">
+              <span>Admin Suite</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-brand-purple/10 text-brand-purple font-extrabold text-[9px]">
+                Super Admin
+              </span>
             </div>
             {adminNavItems.map((item) => {
               const Icon = item.icon;
@@ -149,13 +152,13 @@ export function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-heading text-xs font-semibold transition-all duration-150 ${
+                  className={`flex items-center justify-between px-3 py-2 rounded-xl font-heading text-xs font-semibold transition-all duration-150 ${
                     isActive
-                      ? "bg-slate-900 text-white shadow-xs"
-                      : "text-slate-700 hover:text-slate-900 hover:bg-slate-100/80"
+                      ? "bg-brand-purple text-white shadow-xs"
+                      : "text-slate-700 hover:text-brand-purple hover:bg-purple-50/80"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-brand-purple"}`} />
                     <span>{item.label}</span>
                   </div>
@@ -172,16 +175,16 @@ export function Sidebar() {
       </div>
 
       {/* 4. Bottom Pinned Section: Settings, Language, Logout */}
-      <div className="mt-auto p-3 border-t border-slate-100 space-y-1 bg-slate-50/50">
+      <div className="mt-auto p-2.5 border-t border-slate-100 space-y-0.5 bg-slate-50/50">
         <Link
           href="/settings"
-          className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-heading text-xs font-semibold transition-all duration-150 ${
+          className={`flex items-center justify-between px-3 py-1.5 rounded-xl font-heading text-xs font-semibold transition-all duration-150 ${
             pathname === "/settings"
               ? "bg-slate-900 text-white shadow-xs"
               : "text-slate-700 hover:text-slate-900 hover:bg-slate-100/80"
           }`}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <Settings className={`w-4 h-4 ${pathname === "/settings" ? "text-white" : "text-slate-500"}`} />
             <span>Settings</span>
           </div>
@@ -191,9 +194,9 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => setLang(lang === "en" ? "te" : "en")}
-          className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-heading font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+          className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-heading font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition cursor-pointer"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <Globe className="w-4 h-4 text-slate-400" />
             <span>Language</span>
           </div>
@@ -206,7 +209,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="w-full flex items-center gap-3 px-3.5 py-2 text-xs font-heading font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+          className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-heading font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
           <span>Log out</span>

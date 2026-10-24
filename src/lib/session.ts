@@ -8,11 +8,65 @@ export async function getCurrentBusiness() {
 
     if (session?.user?.id) {
       if (session.user.role === "ADMIN") {
-        // Admin gets the primary business or demo business
-        const primary = await prisma.business.findFirst({
+        // Admin gets the platform master business (iBrainLabs)
+        let adminBiz = await prisma.business.findFirst({
+          where: {
+            OR: [
+              { userId: session.user.id },
+              { name: "iBrainLabs" },
+              { name: "OfferBlast Admin" },
+              { id: "demo-business-id" },
+            ],
+          },
           include: { whatsappConfig: true },
         });
-        if (primary) return primary;
+
+        if (!adminBiz) {
+          adminBiz = await prisma.business.create({
+            data: {
+              userId: session.user.id,
+              name: "iBrainLabs",
+              category: "WhatsApp Bulk SaaS Platform",
+              phone: "+91 96426 83699",
+              language: "en",
+            },
+            include: { whatsappConfig: true },
+          });
+        }
+
+        // Ensure Master WhatsAppConfig is marked connected
+        if (!adminBiz.whatsappConfig) {
+          const config = await prisma.whatsAppConfig.create({
+            data: {
+              businessId: adminBiz.id,
+              isConnected: true,
+              displayPhoneNumber: "+91 96426 83699",
+              verifiedName: "iBrainLabs",
+              qualityRating: "High (Green)",
+              messagingLimitTier: "TIER_100K",
+              connectionMethod: "OFFICIAL_OFFICE_API",
+              waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
+              waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
+              waToken: process.env.WA_TOKEN || null,
+              waApiVersion: "v26.0",
+            },
+          });
+          adminBiz.whatsappConfig = config;
+        } else if (!adminBiz.whatsappConfig.isConnected) {
+          adminBiz.whatsappConfig = await prisma.whatsAppConfig.update({
+            where: { id: adminBiz.whatsappConfig.id },
+            data: {
+              isConnected: true,
+              displayPhoneNumber: "+91 96426 83699",
+              verifiedName: "iBrainLabs",
+              connectionMethod: "OFFICIAL_OFFICE_API",
+              waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
+              waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
+            },
+          });
+        }
+
+        return adminBiz;
       } else {
         // Regular user gets their own business
         let userBiz = await prisma.business.findFirst({

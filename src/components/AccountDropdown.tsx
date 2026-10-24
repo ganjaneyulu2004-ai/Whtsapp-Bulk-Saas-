@@ -30,14 +30,16 @@ export function AccountDropdown({
       .catch(() => {});
   }, [session]);
 
-  const activeName = (
-    businessName || 
-    session?.user?.businessName || 
-    session?.user?.name || 
-    "iBrainLabs"
-  ).trim();
+  const activeName = isAdmin
+    ? "iBrainLabs"
+    : (
+        businessName || 
+        session?.user?.businessName || 
+        session?.user?.name || 
+        "My Business"
+      ).trim();
 
-  const activeInitial = (activeName[0] || "Y").toUpperCase();
+  const activeInitial = isAdmin ? "i" : (activeName[0] || "Y").toUpperCase();
 
   return (
     <div className={`relative ${className}`}>

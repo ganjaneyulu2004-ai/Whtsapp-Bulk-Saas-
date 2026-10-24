@@ -28,7 +28,10 @@ import {
   BarChart3,
   XCircle,
   HelpCircle,
-  Loader2
+  Loader2,
+  PhoneCall,
+  Users,
+  CreditCard
 } from "lucide-react";
 import FreeTrialScannerSection from "@/components/FreeTrialScannerSection";
 import WhatsAppEmbeddedSignup from "@/components/WhatsAppEmbeddedSignup";
@@ -123,12 +126,106 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 pb-12">
 
-      {/* 1. Official Meta WhatsApp Embedded Signup */}
-      <WhatsAppEmbeddedSignup
-        initialConfig={waConfig}
-        metaAppId={process.env.NEXT_PUBLIC_META_APP_ID || "2068663130431385"}
-        onConfigUpdated={() => fetchStats(true)}
-      />
+      {/* 1. Official Meta WhatsApp Embedded Signup OR Admin Master Console */}
+      {session?.user?.role === "ADMIN" ? (
+        <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-5 sm:p-6 text-white border border-indigo-900/50 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-brand-purple/20 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-white/10">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-purple/30 border border-brand-purple/40 text-purple-300 text-xs font-semibold uppercase tracking-wider mb-2">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                Platform Super Admin Console
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-white">
+                OfferBlast Platform Administration
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
+                Manage client onboarding, activate WhatsApp phone numbers into Meta Cloud API, and monitor platform campaign delivery.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="text-left">
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Master Meta WABA</div>
+                  <div className="text-xs font-bold text-white">+91 96426 83699</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Admin Actions Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-5 relative z-10">
+            <Link
+              href="/admin/numbers"
+              className="group p-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-emerald-500/50 transition-all flex items-center justify-between shadow-xs"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand-purple/40 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
+                  <PhoneCall className="w-5 h-5 text-emerald-300" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">
+                    WhatsApp Numbers
+                  </div>
+                  <div className="text-[11px] text-slate-300">
+                    Activate client OTP numbers
+                  </div>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-all" />
+            </Link>
+
+            <Link
+              href="/admin/users"
+              className="group p-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-indigo-500/50 transition-all flex items-center justify-between shadow-xs"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600/40 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
+                  <Users className="w-5 h-5 text-indigo-300" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">
+                    Client Accounts
+                  </div>
+                  <div className="text-[11px] text-slate-300">
+                    View registered shops & users
+                  </div>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-all" />
+            </Link>
+
+            <Link
+              href="/admin/payments"
+              className="group p-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-amber-500/50 transition-all flex items-center justify-between shadow-xs"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/30 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
+                  <CreditCard className="w-5 h-5 text-amber-300" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
+                    Payment Approvals
+                  </div>
+                  <div className="text-[11px] text-slate-300">
+                    Approve UPI subscriptions
+                  </div>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-all" />
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <WhatsAppEmbeddedSignup
+          initialConfig={waConfig}
+          metaAppId={process.env.NEXT_PUBLIC_META_APP_ID || "2068663130431385"}
+          onConfigUpdated={() => fetchStats(true)}
+        />
+      )}
 
       {/* 2. Top Header & Action Bar (Clean & Seamless) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
