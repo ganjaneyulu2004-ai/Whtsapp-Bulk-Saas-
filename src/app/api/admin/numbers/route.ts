@@ -29,6 +29,60 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
+    // ⚡ AUTO-SYNC FROM META WABA DIRECTLY (Zero Manual Copy-Paste)
+    const wabaId = process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581";
+    const token = process.env.WA_TOKEN;
+
+    if (wabaId && token) {
+      try {
+        const metaRes = await fetch(`https://graph.facebook.com/v20.0/${wabaId}/phone_numbers?access_token=${token}`, {
+          cache: "no-store",
+        });
+        const metaData = await metaRes.json();
+        const metaPhoneNumbers = metaData?.data || [];
+
+        for (const metaPhone of metaPhoneNumbers) {
+          const cleanMetaDigits = (metaPhone.display_phone_number || "").replace(/\D/g, "");
+          const last10Meta = cleanMetaDigits.slice(-10);
+
+          if (!last10Meta) continue;
+
+          // Find pending business with matching phone number or brand name
+          const matchBiz = businesses.find((b) => {
+            const bPhone = (b.whatsappConfig?.displayPhoneNumber || b.phone || b.user?.mobile || "").replace(/\D/g, "");
+            return bPhone.endsWith(last10Meta) || (b.name && metaPhone.verified_name && b.name.trim().toLowerCase() === metaPhone.verified_name.trim().toLowerCase());
+          });
+
+          // If found and not active or phoneId missing, automatically link & activate!
+          if (matchBiz && (!matchBiz.whatsappConfig?.isConnected || matchBiz.whatsappConfig?.waPhoneNumberId !== metaPhone.id)) {
+            const updatedConfig = await prisma.whatsAppConfig.upsert({
+              where: { businessId: matchBiz.id },
+              update: {
+                isConnected: true,
+                connectionMethod: "OFFICIAL_DIRECT",
+                waPhoneNumberId: metaPhone.id,
+                displayPhoneNumber: metaPhone.display_phone_number,
+                verifiedName: metaPhone.verified_name || matchBiz.name,
+                qualityRating: metaPhone.quality_rating || "GREEN",
+              },
+              create: {
+                businessId: matchBiz.id,
+                isConnected: true,
+                connectionMethod: "OFFICIAL_DIRECT",
+                waPhoneNumberId: metaPhone.id,
+                displayPhoneNumber: metaPhone.display_phone_number,
+                verifiedName: metaPhone.verified_name || matchBiz.name,
+                qualityRating: metaPhone.quality_rating || "GREEN",
+              },
+            });
+            matchBiz.whatsappConfig = updatedConfig;
+          }
+        }
+      } catch (metaErr) {
+        console.warn("Meta auto-sync phone numbers notice:", metaErr);
+      }
+    }
+
     const numberList = businesses.map((b) => {
       const cfg = b.whatsappConfig;
       let status = "NOT_CONNECTED";

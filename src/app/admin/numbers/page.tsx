@@ -187,10 +187,10 @@ export default function AdminNumbersPage() {
               fetchNumbers();
             }}
             disabled={refreshing || loading}
-            className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition shadow-2xs cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-xl hover:bg-emerald-100 transition shadow-2xs cursor-pointer"
           >
-            <RotateCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-            <span>Refresh</span>
+            <RotateCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-emerald-700" : "text-emerald-700"}`} />
+            <span>⚡ Sync &amp; Auto-Activate from Meta</span>
           </button>
 
           <a
@@ -241,10 +241,10 @@ export default function AdminNumbersPage() {
           <div className="p-3 rounded-xl bg-white/70 border border-emerald-200/60 space-y-1">
             <span className="font-bold flex items-center gap-1.5 text-emerald-950">
               <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px]">3</span>
-              Copy Phone ID & Activate
+              1-Click Auto Sync
             </span>
             <p className="text-slate-600">
-              Copy the 15-digit Phone Number ID given by Meta and click <strong>Activate</strong> below!
+              Click <strong>&quot;⚡ Sync &amp; Auto-Activate&quot;</strong> above! OfferBlast auto-detects the number and activates instantly without manual copying!
             </p>
           </div>
         </div>
