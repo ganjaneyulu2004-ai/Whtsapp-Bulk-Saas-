@@ -23,7 +23,8 @@ import {
   X,
   HelpCircle,
   PlusCircle,
-  Sparkles
+  Sparkles,
+  PhoneCall
 } from "lucide-react";
 
 export function Sidebar() {
@@ -74,6 +75,7 @@ export function Sidebar() {
       badge: pendingPaymentsCount > 0 ? pendingPaymentsCount : null 
     },
     { href: "/admin/users", label: "Users", icon: Users },
+    { href: "/admin/numbers", label: "WhatsApp Numbers", icon: PhoneCall },
   ];
 
   const sidebarContent = (

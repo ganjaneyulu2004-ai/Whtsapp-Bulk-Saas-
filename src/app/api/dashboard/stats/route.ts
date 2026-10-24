@@ -169,32 +169,20 @@ export async function GET(req: Request) {
       },
     });
 
-    if (!waConfig || !waConfig.isConnected) {
-      waConfig = await prisma.whatsAppConfig.upsert({
-        where: { businessId: currentBiz.id },
-        update: {
-          isConnected: true,
-          displayPhoneNumber: "+91 96426 83699",
-          verifiedName: "SaaS by IBrainLabs",
-          qualityRating: "High (Green)",
-          messagingLimitTier: "TIER_250",
-          connectionMethod: "OFFICIAL_OFFICE_API",
-          waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
-          waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-          waToken: process.env.WA_TOKEN || null,
-        },
-        create: {
+    if (!waConfig) {
+      waConfig = await prisma.whatsAppConfig.create({
+        data: {
           businessId: currentBiz.id,
-          isConnected: true,
-          displayPhoneNumber: "+91 96426 83699",
-          verifiedName: "SaaS by IBrainLabs",
+          isConnected: false,
+          displayPhoneNumber: currentBiz.phone || null,
+          verifiedName: currentBiz.name,
           qualityRating: "High (Green)",
           messagingLimitTier: "TIER_250",
-          connectionMethod: "OFFICIAL_OFFICE_API",
-          waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
+          connectionMethod: "NONE",
+          waPhoneNumberId: null,
           waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
           waToken: process.env.WA_TOKEN || null,
-          waApiVersion: "v26.0",
+          waApiVersion: "v20.0",
         },
         select: {
           isConnected: true,
