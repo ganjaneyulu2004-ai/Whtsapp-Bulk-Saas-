@@ -222,11 +222,15 @@ function LoginForm() {
         return;
       }
 
-      // Successful login!
+      // Successful login! Check subscription
       try {
         const statusRes = await fetch("/api/subscription/status");
         if (statusRes.ok) {
           const statusData = await statusRes.json();
+          if (statusData.role !== "ADMIN" && statusData.status !== "ACTIVE") {
+            window.location.href = "/complete-payment";
+            return;
+          }
           const displayName = statusData?.subscription?.payerName || loginUser.trim();
           setWelcomeName(displayName);
         } else {

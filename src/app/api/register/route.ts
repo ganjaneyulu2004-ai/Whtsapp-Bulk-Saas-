@@ -87,15 +87,13 @@ export async function POST(req: Request) {
       },
     });
 
-    // Automatically activate user with 1-Year Free Active Subscription
+    // Initial subscription starts as AWAITING_PAYMENT - User must purchase a plan first
     await prisma.subscription.create({
       data: {
         userId: newUser.id,
-        plan: "Full Access Testing Plan",
+        plan: "Pending Plan Selection",
         amount: 0,
-        status: "ACTIVE",
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year active
+        status: "AWAITING_PAYMENT",
       },
     });
 

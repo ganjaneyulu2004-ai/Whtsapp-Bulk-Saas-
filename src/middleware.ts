@@ -81,6 +81,24 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
+  // 9. USER role: if subscription is NOT active, force redirect to /complete-payment
+  const allowedUnpaidPaths = [
+    "/complete-payment",
+    "/payment-pending",
+    "/api/payment",
+    "/api/subscription",
+    "/api/auth",
+    "/logout",
+  ];
+
+  const isAllowed = allowedUnpaidPaths.some((p) => pathname.startsWith(p));
+  if (token.subscriptionStatus !== "ACTIVE" && !isAllowed) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Payment required. Active plan needed." }, { status: 402 });
+    }
+    return NextResponse.redirect(new URL("/complete-payment", req.url));
+  }
+
   return NextResponse.next();
 }
 

@@ -330,6 +330,24 @@ function CompletePaymentContent() {
         </p>
       </div>
 
+      {session?.user?.role === "ADMIN" && (
+        <div className="max-w-3xl mx-auto p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">👑</span>
+            <div>
+              <p className="font-heading font-bold text-sm">Super Admin Notice</p>
+              <p className="text-xs text-amber-800">You are logged in as Master Admin. You have unrestricted lifetime access and do not need to buy a plan. (The plans below are for client billing).</p>
+            </div>
+          </div>
+          <Link
+            href="/"
+            className="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-xs font-bold transition-all shrink-0 shadow-xs"
+          >
+            Go to Admin Dashboard →
+          </Link>
+        </div>
+      )}
+
       {error && (
         <div className="max-w-3xl mx-auto p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm flex items-center gap-3 shadow-xs">
           <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />

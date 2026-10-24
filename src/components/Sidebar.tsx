@@ -65,6 +65,7 @@ export function Sidebar() {
     { href: "/templates", label: "Templates", icon: Sparkles },
     { href: "/inbox", label: "Inbox", icon: MessageSquare },
     { href: "/campaigns", label: "Campaigns & Reports", icon: BarChart3 },
+    { href: "/billing", label: "Billing & Plans", icon: CreditCard },
   ];
 
   const adminNavItems = [

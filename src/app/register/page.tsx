@@ -78,7 +78,7 @@ export default function RegisterPage() {
       });
 
       if (signInRes?.ok) {
-        router.replace("/");
+        window.location.href = "/complete-payment";
       } else {
         router.push("/login?registered=1");
       }

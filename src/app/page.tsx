@@ -31,7 +31,8 @@ import {
   Loader2,
   PhoneCall,
   Users,
-  CreditCard
+  CreditCard,
+  Trash2
 } from "lucide-react";
 import FreeTrialScannerSection from "@/components/FreeTrialScannerSection";
 import WhatsAppEmbeddedSignup from "@/components/WhatsAppEmbeddedSignup";
@@ -88,6 +89,39 @@ export default function DashboardPage() {
   }, [session, filterRange, customStart, customEnd, router]);
 
   const isAdmin = session?.user?.role === "ADMIN";
+  const [resetting, setResetting] = useState(false);
+
+  // If client is logged in and subscription is not active, redirect to /complete-payment
+  useEffect(() => {
+    if (session?.user && session.user.role !== "ADMIN") {
+      if (session.user.subscriptionStatus !== "ACTIVE") {
+        window.location.href = "/complete-payment";
+      }
+    }
+  }, [session]);
+
+  const handleResetSystem = async () => {
+    const confirmed = window.confirm(
+      "⚠️ ARE YOU SURE?\n\nThis will permanently delete all old test campaigns, contact lists, and test client accounts (like Royal Bikes) and reset the system clean from starting.\n\nOnly Master Admin (ADMIN_IbrainTest) will remain."
+    );
+    if (!confirmed) return;
+
+    setResetting(true);
+    try {
+      const res = await fetch("/api/admin/reset-system", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        alert("✅ " + data.message);
+        window.location.reload();
+      } else {
+        alert("❌ " + (data.error || "Failed to reset system."));
+      }
+    } catch (err: any) {
+      alert("❌ Error: " + err.message);
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const [adminStats, setAdminStats] = useState<{
     totalClients: number;
@@ -177,12 +211,26 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Master WABA Status Card */}
-          <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
-            <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
-            <div className="text-left">
-              <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Meta Master WABA</div>
-              <div className="text-xs sm:text-sm font-extrabold text-slate-800">+91 96426 83699</div>
+          {/* Actions: Master WABA Status & Clean Reset Button */}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleResetSystem}
+              disabled={resetting}
+              className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 shadow-2xs"
+              title="Clear all old test data & restart fresh from starting"
+            >
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              <span>{resetting ? "Resetting..." : "🧹 Wipe Old Test Data"}</span>
+            </button>
+
+            {/* Master WABA Status Card */}
+            <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="text-left">
+                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Meta Master WABA</div>
+                <div className="text-xs sm:text-sm font-extrabold text-slate-800">+91 96426 83699</div>
+              </div>
             </div>
           </div>
         </div>

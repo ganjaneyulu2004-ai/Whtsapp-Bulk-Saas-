@@ -141,8 +141,24 @@ export const authOptions: NextAuthOptions = {
         token.mobile = user.mobile;
       }
 
-      // Populate latest subscriptionStatus - All users always ACTIVE
-      token.subscriptionStatus = "ACTIVE";
+      // Admin accounts are always ACTIVE with lifetime master access
+      if (token.role === "ADMIN") {
+        token.subscriptionStatus = "ACTIVE";
+      } else if (token.id) {
+        try {
+          const sub = await prisma.subscription.findFirst({
+            where: { userId: token.id as string },
+            orderBy: { createdAt: "desc" },
+          });
+          const isActive =
+            sub &&
+            sub.status === "ACTIVE" &&
+            (!sub.endDate || new Date(sub.endDate) > new Date());
+          token.subscriptionStatus = isActive ? "ACTIVE" : (sub?.status || "AWAITING_PAYMENT");
+        } catch {
+          token.subscriptionStatus = "AWAITING_PAYMENT";
+        }
+      }
 
       return token;
     },
