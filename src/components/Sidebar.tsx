@@ -59,7 +59,7 @@ export function Sidebar() {
 
   const isAdmin = session?.user?.role === "ADMIN";
 
-  const primaryNavItems = [
+  const clientNavItems = [
     { href: "/", label: "Home", icon: Home },
     { href: "/create-campaign", label: "Create Campaign", icon: PlusCircle },
     { href: "/templates", label: "Templates", icon: Sparkles },
@@ -68,15 +68,18 @@ export function Sidebar() {
   ];
 
   const adminNavItems = [
+    { href: "/", label: "Admin Dashboard", icon: Home },
+    { href: "/admin/numbers", label: "WhatsApp Numbers", icon: PhoneCall },
+    { href: "/admin/users", label: "Client Users", icon: Users },
     { 
       href: "/admin/payments", 
-      label: "Payments", 
+      label: "Payment Approvals", 
       icon: ShieldAlert, 
       badge: pendingPaymentsCount > 0 ? pendingPaymentsCount : null 
     },
-    { href: "/admin/users", label: "Users", icon: Users },
-    { href: "/admin/numbers", label: "WhatsApp Numbers", icon: PhoneCall },
   ];
+
+  const activeNavItems = isAdmin ? adminNavItems : clientNavItems;
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-white select-none">
@@ -112,8 +115,17 @@ export function Sidebar() {
       </div>
 
       {/* 3. Navigation Links (Middle Scrollable) */}
-      <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-0.5 custom-scrollbar">
-        {primaryNavItems.map((item) => {
+      <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-1 custom-scrollbar">
+        {isAdmin && (
+          <div className="px-3 py-1 mb-1 flex items-center justify-between text-[10px] font-bold text-brand-purple uppercase tracking-wider">
+            <span>Admin Suite</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-brand-purple/10 text-brand-purple font-extrabold text-[9px]">
+              Super Admin
+            </span>
+          </div>
+        )}
+
+        {activeNavItems.map((item: any) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
 
@@ -123,55 +135,24 @@ export function Sidebar() {
               href={item.href}
               className={`flex items-center justify-between px-3 py-2 rounded-xl font-heading text-xs font-semibold transition-all duration-150 ${
                 isActive
-                  ? "bg-slate-900 text-white shadow-xs"
+                  ? isAdmin
+                    ? "bg-brand-purple text-white shadow-xs"
+                    : "bg-slate-900 text-white shadow-xs"
                   : "text-slate-700 hover:text-slate-900 hover:bg-slate-100/80"
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-500"}`} />
+                <Icon className={`w-4 h-4 ${isActive ? "text-white" : isAdmin ? "text-brand-purple" : "text-slate-500"}`} />
                 <span>{item.label}</span>
               </div>
+              {item.badge && (
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-bold animate-pulse">
+                  {item.badge}
+                </span>
+              )}
             </Link>
           );
         })}
-
-        {/* Admin Navigation Section */}
-        {isAdmin && (
-          <div className="pt-2.5 mt-2 border-t border-slate-100 space-y-0.5">
-            <div className="px-3 py-1 flex items-center justify-between text-[10px] font-bold text-brand-purple uppercase tracking-wider">
-              <span>Admin Suite</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-brand-purple/10 text-brand-purple font-extrabold text-[9px]">
-                Super Admin
-              </span>
-            </div>
-            {adminNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href || pathname.startsWith(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center justify-between px-3 py-2 rounded-xl font-heading text-xs font-semibold transition-all duration-150 ${
-                    isActive
-                      ? "bg-brand-purple text-white shadow-xs"
-                      : "text-slate-700 hover:text-brand-purple hover:bg-purple-50/80"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-brand-purple"}`} />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-bold animate-pulse">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* 4. Bottom Pinned Section: Settings, Language, Logout */}
