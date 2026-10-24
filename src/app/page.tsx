@@ -47,11 +47,22 @@ export default function DashboardPage() {
   const [customEnd, setCustomEnd] = useState("");
 
   const [statsData, setStatsData] = useState<any>(null);
+  const [usage, setUsage] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   // Failure reasons modal
   const [showFailureModal, setShowFailureModal] = useState(false);
+
+  const fetchUsage = async () => {
+    try {
+      const res = await fetch("/api/subscription/usage");
+      if (res.ok) {
+        const u = await res.json();
+        setUsage(u);
+      }
+    } catch {}
+  };
 
   const fetchStats = async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -78,9 +89,11 @@ export default function DashboardPage() {
   useEffect(() => {
     if (session) {
       fetchStats();
+      fetchUsage();
       // Auto-refresh every 30 seconds
       const interval = setInterval(() => {
         fetchStats();
+        fetchUsage();
       }, 30000);
       return () => clearInterval(interval);
     } else {
@@ -403,6 +416,73 @@ export default function DashboardPage() {
         metaAppId={process.env.NEXT_PUBLIC_META_APP_ID || "2068663130431385"}
         onConfigUpdated={() => fetchStats(true)}
       />
+
+      {/* ⚠️ PLAN MESSAGE LIMIT REACHED BANNER */}
+      {usage?.isLimitReached && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-700">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-heading font-extrabold text-sm sm:text-base text-amber-900">
+                ⚠️ మీ ప్లాన్ లోని మెసేజ్ లిమిట్ పూర్తయింది.
+              </p>
+              <p className="text-xs text-amber-800 mt-0.5">
+                మిగిలిన మెసేజ్‌లు వెళ్లడానికి దయచేసి రీఛార్జ్ / టాప్-అప్ చేసుకోండి. (Your plan message quota is exhausted. Top-up credits to continue broadcasting).
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/complete-payment?type=topup"
+            className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-heading font-extrabold text-xs shadow-md transition-all shrink-0 flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>⚡ రీఛార్జ్ / టాప్-అప్ చేయండి</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
+
+      {/* MESSAGE QUOTA & TOP-UP BAR */}
+      {usage && !isAdmin && (
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand-purple/10 text-brand-purple flex items-center justify-center shrink-0">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  {usage.planName} Plan Message Quota
+                </span>
+                {usage.isLimitReached ? (
+                  <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
+                    Limit Reached
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                    Active
+                  </span>
+                )}
+              </div>
+              <div className="text-sm font-heading font-bold text-slate-800 mt-0.5">
+                Available: <span className="text-brand-purple font-extrabold">{usage.totalAvailable.toLocaleString()} messages</span>
+                <span className="text-xs text-slate-400 font-normal ml-2">
+                  ({usage.messagesSentInCycle.toLocaleString()} / {usage.planLimit.toLocaleString()} used
+                  {usage.topUpRemaining > 0 ? ` + ${usage.topUpRemaining.toLocaleString()} top-up credits` : ""})
+                </span>
+              </div>
+            </div>
+          </div>
+          <Link
+            href="/complete-payment?type=topup"
+            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-heading font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0"
+          >
+            <span>⚡ Buy Top-Up</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* 2. Top Header & Action Bar (Clean & Seamless) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">

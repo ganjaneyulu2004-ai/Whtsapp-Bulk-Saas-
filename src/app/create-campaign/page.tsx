@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageContext";
 import { 
@@ -85,7 +86,15 @@ export default function CreateCampaignPage() {
   const [scheduledDateTime, setScheduledDateTime] = useState("");
   const [submittingCampaign, setSubmittingCampaign] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
+  const [usage, setUsage] = useState<any>(null);
   const perMessageRate = 0.80;
+
+  useEffect(() => {
+    fetch("/api/subscription/usage")
+      .then((res) => res.json())
+      .then((u) => setUsage(u))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     // Load business profile to prefill business name and default booking link
@@ -393,6 +402,11 @@ export default function CreateCampaignPage() {
         }
         router.push("/campaigns");
       } else {
+        if (data.limitReached) {
+          alert(data.error || "⚠️ మీ ప్లాన్ లోని మెసేజ్ లిమిట్ పూర్తయింది. మిగిలిన మెసేజ్‌లు వెళ్లడానికి దయచేసి రీఛార్జ్ / టాప్-అప్ చేసుకోండి.");
+          router.push("/complete-payment?type=topup");
+          return;
+        }
         alert(`Error: ${data.error || "Failed to launch campaign"}`);
       }
     } catch (err: any) {
@@ -429,6 +443,32 @@ export default function CreateCampaignPage() {
           {t("createCampaign.subtitle")}
         </p>
       </div>
+
+      {/* ⚠️ PLAN MESSAGE LIMIT REACHED BANNER */}
+      {usage?.isLimitReached && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-700">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-heading font-extrabold text-sm sm:text-base text-amber-900">
+                ⚠️ మీ ప్లాన్ లోని మెసేజ్ లిమిట్ పూర్తయింది.
+              </p>
+              <p className="text-xs text-amber-800 mt-0.5">
+                మిగిలిన మెసేజ్‌లు వెళ్లడానికి దయచేసి రీఛార్జ్ / టాప్-అప్ చేసుకోండి. (Your plan message quota is exhausted. Top-up credits to continue broadcasting).
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/complete-payment?type=topup"
+            className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-heading font-extrabold text-xs shadow-md transition-all shrink-0 flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>⚡ రీఛార్జ్ / టాప్-అప్ చేయండి</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Progress Stepper */}
       <div className="bg-white rounded-2xl p-4 sm:p-6 border border-emerald-100 shadow-card">
@@ -1485,7 +1525,15 @@ export default function CreateCampaignPage() {
               <span>{t("createCampaign.prevStep")}</span>
             </button>
 
-            {canLaunchNow ? (
+            {usage?.isLimitReached ? (
+              <Link
+                href="/complete-payment?type=topup"
+                className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-heading font-extrabold text-base px-8 py-4 rounded-2xl shadow-xl shadow-amber-600/30 transition-all cursor-pointer"
+              >
+                <span>⚡ రీఛార్జ్ / టాప్-అప్ చేయండి (Top-Up Now)</span>
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            ) : canLaunchNow ? (
               <button
                 onClick={handleLaunchCampaign}
                 disabled={submittingCampaign}

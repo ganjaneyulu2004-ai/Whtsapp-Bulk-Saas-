@@ -55,7 +55,7 @@ function CompletePaymentContent() {
   const [payeeName, setPayeeName] = useState("Ibrain Labs");
   const [paymentPhone, setPaymentPhone] = useState("+919390487233");
   const [razorpayKeyId, setRazorpayKeyId] = useState("rzp_live_Tm5fsJVpQaPb5t");
-  const [metaNote, setMetaNote] = useState("WhatsApp (Meta) message charges are billed directly by Meta via your linked card.");
+  const [metaNote, setMetaNote] = useState("WhatsApp messaging quota is included in your plan. If your limit is reached, top-up credits to continue sending.");
 
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [upiLink, setUpiLink] = useState<string>("");

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { processCampaignSending } from "@/lib/queue";
+import { getUserMessageUsage } from "@/lib/quota";
 
 export async function GET(req: Request) {
   try {
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    let quota: any = null;
     if (session.user.role !== "ADMIN") {
       const sub = await prisma.subscription.findFirst({
         where: { userId: session.user.id },
@@ -54,6 +56,18 @@ export async function POST(req: Request) {
       if (!sub || sub.status !== "ACTIVE") {
         return NextResponse.json(
           { error: "Payment required. Active subscription needed to launch campaigns." },
+          { status: 403 }
+        );
+      }
+
+      quota = await getUserMessageUsage(session.user.id);
+      if (quota.isLimitReached) {
+        return NextResponse.json(
+          { 
+            error: quota.alertMessageTe || "⚠️ మీ ప్లాన్ లోని మెసేజ్ లిమిట్ పూర్తయింది. మిగిలిన మెసేజ్‌లు వెళ్లడానికి దయచేసి రీఛార్జ్ / టాప్-అప్ చేసుకోండి.",
+            limitReached: true,
+            totalAvailable: quota.totalAvailable
+          },
           { status: 403 }
         );
       }

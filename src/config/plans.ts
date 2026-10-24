@@ -124,4 +124,4 @@ export const CREDIT_TOPUP_PACKS: TopUpPack[] = [
   },
 ];
 
-export const META_NOTE = "WhatsApp (Meta) official message charges are separate and billed directly to Meta via your linked card.";
+export const META_NOTE = "WhatsApp messaging quota is included in your monthly plan. If your limit is reached, simply top-up credits to continue broadcasting without interruption.";
