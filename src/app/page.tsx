@@ -144,12 +144,13 @@ export default function DashboardPage() {
         fetch("/api/admin/payments").then((r) => r.json()).catch(() => null),
         fetch("/api/admin/users").then((r) => r.json()).catch(() => null),
       ]).then(([numbersData, paymentsData, usersData]) => {
+        const clientCount = Array.isArray(usersData?.users) ? usersData.users.length : 0;
         setAdminStats({
-          totalClients: usersData?.users?.length || numbersData?.totalNumbers || 0,
-          activeNumbers: numbersData?.activeCount || 0,
-          pendingNumbers: numbersData?.pendingCount || 0,
+          totalClients: clientCount,
+          activeNumbers: numbersData?.stats?.active ?? numbersData?.activeCount ?? 0,
+          pendingNumbers: numbersData?.stats?.pending ?? numbersData?.pendingCount ?? 0,
           pendingPayments: paymentsData?.counts?.pending || 0,
-          quotaTotal: numbersData?.quotaTotal || 20,
+          quotaTotal: 20,
         });
       });
     }

@@ -13,7 +13,8 @@ import {
   PlusCircle, 
   Loader2,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from "lucide-react";
 
 export default function AdminUsersPage() {
@@ -82,6 +83,28 @@ export default function AdminUsersPage() {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!window.confirm(`Are you sure you want to delete client "${userName}"?`)) return;
+    setActionLoading(userId);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "DELETE", userId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await fetchUsers();
+      } else {
+        alert(data.error || "Failed to delete user");
+      }
+    } catch (err: any) {
+      alert("Error: " + err.message);
     } finally {
       setActionLoading(null);
     }
@@ -275,17 +298,28 @@ export default function AdminUsersPage() {
 
                       <td className="py-4 px-4 text-right">
                         {u.role !== "ADMIN" && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setTargetUser(u);
-                              setExtendDays(30);
-                              setExtendPlan(u.plan !== "None" ? u.plan : "Growth");
-                            }}
-                            className="px-3.5 py-1.5 rounded-xl border border-brand-soft text-brand-purple hover:bg-brand-50 text-xs font-heading font-semibold transition-colors cursor-pointer"
-                          >
-                            Activate / Extend
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTargetUser(u);
+                                setExtendDays(30);
+                                setExtendPlan(u.plan !== "None" ? u.plan : "Growth");
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl border border-brand-soft text-brand-purple hover:bg-brand-50 text-xs font-heading font-semibold transition-colors cursor-pointer"
+                            >
+                              Activate / Extend
+                            </button>
+                            <button
+                              type="button"
+                              disabled={actionLoading === u.id}
+                              onClick={() => handleDeleteUser(u.id, u.name || u.username)}
+                              className="p-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                              title="Delete Client"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

@@ -14,6 +14,9 @@ export async function GET() {
     }
 
     const users = await prisma.user.findMany({
+      where: {
+        role: { not: "ADMIN" },
+      },
       include: {
         subscriptions: {
           orderBy: { createdAt: "desc" },
@@ -143,8 +146,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const latestSub = user.subscriptions[0];
-    const now = new Date();
+    if (action === "DELETE") {
+      if (user.role === "ADMIN") {
+        return NextResponse.json({ error: "Cannot delete master administrator" }, { status: 400 });
+      }
+      await prisma.user.delete({
+        where: { id: userId },
+      });
+      return NextResponse.json({
+        success: true,
+        message: `Client ${user.name || user.username} deleted successfully.`,
+      });
+    }
 
     if (action === "ACTIVATE" || action === "EXTEND") {
       let baseDate = now;
