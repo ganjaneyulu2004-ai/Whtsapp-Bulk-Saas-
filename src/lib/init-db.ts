@@ -276,21 +276,25 @@ export async function initializeDatabase() {
   await prisma.whatsAppConfig.upsert({
     where: { businessId: vipBusiness.id },
     update: {
-      isConnected: true,
-      connectionMethod: "OFFICIAL_OFFICE_API",
-      displayPhoneNumber: "+91 96426 83699",
-      waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
+      isConnected: false,
+      connectionMethod: "PENDING_ACTIVATION",
+      displayPhoneNumber: null,
+      waPhoneNumberId: null,
       waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
       waToken: process.env.WA_TOKEN || null,
+      qualityRating: "High (Green)",
+      messagingLimitTier: "TIER_250",
     },
     create: {
       businessId: vipBusiness.id,
-      isConnected: true,
-      connectionMethod: "OFFICIAL_OFFICE_API",
-      displayPhoneNumber: "+91 96426 83699",
-      waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
+      isConnected: false,
+      connectionMethod: "PENDING_ACTIVATION",
+      displayPhoneNumber: null,
+      waPhoneNumberId: null,
       waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
       waToken: process.env.WA_TOKEN || null,
+      qualityRating: "High (Green)",
+      messagingLimitTier: "TIER_250",
     },
   });
 
