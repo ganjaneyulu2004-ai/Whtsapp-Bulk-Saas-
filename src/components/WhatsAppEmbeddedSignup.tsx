@@ -65,6 +65,9 @@ export default function WhatsAppEmbeddedSignup({
       if (initialConfig.verifiedName) {
         setBrandName(initialConfig.verifiedName);
       }
+      if (initialConfig.displayPhoneNumber) {
+        setPhoneNumber(initialConfig.displayPhoneNumber.replace(/[^0-9]/g, "").slice(-10));
+      }
     }
   }, [initialConfig]);
 
@@ -585,24 +588,28 @@ export default function WhatsAppEmbeddedSignup({
               <form onSubmit={handleSubmitConnectionRequest} className="bg-brand-light/50 border border-brand-soft rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xs">
                 {/* Brand Name Input */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-heading font-bold text-slate-heading uppercase tracking-wider">
-                    Shop / Business Name <span className="text-rose-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-heading font-bold text-slate-heading uppercase tracking-wider">
+                      Business Brand Name
+                    </label>
+                    <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      Auto-detected from Account
+                    </span>
+                  </div>
                   <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Building2 className="w-4 h-4 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       required
                       value={brandName}
                       onChange={(e) => setBrandName(e.target.value)}
-                      placeholder="e.g. Sri Lakshmi Silks"
-                      className="w-full pl-10 pr-4 py-3 text-xs sm:text-sm rounded-xl border border-brand-soft bg-white text-slate-heading placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple font-medium"
+                      placeholder="e.g. BIKES"
+                      className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm rounded-xl border border-brand-soft bg-white text-slate-heading font-bold focus:outline-none focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple"
                     />
                   </div>
 
-                  {/* Short & Simple Name Permanence Note */}
-                  <p className="text-[11px] text-amber-800 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
-                    ⚠️ <strong>Note:</strong> Enter exact shop name. Once linked, WhatsApp does not allow changing this business name later.
+                  <p className="text-[11px] text-amber-800 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
+                    ⚠️ <strong>Note:</strong> Once linked, WhatsApp does not allow changing this business name later.
                   </p>
                 </div>
 

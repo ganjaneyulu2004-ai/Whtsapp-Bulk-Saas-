@@ -169,6 +169,30 @@ export async function GET(req: Request) {
       },
     });
 
+    // If regular user has the old hardcoded demo office credentials, update to their real business name & pending status
+    if (!isAdmin && waConfig && currentBiz.name !== "SaaS by IBrainLabs" && waConfig.connectionMethod === "OFFICIAL_OFFICE_API") {
+      waConfig = await prisma.whatsAppConfig.update({
+        where: { businessId: currentBiz.id },
+        data: {
+          verifiedName: currentBiz.name,
+          displayPhoneNumber: currentBiz.phone || null,
+          isConnected: false,
+          connectionMethod: "PENDING_ACTIVATION",
+        },
+        select: {
+          isConnected: true,
+          displayPhoneNumber: true,
+          verifiedName: true,
+          qualityRating: true,
+          messagingLimitTier: true,
+          connectionMethod: true,
+          waPhoneNumberId: true,
+          waBusinessAccountId: true,
+          metaAppId: true,
+        },
+      });
+    }
+
     if (!waConfig) {
       waConfig = await prisma.whatsAppConfig.create({
         data: {

@@ -70,18 +70,18 @@ export async function POST(req: Request) {
       },
     });
 
-    // Create WhatsApp Config for this business - Auto-connected with official office API
+    // Create WhatsApp Config for this business - Initialized with client's actual business name and mobile
+    const clientMobile = mobile?.trim() ? `+91 ${mobile.trim().replace(/[^0-9]/g, "").slice(-10)}` : null;
     await prisma.whatsAppConfig.create({
       data: {
         businessId: userBusiness.id,
-        waApiVersion: "v26.0",
+        waApiVersion: "v20.0",
         messagingLimitTier: "TIER_250",
-        isConnected: true,
-        displayPhoneNumber: "+91 96426 83699",
-        verifiedName: "SaaS by IBrainLabs",
+        isConnected: false,
+        displayPhoneNumber: clientMobile,
+        verifiedName: businessName?.trim() || `${name.trim()}'s Business`,
         qualityRating: "High (Green)",
-        connectionMethod: "OFFICIAL_OFFICE_API",
-        waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
+        connectionMethod: "PENDING_ACTIVATION",
         waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
         waToken: process.env.WA_TOKEN || null,
       },
