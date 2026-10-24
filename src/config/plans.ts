@@ -10,6 +10,16 @@ export interface PlanConfig {
   isTest?: boolean;
 }
 
+export interface TopUpPack {
+  id: string;
+  name: string;
+  price: number;
+  credits: number;
+  perMessageRate: string;
+  popular?: boolean;
+}
+
+// 1. Monthly SaaS Platform Plans (Equal Full Features, differing in message volume)
 export const SUBSCRIPTION_PLANS: PlanConfig[] = [
   {
     id: "starter",
@@ -17,13 +27,16 @@ export const SUBSCRIPTION_PLANS: PlanConfig[] = [
     price: 999,
     period: "month",
     messages: 2000,
-    description: "Perfect for single location retail shops and boutique stores.",
+    description: "Ideal for retail stores and boutiques getting started.",
     features: [
       "2,000 WhatsApp Messages / month",
-      "1 WhatsApp Business Number",
-      "Standard CSV Contact Importer",
-      "Real-time Delivery & Read tracking",
-      "Automated Opt-Out & Compliance",
+      "1 Official WhatsApp Business Account",
+      "Full AI Copywriter (Telugu & English)",
+      "Excel & CSV Unlimited Contacts Importer",
+      "Real-time Delivery & Read (Blue Tick) tracking",
+      "Unread Auto-Resend Smart Engine",
+      "Full Analytics & Downloadable Reports",
+      "Automated Opt-Out (STOP) Compliance",
     ],
   },
   {
@@ -36,11 +49,13 @@ export const SUBSCRIPTION_PLANS: PlanConfig[] = [
     description: "Most popular choice for fast-growing businesses & showrooms.",
     features: [
       "10,000 WhatsApp Messages / month",
-      "1 WhatsApp Business Number",
-      "AI Offer & Copywriter (Telugu & English)",
-      "Advanced Delivery & Read analytics reports",
-      "Dynamic Customer Tagging & Resend Engine",
-      "Email & WhatsApp Chat Support",
+      "1 Official WhatsApp Business Account",
+      "Full AI Copywriter (Telugu & English)",
+      "Excel & CSV Unlimited Contacts Importer",
+      "Real-time Delivery & Read (Blue Tick) tracking",
+      "Unread Auto-Resend Smart Engine",
+      "Full Analytics & Downloadable Reports",
+      "Priority WhatsApp Chat Support",
     ],
   },
   {
@@ -52,11 +67,12 @@ export const SUBSCRIPTION_PLANS: PlanConfig[] = [
     description: "Maximum scale for busy enterprise retailers & multi-outlet brands.",
     features: [
       "30,000 WhatsApp Messages / month",
+      "1 Official WhatsApp Business Account",
+      "Full AI Copywriter (Telugu & English)",
       "High-speed 20 msgs/sec queue engine",
-      "Priority WhatsApp API Support",
-      "Custom Campaign Templates & Headers",
-      "Dedicated Onboarding & Account Manager",
-      "Real-time Read Rate optimization",
+      "Real-time Delivery & Read (Blue Tick) tracking",
+      "Unread Auto-Resend Smart Engine",
+      "Dedicated Account Manager Support",
     ],
   },
   {
@@ -65,14 +81,47 @@ export const SUBSCRIPTION_PLANS: PlanConfig[] = [
     price: 1,
     period: "month",
     messages: 50,
-    description: "Internal sandbox plan for verifying end-to-end UPI payment approval.",
+    description: "Internal sandbox plan for verifying live Razorpay payment flow.",
     features: [
       "50 WhatsApp Messages",
-      "₹1 Instant Test Verification",
+      "₹1 Instant Razorpay Test Verification",
       "Full Dashboard & Analytics access",
     ],
     isTest: true,
   },
 ];
 
-export const META_NOTE = "WhatsApp (Meta) message charges are separate.";
+// 2. Credit Top-Up / Add-on Packs (Starting from 1,000 Credits)
+export const CREDIT_TOPUP_PACKS: TopUpPack[] = [
+  {
+    id: "topup_1000",
+    name: "1,000 Credits Booster",
+    price: 499,
+    credits: 1000,
+    perMessageRate: "₹0.50",
+  },
+  {
+    id: "topup_2500",
+    name: "2,500 Credits Booster",
+    price: 999,
+    credits: 2500,
+    perMessageRate: "₹0.40",
+  },
+  {
+    id: "topup_5000",
+    name: "5,000 Credits Festival Pack",
+    price: 1999,
+    credits: 5000,
+    perMessageRate: "₹0.40",
+    popular: true,
+  },
+  {
+    id: "topup_10000",
+    name: "10,000 Credits Mega Pack",
+    price: 3499,
+    credits: 10000,
+    perMessageRate: "₹0.35",
+  },
+];
+
+export const META_NOTE = "WhatsApp (Meta) official message charges are separate and billed directly to Meta via your linked card.";

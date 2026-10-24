@@ -95,13 +95,22 @@ export default function BillingPage() {
           </p>
         </div>
 
-        <Link
-          href="/complete-payment"
-          className="px-6 py-3 rounded-2xl bg-brand-gradient hover:opacity-95 text-white font-heading font-bold text-sm shadow-md shadow-brand-purple/20 flex items-center justify-center gap-2 transition-all self-start sm:self-auto cursor-pointer"
-        >
-          <span>Renew / Upgrade Plan</span>
-          <ArrowRight className="w-4 h-4" />
-        </Link>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href="/complete-payment?type=topup"
+            className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-xs shadow-xs flex items-center justify-center gap-2 transition cursor-pointer"
+          >
+            <span>⚡ Top-Up Credits</span>
+          </Link>
+
+          <Link
+            href="/complete-payment?type=plan"
+            className="px-5 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-heading font-bold text-xs shadow-xs flex items-center justify-center gap-2 transition cursor-pointer"
+          >
+            <span>Renew / Upgrade Plan</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
 
       {/* Current Subscription Card */}

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import QRCode from "qrcode";
 import { fireSmallConfetti } from "@/lib/confetti";
@@ -18,25 +19,48 @@ import {
   AlertCircle, 
   Loader2, 
   ArrowRight,
-  Info
+  Info,
+  CreditCard,
+  Zap,
+  Lock
 } from "lucide-react";
-import { PlanConfig } from "@/config/plans";
+import { PlanConfig, TopUpPack, SUBSCRIPTION_PLANS, CREDIT_TOPUP_PACKS } from "@/config/plans";
 
 export default function CompletePaymentPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedType = searchParams.get("type"); // "topup" | "plan"
   const { data: session, status } = useSession();
 
-  const [plans, setPlans] = useState<PlanConfig[]>([]);
-  const [selectedPlan, setSelectedPlan] = useState<PlanConfig | null>(null);
-  const [upiId, setUpiId] = useState("9876543210@ybl");
-  const [payeeName, setPayeeName] = useState("iBrainLabs");
-  const [paymentPhone, setPaymentPhone] = useState("+919876543210");
-  const [metaNote, setMetaNote] = useState("WhatsApp (Meta) message charges are separate.");
+  const [activeTab, setActiveTab] = useState<"plan" | "topup">(preselectedType === "topup" ? "topup" : "plan");
+  const [plans, setPlans] = useState<PlanConfig[]>(SUBSCRIPTION_PLANS);
+  const [topUpPacks, setTopUpPacks] = useState<TopUpPack[]>(CREDIT_TOPUP_PACKS);
+
+  const [selectedItem, setSelectedItem] = useState<{
+    id: string;
+    name: string;
+    price: number;
+    messages?: number;
+    credits?: number;
+    type: "PLAN" | "TOPUP";
+  }>({
+    id: "growth",
+    name: "Growth",
+    price: 2499,
+    messages: 10000,
+    type: "PLAN",
+  });
+
+  const [upiId, setUpiId] = useState("9390487233@ybl");
+  const [payeeName, setPayeeName] = useState("Ibrain Labs");
+  const [paymentPhone, setPaymentPhone] = useState("+919390487233");
+  const [razorpayKeyId, setRazorpayKeyId] = useState("rzp_live_Tm5fsJVpQaPb5t");
+  const [metaNote, setMetaNote] = useState("WhatsApp (Meta) message charges are billed directly by Meta via your linked card.");
 
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [upiLink, setUpiLink] = useState<string>("");
 
-  // Step 3 Form State: Billing details & Payment verification
+  // Step 3 Form State: Manual UPI fallback
   const [payerName, setPayerName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [payerEmail, setPayerEmail] = useState("");
@@ -48,28 +72,39 @@ export default function CompletePaymentPage() {
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
 
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [submittingManual, setSubmittingManual] = useState(false);
+  const [razorpayLoading, setRazorpayLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Load plans & UPI details
+  // Dynamically load Razorpay Checkout script
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      try {
+        document.body.removeChild(script);
+      } catch {}
+    };
+  }, []);
+
+  // Fetch plans & UPI config from API
   useEffect(() => {
     fetch("/api/subscription/plans")
       .then((res) => res.json())
       .then((data) => {
-        if (data?.plans) {
-          setPlans(data.plans);
-          // Default to popular (Growth) or first plan
-          const popular = data.plans.find((p: PlanConfig) => p.popular) || data.plans[0];
-          setSelectedPlan(popular);
-        }
+        if (data?.plans) setPlans(data.plans);
+        if (data?.topUpPacks) setTopUpPacks(data.topUpPacks);
         if (data?.upiId) setUpiId(data.upiId);
         if (data?.payeeName) setPayeeName(data.payeeName);
         if (data?.paymentPhone) setPaymentPhone(data.paymentPhone);
+        if (data?.razorpayKeyId) setRazorpayKeyId(data.razorpayKeyId);
         if (data?.metaNote) setMetaNote(data.metaNote);
-        setLoadingPlans(false);
       })
-      .catch(() => setLoadingPlans(false));
+      .catch(() => {});
   }, []);
 
   // Pre-fill user details from session
@@ -82,14 +117,14 @@ export default function CompletePaymentPage() {
     }
   }, [session]);
 
-  // Generate UPI QR Code whenever plan or UPI details change
+  // Generate UPI QR Code whenever plan changes
   useEffect(() => {
-    if (!selectedPlan) return;
+    if (!selectedItem) return;
 
     const username = session?.user?.username || "customer";
     const uri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(
       payeeName
-    )}&am=${selectedPlan.price}&cu=INR&tn=iBrainLabs-${selectedPlan.name}-${username}`;
+    )}&am=${selectedItem.price}&cu=INR&tn=OfferBlast-${selectedItem.name}-${username}`;
 
     setUpiLink(uri);
 
@@ -97,25 +132,25 @@ export default function CompletePaymentPage() {
       width: 280,
       margin: 2,
       color: {
-        dark: "#2B2350", // Brand navy text, NOT black
-        light: "#FFFFFF",
+        dark: "#1e1b4b",
+        light: "#ffffff",
       },
     })
       .then((url) => setQrCodeUrl(url))
       .catch((err) => console.error("QR Code Error:", err));
-  }, [selectedPlan, upiId, payeeName, session]);
+  }, [selectedItem, upiId, payeeName, session]);
 
-  const copyToClipboard = (text: string, field: string) => {
+  const copyToClipboard = (text: string, fieldName: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField(null), 2500);
   };
 
   const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setError("Screenshot must be less than 5 MB");
+        setError("Screenshot file size must be under 5 MB.");
         return;
       }
       setScreenshot(file);
@@ -124,29 +159,129 @@ export default function CompletePaymentPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ==========================================
+  // REAL-TIME RAZORPAY CHECKOUT HANDLER
+  // ==========================================
+  const handleRazorpayPayment = async () => {
+    if (!selectedItem) return;
+    setRazorpayLoading(true);
+    setError(null);
+
+    try {
+      // 1. Create order on backend
+      const res = await fetch("/api/payment/razorpay/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemId: selectedItem.id,
+          itemType: selectedItem.type,
+        }),
+      });
+
+      const orderData = await res.json();
+      if (!res.ok) {
+        throw new Error(orderData.error || "Failed to initialize Razorpay payment order.");
+      }
+
+      // 2. Open Razorpay Checkout modal
+      const options = {
+        key: orderData.keyId || razorpayKeyId || "rzp_live_Tm5fsJVpQaPb5t",
+        amount: orderData.amount,
+        currency: orderData.currency || "INR",
+        name: "OfferBlast by iBrainLabs",
+        description: `${selectedItem.name} (${selectedItem.type === "TOPUP" ? "Credits Pack" : "SaaS Subscription"})`,
+        image: "/brand/ibrainlabs-logo.png",
+        order_id: orderData.orderId,
+        prefill: {
+          name: payerName || session?.user?.name || "Customer",
+          email: payerEmail || session?.user?.email || "",
+          contact: payerMobile || session?.user?.mobile || "",
+        },
+        theme: {
+          color: "#4338ca", // Brand Indigo/Purple
+        },
+        handler: async function (response: any) {
+          // 3. Verify signature on backend
+          try {
+            const verifyRes = await fetch("/api/payment/razorpay/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                itemId: selectedItem.id,
+                itemType: selectedItem.type,
+                payerName,
+                payerMobile,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+            if (verifyRes.ok) {
+              setSuccessMessage(verifyData.message || "Payment verified! Your account is now Active.");
+              fireSmallConfetti();
+              setTimeout(() => {
+                router.replace("/?payment_success=true");
+              }, 1200);
+            } else {
+              setError(verifyData.error || "Payment verification failed.");
+            }
+          } catch (verErr: any) {
+            setError(verErr.message || "Failed to verify payment with server.");
+          } finally {
+            setRazorpayLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setRazorpayLoading(false);
+          },
+        },
+      };
+
+      if (typeof window !== "undefined" && (window as any).Razorpay) {
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on("payment.failed", function (resp: any) {
+          setError(`Payment failed: ${resp.error?.description || "Transaction declined by bank."}`);
+          setRazorpayLoading(false);
+        });
+        rzp.open();
+      } else {
+        throw new Error("Razorpay SDK is loading. Please wait 2 seconds and try again.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Something went wrong initializing Razorpay.");
+      setRazorpayLoading(false);
+    }
+  };
+
+  // Manual UPI Submission (Fallback)
+  const handleManualUpiSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!selectedPlan) return setError("Please select a plan");
-    if (!utrNumber.trim()) return setError("Please enter your 12-digit UTR / Transaction ID");
-    
-    const cleanUtr = utrNumber.trim();
-    if (cleanUtr.length < 6 || cleanUtr.length > 20) {
-      return setError("Please enter a valid 12-digit UTR number");
+    const cleanUtr = utrNumber.replace(/[^a-zA-Z0-9]/g, "").trim();
+    if (cleanUtr.length < 8) {
+      setError("Please enter a valid UPI reference / UTR number (at least 8 characters).");
+      return;
     }
 
-    if (!screenshot) return setError("Please upload a payment screenshot (max 5 MB)");
+    if (!screenshot) {
+      setError("Please attach a screenshot of your successful UPI payment.");
+      return;
+    }
 
-    setSubmitting(true);
+    setSubmittingManual(true);
 
     try {
       const formData = new FormData();
-      formData.append("plan", selectedPlan.name);
-      formData.append("amount", String(selectedPlan.price));
-      formData.append("payerName", payerName.trim() || session?.user?.name || "Customer");
+      formData.append("plan", selectedItem.name);
+      formData.append("amount", String(selectedItem.price));
+      formData.append("payerName", payerName.trim() || session?.user?.name || "");
       formData.append("businessName", businessName.trim() || session?.user?.businessName || "");
-      formData.append("payerEmail", payerEmail.trim());
+      formData.append("payerEmail", payerEmail.trim() || session?.user?.email || "");
       formData.append("payerMobile", payerMobile.trim() || session?.user?.mobile || "");
       formData.append("payerGst", payerGst.trim());
       formData.append("payerCity", payerCity.trim());
@@ -159,569 +294,464 @@ export default function CompletePaymentPage() {
       });
 
       const data = await res.json();
-
       if (!res.ok) {
-        setError(data.error || "Failed to submit payment verification");
-        setSubmitting(false);
+        setError(data.error || "Failed to submit payment verification.");
+        setSubmittingManual(false);
         return;
       }
 
-      // Small celebration confetti
       fireSmallConfetti();
-
-      // Navigate to /payment-pending
       router.push("/payment-pending");
     } catch (err: any) {
       setError("An unexpected error occurred. Please try again.");
-      setSubmitting(false);
+      setSubmittingManual(false);
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto py-4 px-2 sm:px-4">
+    <div className="max-w-6xl mx-auto py-6 px-3 sm:px-6 space-y-8">
       {/* Brand Header */}
-      <div className="text-center max-w-2xl mx-auto mb-10">
-        <div className="inline-block bg-white p-3.5 rounded-2xl border border-brand-soft shadow-xs mb-3">
+      <div className="text-center max-w-2xl mx-auto">
+        <div className="inline-block bg-white p-3 rounded-2xl border border-slate-200 shadow-xs mb-3">
           <Image
             src="/brand/ibrainlabs-logo.png"
             alt="iBrainLabs"
             width={180}
             height={50}
-            className="h-10 w-auto object-contain mx-auto"
+            className="h-9 w-auto object-contain mx-auto"
             priority
           />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-heading font-extrabold text-text-main">
-          Complete Your Subscription
+        <h1 className="text-2xl sm:text-3xl font-heading font-extrabold text-slate-900 tracking-tight">
+          Complete Your OfferBlast Subscription
         </h1>
-        <p className="text-slate-muted text-sm sm:text-base mt-2">
-          Activate your WhatsApp Marketing engine with a quick direct UPI transfer.
+        <p className="text-slate-500 text-xs sm:text-sm mt-1.5">
+          Official Meta WhatsApp Cloud API bulk messaging platform. Choose your package and activate instantly.
         </p>
       </div>
 
       {error && (
-        <div className="max-w-3xl mx-auto mb-8 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-3">
+        <div className="max-w-3xl mx-auto p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm flex items-center gap-3 shadow-xs">
           <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* 3 Step Flow */}
-      <div className="space-y-10">
-        
-        {/* STEP 1: CHOOSE PLAN */}
-        <section className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card">
-          <div className="flex items-center gap-3 mb-6">
-            <span className="w-8 h-8 rounded-full bg-brand-purple text-white flex items-center justify-center font-heading font-bold text-sm">
-              1
-            </span>
-            <div>
-              <h2 className="text-xl font-heading font-bold text-text-main">
-                Step 1: Choose Your Plan
-              </h2>
-              <p className="text-xs text-slate-muted">
-                Select the package tailored to your customer outreach volume.
-              </p>
-            </div>
+      {successMessage && (
+        <div className="max-w-3xl mx-auto p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm flex items-center gap-3 shadow-xs">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <span>{successMessage}</span>
+        </div>
+      )}
+
+      {/* Package Selection Tabs */}
+      <div className="flex justify-center">
+        <div className="inline-flex p-1.5 rounded-2xl bg-slate-100 border border-slate-200 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("plan");
+              const defaultPlan = plans.find((p) => p.popular) || plans[0];
+              setSelectedItem({
+                id: defaultPlan.id,
+                name: defaultPlan.name,
+                price: defaultPlan.price,
+                messages: defaultPlan.messages,
+                type: "PLAN",
+              });
+            }}
+            className={`px-5 py-2.5 rounded-xl font-heading text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "plan"
+                ? "bg-white text-brand-purple shadow-xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            📅 Monthly Subscription Plans
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("topup");
+              const defaultTopup = topUpPacks[0];
+              setSelectedItem({
+                id: defaultTopup.id,
+                name: defaultTopup.name,
+                price: defaultTopup.price,
+                credits: defaultTopup.credits,
+                type: "TOPUP",
+              });
+            }}
+            className={`px-5 py-2.5 rounded-xl font-heading text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "topup"
+                ? "bg-white text-brand-purple shadow-xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            ⚡ Credit Top-Up Packs (Add-on)
+          </button>
+        </div>
+      </div>
+
+      {/* STEP 1: CHOOSE PLAN OR TOP-UP */}
+      <section className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-card">
+        <div className="flex items-center gap-3 mb-6">
+          <span className="w-8 h-8 rounded-full bg-brand-purple text-white flex items-center justify-center font-heading font-bold text-sm">
+            1
+          </span>
+          <div>
+            <h2 className="text-lg sm:text-xl font-heading font-bold text-slate-900">
+              {activeTab === "plan" ? "Select Your Monthly Plan" : "Select Your Message Credit Pack"}
+            </h2>
+            <p className="text-xs text-slate-500">
+              {activeTab === "plan"
+                ? "Full features included in every plan. Choose based on your monthly message volume."
+                : "Packs start from 1,000 credits. Never expire and top up your message wallet instantly."}
+            </p>
           </div>
+        </div>
 
-          {loadingPlans ? (
-            <div className="py-12 flex justify-center">
-              <Loader2 className="w-8 h-8 text-brand-purple animate-spin" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {plans.map((p) => {
-                const isSelected = selectedPlan?.id === p.id;
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => setSelectedPlan(p)}
-                    className={`relative rounded-2xl p-6 cursor-pointer transition-all border-2 flex flex-col justify-between ${
-                      isSelected
-                        ? "border-brand-purple bg-brand-50/60 shadow-lg shadow-brand-purple/10 scale-[1.02]"
-                        : "border-brand-soft bg-white hover:border-brand-purple/40 hover:bg-brand-50/20"
-                    }`}
-                  >
-                    {p.popular && (
-                      <span className="absolute -top-3 right-6 bg-brand-purple text-white text-[11px] font-heading font-bold px-3 py-1 rounded-full shadow-sm">
-                        Most Popular
-                      </span>
-                    )}
+        {activeTab === "plan" ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {plans.map((p) => {
+              const isSelected = selectedItem.id === p.id && selectedItem.type === "PLAN";
+              return (
+                <div
+                  key={p.id}
+                  onClick={() =>
+                    setSelectedItem({
+                      id: p.id,
+                      name: p.name,
+                      price: p.price,
+                      messages: p.messages,
+                      type: "PLAN",
+                    })
+                  }
+                  className={`relative rounded-2xl p-6 cursor-pointer transition-all border-2 flex flex-col justify-between ${
+                    isSelected
+                      ? "border-brand-purple bg-purple-50/50 shadow-md scale-[1.01]"
+                      : "border-slate-200 bg-white hover:border-brand-purple/40 hover:bg-slate-50/50"
+                  }`}
+                >
+                  {p.popular && (
+                    <span className="absolute -top-3 right-6 bg-brand-purple text-white text-[10px] font-heading font-bold px-3 py-1 rounded-full shadow-xs">
+                      Most Popular
+                    </span>
+                  )}
 
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-xl font-heading font-bold text-text-main">
-                          {p.name}
-                        </h3>
-                        <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            isSelected ? "border-brand-purple bg-brand-purple" : "border-slate-300"
-                          }`}
-                        >
-                          {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-slate-muted min-h-[32px] mb-4">
-                        {p.description}
-                      </p>
-
-                      <div className="flex items-baseline gap-1 mb-6">
-                        <span className="text-3xl sm:text-4xl font-heading font-extrabold text-brand-purple">
-                          ₹{p.price.toLocaleString("en-IN")}
-                        </span>
-                        <span className="text-xs text-slate-muted font-medium">/{p.period}</span>
-                      </div>
-
-                      <ul className="space-y-2.5 text-xs text-text-main pt-4 border-t border-brand-soft/70">
-                        {p.features.map((feat, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-brand-purple shrink-0 mt-0.5" />
-                            <span>{feat}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="mt-6 pt-4 border-t border-brand-soft">
-                      <button
-                        type="button"
-                        className={`w-full py-2.5 rounded-xl font-heading font-semibold text-xs transition-colors ${
-                          isSelected
-                            ? "bg-brand-purple text-white shadow-xs"
-                            : "bg-brand-soft/80 text-text-main hover:bg-brand-soft"
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-lg font-heading font-bold text-slate-900">{p.name}</h3>
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          isSelected ? "border-brand-purple bg-brand-purple" : "border-slate-300"
                         }`}
                       >
-                        {isSelected ? "Selected Plan ✓" : "Select " + p.name}
-                      </button>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
 
-          {/* Meta Note */}
-          <div className="mt-6 p-3.5 rounded-2xl bg-brand-light border border-brand-soft flex items-center gap-2.5 text-xs text-slate-muted">
+                    <p className="text-xs text-slate-500 min-h-[32px] mb-4">{p.description}</p>
+
+                    <div className="flex items-baseline gap-1 mb-5">
+                      <span className="text-3xl font-heading font-extrabold text-brand-purple">
+                        ₹{p.price.toLocaleString("en-IN")}
+                      </span>
+                      <span className="text-xs text-slate-400 font-medium">/{p.period}</span>
+                    </div>
+
+                    <ul className="space-y-2 text-xs text-slate-700 pt-4 border-t border-slate-100">
+                      {p.features.map((feat, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-slate-100">
+                    <button
+                      type="button"
+                      className={`w-full py-2.5 rounded-xl font-heading font-semibold text-xs transition-colors ${
+                        isSelected
+                          ? "bg-brand-purple text-white shadow-xs"
+                          : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                      }`}
+                    >
+                      {isSelected ? "Selected Plan ✓" : "Choose " + p.name}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {topUpPacks.map((pack) => {
+              const isSelected = selectedItem.id === pack.id && selectedItem.type === "TOPUP";
+              return (
+                <div
+                  key={pack.id}
+                  onClick={() =>
+                    setSelectedItem({
+                      id: pack.id,
+                      name: pack.name,
+                      price: pack.price,
+                      credits: pack.credits,
+                      type: "TOPUP",
+                    })
+                  }
+                  className={`relative rounded-2xl p-5 cursor-pointer transition-all border-2 flex flex-col justify-between ${
+                    isSelected
+                      ? "border-emerald-500 bg-emerald-50/50 shadow-md scale-[1.01]"
+                      : "border-slate-200 bg-white hover:border-emerald-300 hover:bg-slate-50/50"
+                  }`}
+                >
+                  {pack.popular && (
+                    <span className="absolute -top-3 right-4 bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                      Best Value
+                    </span>
+                  )}
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                        Credit Pack
+                      </span>
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          isSelected ? "border-emerald-600 bg-emerald-600" : "border-slate-300"
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                      </div>
+                    </div>
+
+                    <div className="text-xl font-heading font-black text-slate-900 mt-2">
+                      +{pack.credits.toLocaleString("en-IN")} Credits
+                    </div>
+                    <div className="text-2xl font-black text-emerald-600 mt-1">
+                      ₹{pack.price.toLocaleString("en-IN")}
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-1 font-medium">
+                      Rate: {pack.perMessageRate} / message
+                    </div>
+
+                    <ul className="space-y-1.5 text-xs text-slate-600 mt-4 pt-3 border-t border-slate-100">
+                      <li className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>Instant Wallet Top-up</span>
+                      </li>
+                      <li className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>Full AI & Analytics Access</span>
+                      </li>
+                      <li className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>No Expiry Date</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`mt-5 w-full py-2.5 rounded-xl text-xs font-bold transition ${
+                      isSelected
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {isSelected ? "Selected ✓" : "Select Pack"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Meta Official Cloud API Notice Card */}
+        <div className="mt-6 p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600">
+          <div className="flex items-center gap-2.5">
             <Info className="w-4 h-4 text-brand-purple shrink-0" />
             <span>{metaNote}</span>
           </div>
-        </section>
+          <a
+            href="https://business.facebook.com/billing_hub"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-brand-purple font-bold hover:underline shrink-0"
+          >
+            <span>Manage Meta Card &amp; Billing</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+      </section>
 
-        {/* STEP 2: PAY VIA UPI */}
-        {selectedPlan && (
-          <section className="bg-white rounded-3xl p-5 sm:p-8 border border-brand-soft shadow-card">
-            <div className="flex items-center gap-3 mb-6">
-              <span className="w-8 h-8 rounded-full bg-brand-purple text-white flex items-center justify-center font-heading font-bold text-sm shrink-0">
-                2
-              </span>
-              <div>
-                <h2 className="text-xl font-heading font-bold text-text-main">
-                  Step 2: Pay via UPI
-                </h2>
-                <p className="text-xs text-slate-muted">
-                  Instant mobile payment via PhonePe, Google Pay, Paytm, or scan QR.
-                </p>
-              </div>
-            </div>
+      {/* STEP 2: PAYMENT METHOD (RAZORPAY INSTANT + MANUAL UPI) */}
+      <section className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-card space-y-6">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="w-8 h-8 rounded-full bg-brand-purple text-white flex items-center justify-center font-heading font-bold text-sm shrink-0">
+            2
+          </span>
+          <div>
+            <h2 className="text-lg sm:text-xl font-heading font-bold text-slate-900">
+              Step 2: Choose Payment Method
+            </h2>
+            <p className="text-xs text-slate-500">
+              Pay ₹{selectedItem.price.toLocaleString("en-IN")} securely for {selectedItem.name}.
+            </p>
+          </div>
+        </div>
 
-            {/* Mobile First: Instant Pay with UPI App Banner (High priority on phones) */}
-            <div className="mb-8 p-5 rounded-2xl bg-gradient-to-r from-brand-900 via-brand-purple to-brand-blue text-white shadow-md">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <span className="text-xs font-semibold text-brand-100 uppercase tracking-wider block">
-                    Paying on your phone?
-                  </span>
-                  <div className="text-2xl sm:text-3xl font-extrabold font-heading mt-0.5">
-                    ₹{selectedPlan.price.toLocaleString("en-IN")}
-                    <span className="text-xs font-normal text-brand-100 ml-2">({selectedPlan.name} Plan)</span>
-                  </div>
-                </div>
+        {/* ⭐ PRIMARY RECOMMENDED: RAZORPAY INSTANT AUTO-ACTIVATION */}
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white shadow-xl relative overflow-hidden border border-indigo-800/50">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-brand-purple/20 rounded-full blur-3xl pointer-events-none" />
 
-                {/* Primary Mobile Action Button */}
-                <a
-                  href={upiLink}
-                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-white hover:bg-brand-50 text-brand-purple font-heading font-bold text-sm shadow-lg flex items-center justify-center gap-2.5 transition active:scale-95"
-                >
-                  <Smartphone className="w-4 h-4 text-brand-purple" />
-                  <span>Pay with any UPI App</span>
-                  <ExternalLink className="w-4 h-4 opacity-80" />
-                </a>
-              </div>
-
-              {/* Instant App Specific Launchers */}
-              <div className="mt-4 pt-3 border-t border-white/20 flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-brand-100/90 font-medium">Or choose your app:</span>
-                <a
-                  href={`phonepe://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${selectedPlan.price}&cu=INR`}
-                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium flex items-center gap-1.5 transition"
-                >
-                  <span>🟣 PhonePe</span>
-                </a>
-                <a
-                  href={`tez://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${selectedPlan.price}&cu=INR`}
-                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium flex items-center gap-1.5 transition"
-                >
-                  <span>🔵 Google Pay</span>
-                </a>
-                <a
-                  href={`paytmmp://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${selectedPlan.price}&cu=INR`}
-                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium flex items-center gap-1.5 transition"
-                >
-                  <span>🔷 Paytm</span>
-                </a>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              {/* QR Code Display (Great for Desktop / Paying from another phone) */}
-              <div className="lg:col-span-5 flex flex-col items-center text-center">
-                <div className="p-4 bg-white rounded-3xl border-2 border-brand-soft shadow-md relative w-full max-w-[280px]">
-                  {qrCodeUrl ? (
-                    <Image
-                      src={qrCodeUrl}
-                      alt="UPI Payment QR Code"
-                      width={250}
-                      height={250}
-                      className="rounded-2xl mx-auto w-full h-auto"
-                      priority
-                    />
-                  ) : (
-                    <div className="w-[240px] h-[240px] flex items-center justify-center">
-                      <Loader2 className="w-8 h-8 text-brand-purple animate-spin" />
-                    </div>
-                  )}
-                  <div className="mt-3 text-[11px] font-heading font-semibold text-slate-muted">
-                    Scan with any UPI Scanner
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment Details Card */}
-              <div className="lg:col-span-7 space-y-4">
-                {/* 1-Tap Copy Amount Row */}
-                <div className="p-4 rounded-2xl border border-brand-soft bg-brand-light/60 flex items-center justify-between">
-                  <div>
-                    <span className="block text-[11px] font-semibold text-slate-muted uppercase">
-                      Exact Amount
-                    </span>
-                    <span className="font-heading font-bold text-brand-purple text-lg sm:text-xl">
-                      ₹{selectedPlan.price.toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(String(selectedPlan.price), "amount")}
-                    className="px-3 py-1.5 rounded-xl border border-brand-soft bg-white text-brand-purple hover:bg-brand-50 text-xs font-heading font-semibold flex items-center gap-1.5 transition"
-                  >
-                    {copiedField === "amount" ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-600">Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copy Amount</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* UPI ID Row */}
-                <div className="p-4 rounded-2xl border border-brand-soft bg-white flex items-center justify-between">
-                  <div className="overflow-hidden mr-2">
-                    <span className="block text-[11px] font-semibold text-slate-muted uppercase">
-                      UPI ID / VPA
-                    </span>
-                    <span className="font-heading font-bold text-text-main text-sm sm:text-base break-all">
-                      {upiId}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(upiId, "upiId")}
-                    className="px-3.5 py-1.5 rounded-xl border border-brand-soft text-brand-purple hover:bg-brand-50 text-xs font-heading font-semibold flex items-center gap-1.5 transition-colors shrink-0"
-                  >
-                    {copiedField === "upiId" ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-600">Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Phone Number Row */}
-                <div className="p-4 rounded-2xl border border-brand-soft bg-white flex items-center justify-between">
-                  <div>
-                    <span className="block text-[11px] font-semibold text-slate-muted uppercase">
-                      Pay to Phone Number
-                    </span>
-                    <span className="font-heading font-bold text-text-main text-sm sm:text-base">
-                      {paymentPhone} ({payeeName})
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(paymentPhone, "phone")}
-                    className="px-3.5 py-1.5 rounded-xl border border-brand-soft text-brand-purple hover:bg-brand-50 text-xs font-heading font-semibold flex items-center gap-1.5 transition-colors shrink-0"
-                  >
-                    {copiedField === "phone" ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-600">Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* STEP 3: CONFIRM PAYMENT FORM */}
-        <section className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card">
-          <div className="flex items-center gap-3 mb-6">
-            <span className="w-8 h-8 rounded-full bg-brand-purple text-white flex items-center justify-center font-heading font-bold text-sm">
-              3
-            </span>
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <h2 className="text-xl font-heading font-bold text-text-main">
-                Step 3: Submit Payment Verification
-              </h2>
-              <p className="text-xs text-slate-muted">
-                Enter your transaction 12-digit UTR and attach the payment screenshot for instant admin approval.
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-2 border border-emerald-500/30">
+                <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                Recommended • 1-Second Instant Activation
+              </div>
+              <h3 className="text-2xl font-extrabold font-heading text-white tracking-tight">
+                Pay with Razorpay Gateway
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
+                Supports Google Pay, PhonePe, Paytm, CRED, All UPI Apps, Debit/Credit Cards (Visa, Mastercard, RuPay) &amp; NetBanking. No waiting for manual approval!
               </p>
             </div>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Billing Details Header */}
-            <div className="border-b border-brand-soft pb-2 mb-4">
-              <h3 className="font-heading font-bold text-sm text-text-main uppercase tracking-wider">
-                Billing Details
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-              {/* Full Name */}
-              <div>
-                <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-2">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  value={payerName}
-                  onChange={(e) => setPayerName(e.target.value)}
-                  placeholder="e.g. Ramesh Verma"
-                  className="w-full px-4 py-2.5 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
-                  required
-                />
+            <div className="shrink-0 flex flex-col sm:items-end gap-2">
+              <div className="text-2xl sm:text-3xl font-black text-white">
+                ₹{selectedItem.price.toLocaleString("en-IN")}
               </div>
-
-              {/* Business Name */}
-              <div>
-                <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-2">
-                  Business Name *
-                </label>
-                <input
-                  type="text"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="e.g. Sri Balaji Silks"
-                  className="w-full px-4 py-2.5 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
-                  required
-                />
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-2">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  value={payerEmail}
-                  onChange={(e) => setPayerEmail(e.target.value)}
-                  placeholder="name@business.com"
-                  className="w-full px-4 py-2.5 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
-                  required
-                />
-              </div>
-
-              {/* Mobile */}
-              <div>
-                <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-2">
-                  Mobile Number *
-                </label>
-                <input
-                  type="tel"
-                  value={payerMobile}
-                  onChange={(e) => setPayerMobile(e.target.value)}
-                  placeholder="+91 98765 43210"
-                  className="w-full px-4 py-2.5 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
-                  required
-                />
-              </div>
-
-              {/* GST Number (optional) */}
-              <div>
-                <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-2">
-                  GST Number (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={payerGst}
-                  onChange={(e) => setPayerGst(e.target.value)}
-                  placeholder="22AAAAA0000A1Z5"
-                  className="w-full px-4 py-2.5 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
-                />
-              </div>
-
-              {/* City */}
-              <div>
-                <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-2">
-                  City *
-                </label>
-                <input
-                  type="text"
-                  value={payerCity}
-                  onChange={(e) => setPayerCity(e.target.value)}
-                  placeholder="e.g. Vijayawada or Hyderabad"
-                  className="w-full px-4 py-2.5 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Payment Proof Header */}
-            <div className="border-b border-brand-soft pb-2 pt-2">
-              <h3 className="font-heading font-bold text-sm text-text-main uppercase tracking-wider">
-                Payment Verification Details
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* UTR / Transaction ID */}
-              <div>
-                <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-2">
-                  UTR / UPI Transaction ID (12 Digits) *
-                </label>
-                <input
-                  type="text"
-                  value={utrNumber}
-                  onChange={(e) => setUtrNumber(e.target.value)}
-                  placeholder="e.g. 509812345678"
-                  maxLength={20}
-                  className="w-full px-4 py-3 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-semibold tracking-wider placeholder:text-slate-muted/60 focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
-                  required
-                />
-                <span className="text-[11px] text-slate-muted mt-1 block">
-                  Find this in your UPI app payment details screen.
-                </span>
-              </div>
-
-              {/* Payment Screenshot Upload */}
-              <div>
-                <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-2">
-                  Payment Screenshot (Max 5 MB, JPG/PNG) *
-                </label>
-                <div className="relative border-2 border-dashed border-brand-soft rounded-2xl p-4 text-center bg-brand-light/50 hover:bg-brand-light transition-colors">
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg"
-                    onChange={handleScreenshotChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    required
-                  />
-                  <div className="flex flex-col items-center">
-                    <Upload className="w-6 h-6 text-brand-purple mb-1" />
-                    <span className="text-xs font-heading font-semibold text-text-main">
-                      {screenshot ? screenshot.name : "Click or drag screenshot here"}
-                    </span>
-                    <span className="text-[10px] text-slate-muted mt-0.5">
-                      Clear view showing amount and UTR number
-                    </span>
-                  </div>
-                </div>
-
-                {screenshotPreview && (
-                  <div className="mt-3 flex items-center gap-3">
-                    <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-brand-soft">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={screenshotPreview}
-                        alt="Screenshot Preview"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                      <Check className="w-4 h-4" /> Screenshot attached
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="pt-4 border-t border-brand-soft">
               <button
-                type="submit"
-                disabled={submitting}
-                className="w-full py-4 px-8 rounded-2xl bg-brand-gradient hover:opacity-95 text-white font-heading font-bold text-base shadow-lg shadow-brand-purple/20 transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-60 cursor-pointer"
+                type="button"
+                onClick={handleRazorpayPayment}
+                disabled={razorpayLoading}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-heading font-extrabold text-sm shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2.5 active:scale-95 cursor-pointer disabled:opacity-60"
               >
-                {submitting ? (
+                {razorpayLoading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Submitting Payment Details...</span>
+                    <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                    <span>Opening Gateway...</span>
                   </>
                 ) : (
                   <>
-                    <span>I have paid – Submit for Verification</span>
-                    <ArrowRight className="w-5 h-5" />
+                    <Lock className="w-4 h-4 text-slate-950" />
+                    <span>Pay ₹{selectedItem.price.toLocaleString("en-IN")} with Razorpay Now</span>
+                    <ArrowRight className="w-4 h-4 text-slate-950" />
                   </>
                 )}
               </button>
             </div>
-          </form>
-        </section>
-
-      </div>
-
-      {/* Sticky Mobile Pay Bar for 1-Tap Payment on smartphones */}
-      {selectedPlan && (
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-brand-200 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] flex items-center justify-between gap-3">
-          <div>
-            <span className="text-[10px] text-slate-muted uppercase font-bold tracking-wider block">
-              {selectedPlan.name} Plan
-            </span>
-            <span className="text-xl font-heading font-extrabold text-brand-purple">
-              ₹{selectedPlan.price.toLocaleString("en-IN")}
-            </span>
           </div>
-
-          <a
-            href={upiLink}
-            className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue text-white font-heading font-bold text-xs shadow-md flex items-center justify-center gap-1.5 active:scale-95 transition"
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span>Pay via UPI App</span>
-            <ExternalLink className="w-3 h-3 opacity-80" />
-          </a>
         </div>
-      )}
+
+        {/* ALTERNATIVE: MANUAL DIRECT UPI TRANSFER */}
+        <details className="pt-2 group">
+          <summary className="text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer flex items-center gap-2 list-none select-none">
+            <span className="w-2 h-2 rounded-full bg-slate-400" />
+            <span>Or pay via Direct UPI QR &amp; manual UTR verification</span>
+            <span className="text-[10px] text-slate-400 ml-1 group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+
+          <div className="mt-5 p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              <div className="md:col-span-5 flex flex-col items-center text-center">
+                <div className="p-3 bg-white rounded-2xl border border-slate-200 shadow-xs max-w-[220px]">
+                  {qrCodeUrl ? (
+                    <Image
+                      src={qrCodeUrl}
+                      alt="UPI QR Code"
+                      width={200}
+                      height={200}
+                      className="rounded-xl mx-auto"
+                      priority
+                    />
+                  ) : (
+                    <div className="w-[180px] h-[180px] flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-brand-purple" />
+                    </div>
+                  )}
+                  <span className="text-[10px] text-slate-500 font-semibold block mt-1.5">
+                    Scan with PhonePe, GPay, Paytm
+                  </span>
+                </div>
+              </div>
+
+              <div className="md:col-span-7 space-y-3">
+                <div className="p-3 rounded-xl bg-white border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">UPI ID</span>
+                    <div className="text-xs font-bold text-slate-800">{upiId}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(upiId, "upiId")}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700"
+                  >
+                    {copiedField === "upiId" ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Phone Number</span>
+                    <div className="text-xs font-bold text-slate-800">{paymentPhone} ({payeeName})</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(paymentPhone, "phone")}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700"
+                  >
+                    {copiedField === "phone" ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Manual Form */}
+            <form onSubmit={handleManualUpiSubmit} className="space-y-4 pt-4 border-t border-slate-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    12-Digit UTR Number *
+                  </label>
+                  <input
+                    type="text"
+                    value={utrNumber}
+                    onChange={(e) => setUtrNumber(e.target.value)}
+                    placeholder="e.g. 509812345678"
+                    maxLength={20}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Payment Screenshot *
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleScreenshotChange}
+                    className="w-full text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-purple file:text-white cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingManual}
+                className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition"
+              >
+                {submittingManual ? "Submitting..." : "Submit Manual UTR Verification"}
+              </button>
+            </form>
+          </div>
+        </details>
+      </section>
     </div>
   );
 }
