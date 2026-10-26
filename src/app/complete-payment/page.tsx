@@ -54,7 +54,7 @@ function CompletePaymentContent() {
   const [upiId, setUpiId] = useState("9390487233@ybl");
   const [payeeName, setPayeeName] = useState("Ibrain Labs");
   const [paymentPhone, setPaymentPhone] = useState("+919390487233");
-  const [razorpayKeyId, setRazorpayKeyId] = useState("rzp_live_Tm5fsJVpQaPb5t");
+  const [razorpayKeyId, setRazorpayKeyId] = useState(process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "");
   const [metaNote, setMetaNote] = useState("WhatsApp messaging quota is included in your plan. If your limit is reached, top-up credits to continue sending.");
 
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
@@ -185,7 +185,7 @@ function CompletePaymentContent() {
 
       // 2. Open Razorpay Checkout modal
       const options = {
-        key: orderData.keyId || razorpayKeyId || "rzp_live_Tm5fsJVpQaPb5t",
+        key: orderData.keyId || razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
         amount: orderData.amount,
         currency: orderData.currency || "INR",
         name: "OfferBlast by iBrainLabs",

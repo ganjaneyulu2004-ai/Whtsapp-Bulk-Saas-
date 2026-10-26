@@ -10,7 +10,7 @@ export async function GET() {
   return NextResponse.json({
     plans,
     topUpPacks: CREDIT_TOPUP_PACKS,
-    razorpayKeyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || "rzp_live_Tm5fsJVpQaPb5t",
+    razorpayKeyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || "",
     upiId: process.env.UPI_ID || "9390487233@ybl",
     payeeName: process.env.UPI_PAYEE_NAME || "Ibrain Labs",
     paymentPhone: process.env.PAYMENT_PHONE || "+919390487233",
