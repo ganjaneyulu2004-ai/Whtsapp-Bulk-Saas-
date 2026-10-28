@@ -8,8 +8,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = pathname === "/login" || pathname === "/register";
 
+  const isInboxPage = pathname === "/inbox";
+
   if (isAuthPage) {
     return <main className="min-h-screen">{children}</main>;
+  }
+
+  // Full-height WhatsApp Web layout for Inbox (zero bottom gap, full height)
+  if (isInboxPage) {
+    return (
+      <div className="h-screen flex flex-col lg:flex-row bg-background overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-w-0 lg:pl-64 h-full overflow-hidden">
+          <main className="flex-1 w-full p-2 sm:p-3 flex flex-col h-full min-h-0 overflow-hidden">
+            {children}
+          </main>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -398,9 +398,9 @@ export default function InboxPage() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full h-full flex flex-col flex-1 min-h-0">
       {/* REAL WHATSAPP WEB APPLICATION SHELL */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-300 shadow-xl overflow-hidden flex h-[calc(100vh-8.5rem)] min-h-[580px] max-h-[820px] transition-all">
+      <div className="bg-white rounded-2xl border border-slate-300 shadow-xl overflow-hidden flex flex-1 h-full min-h-0 transition-all">
         
         {/* ========================================================================= */}
         {/* LEFT COLUMN: CHAT LIST & SEARCH (Real WhatsApp Web Sidebar) */}
