@@ -237,7 +237,7 @@ export async function initializeDatabase() {
         waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
         waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
         waApiVersion: process.env.WA_API_VERSION || "v26.0",
-        metaAppId: process.env.META_APP_ID || "2068663130431385",
+        metaAppId: process.env.META_APP_ID || "1019114041212914",
         messagingLimitTier: "TIER_250",
         isConnected: true,
       },

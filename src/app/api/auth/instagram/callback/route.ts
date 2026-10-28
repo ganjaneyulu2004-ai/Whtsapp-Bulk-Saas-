@@ -11,8 +11,8 @@ export async function GET(req: Request) {
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error || "Authorization cancelled")}`);
   }
 
-  const metaAppId = process.env.META_APP_ID || "2068663130431385";
-  const metaAppSecret = process.env.META_APP_SECRET || "8c8247f5dc779a1477cc968e933e6ea4";
+  const metaAppId = process.env.META_APP_ID || "1019114041212914";
+  const metaAppSecret = process.env.META_APP_SECRET || "8b567b0fd50b48c423aed2359402aa52";
   const redirectUri = `${origin}/api/auth/instagram/callback`;
 
   try {

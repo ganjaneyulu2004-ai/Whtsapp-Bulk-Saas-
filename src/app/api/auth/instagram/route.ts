@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
-  const metaAppId = process.env.META_APP_ID || "2068663130431385";
+  const metaAppId = process.env.META_APP_ID || "1019114041212914";
   const url = new URL(req.url);
   const origin = url.origin;
   const redirectUri = `${origin}/api/auth/instagram/callback`;

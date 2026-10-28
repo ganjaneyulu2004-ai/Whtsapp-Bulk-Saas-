@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const messages = await prisma.incomingMessage.findMany({
@@ -23,11 +26,18 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({
-      messages: formatted,
-      totalCount: formatted.length,
-      activeWindowCount: formatted.filter((f) => f.isWindowActive).length,
-    });
+    return NextResponse.json(
+      {
+        messages: formatted,
+        totalCount: formatted.length,
+        activeWindowCount: formatted.filter((f) => f.isWindowActive).length,
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
+    );
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

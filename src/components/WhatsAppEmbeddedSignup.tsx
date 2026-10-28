@@ -40,7 +40,7 @@ interface WhatsAppEmbeddedSignupProps {
 
 export default function WhatsAppEmbeddedSignup({
   initialConfig,
-  metaAppId = process.env.NEXT_PUBLIC_META_APP_ID || "2068663130431385",
+  metaAppId = process.env.NEXT_PUBLIC_META_APP_ID || "1019114041212914",
   onConfigUpdated,
 }: WhatsAppEmbeddedSignupProps) {
   const [config, setConfig] = useState<WhatsAppConfigData | null>(initialConfig || null);

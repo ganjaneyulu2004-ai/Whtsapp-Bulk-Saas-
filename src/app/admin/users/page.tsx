@@ -355,6 +355,7 @@ export default function AdminUsersPage() {
                   <option value="Starter">Starter (2,000 msgs)</option>
                   <option value="Growth">Growth (10,000 msgs)</option>
                   <option value="Pro">Pro (30,000 msgs)</option>
+                  <option value="VIP Pro (Platform Fee Exempt)">⭐ VIP Pro (100% Platform Fee Exempt - Lifetime Free)</option>
                 </select>
               </div>
 
@@ -362,8 +363,8 @@ export default function AdminUsersPage() {
                 <label className="block text-xs font-heading font-semibold text-text-main mb-1.5">
                   Duration (Days to Add)
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[30, 90, 365].map((d) => (
+                <div className="grid grid-cols-4 gap-2">
+                  {[30, 90, 365, 3650].map((d) => (
                     <button
                       key={d}
                       type="button"
@@ -374,7 +375,7 @@ export default function AdminUsersPage() {
                           : "border-brand-soft text-text-main hover:bg-brand-light"
                       }`}
                     >
-                      +{d} Days
+                      {d === 3650 ? "Lifetime" : `+${d}d`}
                     </button>
                   ))}
                 </div>
