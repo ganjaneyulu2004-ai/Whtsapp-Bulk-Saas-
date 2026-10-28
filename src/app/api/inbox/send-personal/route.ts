@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
 
+// 3.5-second deduplication cache to prevent accidental double-submits from client
+const recentPersonalSends = new Map<string, { timestamp: number; response: any }>();
+
 export async function POST(req: Request) {
   try {
     const business = await getCurrentBusiness();
@@ -33,6 +36,14 @@ export async function POST(req: Request) {
     }
     const targetPhone = rawPhone;
     const finalRecipientName = (recipientName || "Friend").trim();
+
+    // Check duplicate send within 6.0 seconds
+    const dedupKey = `${targetPhone}_${cleanMessage}_${items.map((i) => i.name || i.url).join("|")}`;
+    const cachedSend = recentPersonalSends.get(dedupKey);
+    if (cachedSend && Date.now() - cachedSend.timestamp < 6000) {
+      console.log(`⏩ [SERVER DEDUP] Blocked duplicate message to ${targetPhone} within 6s.`);
+      return NextResponse.json(cachedSend.response);
+    }
 
     // Check if recipient has an active 24-hour customer service window in incoming messages
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -124,13 +135,15 @@ export async function POST(req: Request) {
       }
 
       if (results.length > 0) {
-        return NextResponse.json({
+        const responseData = {
           success: true,
           message: `${results.length} of ${items.length} media file(s) sent successfully!`,
           waMessageIds: results.map((r) => r.waMessageId).filter(Boolean),
           partialFailure: anyError ? true : false,
           warning: anyError,
-        });
+        };
+        recentPersonalSends.set(dedupKey, { timestamp: Date.now(), response: responseData });
+        return NextResponse.json(responseData);
       } else {
         return NextResponse.json(
           {
@@ -189,12 +202,15 @@ export async function POST(req: Request) {
         });
       } catch {}
 
-      return NextResponse.json({
+      const responseData = {
         success: true,
         message: `Message sent successfully to +${targetPhone}!`,
         waMessageId: sendResult.waMessageId,
         deliveryMode: is24HourWindow ? "DIRECT_24H_WINDOW" : "TEMPLATE_DELIVERY",
-      });
+      };
+      recentPersonalSends.set(dedupKey, { timestamp: Date.now(), response: responseData });
+
+      return NextResponse.json(responseData);
     } else {
       return NextResponse.json(
         {

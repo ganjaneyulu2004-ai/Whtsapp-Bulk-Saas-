@@ -79,6 +79,7 @@ export default function InboxPage() {
   // Active chat composer state
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const isSendingRef = useRef(false);
 
   // Multi-media attachment state
   const [attachedMediaList, setAttachedMediaList] = useState<AttachedMediaItem[]>([]);
@@ -225,19 +226,77 @@ export default function InboxPage() {
         };
       }
 
-      // Avoid duplicates
+      // Avoid duplicates from localStorage
       msgs.forEach((m) => {
-        if (!groups[clean].messages.some((existing) => existing.id === m.id)) {
+        const textM = (m.text || "").trim().toLowerCase();
+        const timeM = new Date(m.timestamp).getTime();
+
+        const alreadyInGroup = groups[clean].messages.some((existing) => {
+          if (existing.id === m.id) return true;
+          const textE = (existing.text || "").trim().toLowerCase();
+          const timeE = new Date(existing.timestamp).getTime();
+          const timeDiff = Math.abs(timeE - timeM);
+
+          if (
+            existing.sender === m.sender &&
+            ((textM && textE && textM === textE) || (m.fileName && existing.fileName === m.fileName)) &&
+            timeDiff < 600000 // 10 minutes
+          ) {
+            return true;
+          }
+          return false;
+        });
+
+        if (!alreadyInGroup) {
           groups[clean].messages.push(m);
         }
       });
     });
 
-    // Sort messages in each conversation chronologically
+    // Sort messages in each conversation chronologically and deduplicate
     return Object.values(groups).map((c) => {
       c.messages.sort(
         (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
+
+      const uniqueMsgs: ChatMessage[] = [];
+      for (const msg of c.messages) {
+        const textMsg = (msg.text || "").trim().toLowerCase();
+        const timeMsg = new Date(msg.timestamp).getTime();
+
+        const isDuplicate = uniqueMsgs.some((existing) => {
+          if (existing.id && msg.id && existing.id === msg.id) return true;
+
+          const sameSender = existing.sender === msg.sender;
+          const textExisting = (existing.text || "").trim().toLowerCase();
+          const timeExisting = new Date(existing.timestamp).getTime();
+          const timeDiff = Math.abs(timeExisting - timeMsg);
+
+          // 1. Text message deduplication (same text within 3 minutes)
+          if (sameSender && textMsg && textExisting && textMsg === textExisting && timeDiff < 180000) {
+            return true;
+          }
+
+          // 2. Media message deduplication (same file or url within 3 minutes)
+          if (
+            sameSender &&
+            (msg.mediaUrl || msg.fileName) &&
+            (existing.fileName === msg.fileName || (existing.mediaUrl && existing.mediaUrl === msg.mediaUrl)) &&
+            timeDiff < 180000
+          ) {
+            return true;
+          }
+
+          return false;
+        });
+
+        if (!isDuplicate) {
+          uniqueMsgs.push(msg);
+        }
+      }
+
+      c.messages = uniqueMsgs;
+
       const last = c.messages[c.messages.length - 1];
       if (last) {
         c.lastMessageText = last.text || (last.fileName ? `📄 ${last.fileName}` : last.mediaType ? `[${last.mediaType}]` : "");
@@ -370,8 +429,15 @@ export default function InboxPage() {
 
   // Send Direct Reply in active chat (supports multiple media files + text)
   const handleSendReply = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!activeConversation || (!replyText.trim() && attachedMediaList.length === 0) || isSending) return;
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (isSendingRef.current || isSending) return;
+    if (!activeConversation || (!replyText.trim() && attachedMediaList.length === 0)) return;
+
+    isSendingRef.current = true;
+    setIsSending(true);
 
     playClickSound();
     const textToSend = replyText.trim();
@@ -461,6 +527,7 @@ export default function InboxPage() {
     } catch (err: any) {
       alert(err.message || "Network error while sending WhatsApp message.");
     } finally {
+      isSendingRef.current = false;
       setIsSending(false);
     }
   };
@@ -1159,7 +1226,14 @@ export default function InboxPage() {
                 </div>
               )}
 
-              <form onSubmit={handleSendReply} className="flex items-center gap-2">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSendReply(e);
+                }}
+                className="flex items-center gap-2"
+              >
                 {/* Media Attachment Clip Icon */}
                 <button
                   type="button"
@@ -1217,7 +1291,10 @@ export default function InboxPage() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        handleSendReply();
+                        e.stopPropagation();
+                        if (!isSendingRef.current && !isSending) {
+                          handleSendReply();
+                        }
                       }
                     }}
                     placeholder={

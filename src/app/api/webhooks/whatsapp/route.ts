@@ -6,6 +6,10 @@ import { processCampaignSending } from "@/lib/queue";
 import { setLastWebhookReceivedAt, recordMessageDeliveryStatus } from "@/lib/webhook-state";
 import { handleIncomingAiReply } from "@/lib/ai-assistant";
 
+// Global deduplication caches to prevent duplicate message ingestion & duplicate AI replies
+const recentProcessedIds = new Map<string, number>();
+const recentProcessedContent = new Map<string, number>();
+
 function verifyMetaSignature(rawBody: string, signatureHeader: string | null, secret: string): boolean {
   if (!signatureHeader || !signatureHeader.startsWith("sha256=")) {
     return false;
@@ -204,9 +208,6 @@ async function processWebhookPayload(body: any) {
     }
   }
 
-// Message deduplication cache to prevent duplicate AI replies when Meta retries webhooks
-const recentProcessedIds = new Map<string, number>();
-
   // 2. Process Incoming Customer Messages & Opt-Out Keywords ("STOP", "UNSUBSCRIBE", "ఆపు")
   if (value.messages && Array.isArray(value.messages)) {
     for (const msg of value.messages) {
@@ -218,7 +219,7 @@ const recentProcessedIds = new Map<string, number>();
         ? new Date(parseInt(msg.timestamp, 10) * 1000)
         : new Date();
 
-      // Deduplication check 1: in-memory cache
+      // Deduplication check 1: in-memory ID cache
       if (waMsgId) {
         const lastSeen = recentProcessedIds.get(waMsgId);
         if (lastSeen && Date.now() - lastSeen < 120000) {
@@ -234,7 +235,22 @@ const recentProcessedIds = new Map<string, number>();
         }
       }
 
-      // Deduplication check 2: DB check
+      // Deduplication check 2: in-memory Content cache (prevents duplicate delivery within 8s)
+      const contentDedupKey = `${fromPhone}_${textBody}`;
+      const lastContentSeen = recentProcessedContent.get(contentDedupKey);
+      if (lastContentSeen && Date.now() - lastContentSeen < 8000) {
+        console.log(`⏩ [DEDUP] Duplicate content from ${fromPhone} within 8s. Skipping second processing.`);
+        continue;
+      }
+      recentProcessedContent.set(contentDedupKey, Date.now());
+      if (recentProcessedContent.size > 2000) {
+        const threshold = Date.now() - 300000;
+        for (const [key, ts] of recentProcessedContent.entries()) {
+          if (ts < threshold) recentProcessedContent.delete(key);
+        }
+      }
+
+      // Deduplication check 3: DB check
       let isAlreadyInDb = false;
       if (waMsgId) {
         const existing = await prisma.incomingMessage.findUnique({

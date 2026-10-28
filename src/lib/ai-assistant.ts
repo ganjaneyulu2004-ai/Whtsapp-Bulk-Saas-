@@ -10,6 +10,9 @@ interface GenerateAiReplyParams {
   waPhoneNumberId?: string;
 }
 
+// In-memory lock to prevent duplicate concurrent AI replies for the same phone & text
+const activeAiReplyLocks = new Map<string, number>();
+
 export async function handleIncomingAiReply({
   fromPhone,
   customerName,
@@ -18,6 +21,21 @@ export async function handleIncomingAiReply({
   waPhoneNumberId,
 }: GenerateAiReplyParams) {
   try {
+    const cleanPhone = fromPhone.replace(/[^0-9]/g, "");
+    const lockKey = `${cleanPhone}_${incomingText.trim()}`;
+    const lastReplyTime = activeAiReplyLocks.get(lockKey);
+    if (lastReplyTime && Date.now() - lastReplyTime < 10000) {
+      console.log(`🤖 [AI DEDUP] Skipping duplicate AI reply for ${cleanPhone} within 10s.`);
+      return null;
+    }
+    activeAiReplyLocks.set(lockKey, Date.now());
+    if (activeAiReplyLocks.size > 1000) {
+      const threshold = Date.now() - 60000;
+      for (const [key, ts] of activeAiReplyLocks.entries()) {
+        if (ts < threshold) activeAiReplyLocks.delete(key);
+      }
+    }
+
     // 1. Locate the business
     let business: any = null;
     if (businessId) {
@@ -59,7 +77,6 @@ export async function handleIncomingAiReply({
     }
 
     // 2. Fetch last 5 messages for conversation context
-    const cleanPhone = fromPhone.replace(/[^0-9]/g, "");
     const pastIncoming = await prisma.incomingMessage.findMany({
       where: {
         fromPhone: { in: [cleanPhone, cleanPhone.slice(-10)] },
