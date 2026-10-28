@@ -92,6 +92,9 @@ export async function submitTemplateToMeta(
   }
 }
 
+const FALLBACK_WA_TOKEN = process.env.WA_TOKEN || "EAAOe4PppfZCIBSw8bnTbkrI0EWU8D68qhy2lz8Kh5uPuXIiiHPccosU1UV9qvtVhgrWUCBlHNQJG4wmrqf2WyFFMg7vBqtZAXphqcqr8L2xevpjtb42dWNSfagbV02Y3719EM2EPJ0hcZAvQ2VAelZBDWVWrk6zgMdbbvvjdemZCsWQSyahiowxZCPqAHMxcumZAQZDZD";
+const FALLBACK_WA_PHONE_ID = process.env.WA_PHONE_NUMBER_ID || "1416726644852842";
+
 export async function uploadMediaToMeta(
   config: {
     waToken?: string;
@@ -101,8 +104,8 @@ export async function uploadMediaToMeta(
   base64OrBuffer: string | Buffer,
   mimeType = "image/png"
 ): Promise<{ success: boolean; mediaId?: string; error?: string }> {
-  const token = config.waToken || process.env.WA_TOKEN;
-  const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID;
+  const token = config.waToken || process.env.WA_TOKEN || FALLBACK_WA_TOKEN;
+  const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID || FALLBACK_WA_PHONE_ID;
   const version = process.env.WA_API_VERSION || config.waApiVersion || "v26.0";
 
   if (!token || !phoneId) {
@@ -132,9 +135,13 @@ export async function uploadMediaToMeta(
     else if (detectedMime.includes("webm")) ext = "webm";
     else if (detectedMime.includes("webp")) ext = "webp";
     else if (detectedMime.includes("pdf")) ext = "pdf";
+    else if (detectedMime.includes("word") || detectedMime.includes("docx")) ext = "docx";
+    else if (detectedMime.includes("sheet") || detectedMime.includes("xlsx")) ext = "xlsx";
+    else if (detectedMime.includes("csv")) ext = "csv";
+    else if (detectedMime.includes("text") || detectedMime.includes("plain")) ext = "txt";
 
     const formData = new FormData();
-    formData.append("file", blob, `media.${ext}`);
+    formData.append("file", blob, `attachment.${ext}`);
     formData.append("type", detectedMime);
     formData.append("messaging_product", "whatsapp");
 
@@ -243,13 +250,12 @@ export async function sendWhatsAppTemplateMessage(
     freeFormText?: string;
     mediaId?: string;
     mediaType?: "image" | "video" | "document";
+    fileName?: string;
   }
 ): Promise<{ success: boolean; waMessageId?: string; errorCode?: string; errorMessage?: string }> {
-  const FALLBACK_TOKEN = "EAAOe4PppfZCIBSyhPLLzoYmzWUB35U5XgC3RezCojrqvjqdJzRYHoaFSWxoN4PDZBMTlsL2g8zEZCHkqrZAWnirvjSccc6ZAjFlzJjV7JtCdVwoWRPYEoFaQ6yQW3psyxIj7gA69buLULa1X3zYZBv0PkFiFqbvWYMaWrDDUzYK2sledzyJjl0RXJCN7Ou7YuADAZDZD";
-  const FALLBACK_PHONE_ID = "1443849605471143";
-  const token = config.waToken || process.env.WA_TOKEN || FALLBACK_TOKEN;
-  const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID || FALLBACK_PHONE_ID;
-  const version = process.env.WA_API_VERSION || config.waApiVersion || "v20.0";
+  const token = config.waToken || process.env.WA_TOKEN || FALLBACK_WA_TOKEN;
+  const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID || FALLBACK_WA_PHONE_ID;
+  const version = process.env.WA_API_VERSION || config.waApiVersion || "v26.0";
 
   try {
     let cleanRecipient = String(recipientPhone || "").replace(/[^0-9]/g, "");
@@ -264,15 +270,26 @@ export async function sendWhatsAppTemplateMessage(
     const bName = params?.businessName?.trim() || "iBrainLabs";
     const bLink = params?.bookingLink?.trim() || "";
 
-    // 1. If 24-hour customer service window is active, send free-form image/video/text
+    // 1. If 24-hour customer service window is active, send free-form image/video/document/text
     if (params?.is24HourWindow) {
       let mediaId: string | null = params?.mediaId || null;
-      const isVideo = params?.mediaType === "video" || 
-        (mediaUrl && (mediaUrl.startsWith("data:video/") || Boolean(mediaUrl.match(/\.(mp4|mov|webm|3gp)/i))));
+      const isDocument = params?.mediaType === "document" ||
+        (mediaUrl && (mediaUrl.startsWith("data:application/") || Boolean(mediaUrl.match(/\.(pdf|docx?|xlsx?|csv|txt)/i))));
+      const isVideo = !isDocument && (params?.mediaType === "video" || 
+        (mediaUrl && (mediaUrl.startsWith("data:video/") || Boolean(mediaUrl.match(/\.(mp4|mov|webm|3gp)/i)))));
+      const isImage = !isDocument && !isVideo && (params?.mediaType === "image" || Boolean(mediaUrl));
 
       if (!mediaId && mediaUrl) {
         if (mediaUrl.startsWith("data:") || mediaUrl.length > 500) {
-          const defaultMime = isVideo ? "video/mp4" : "image/png";
+          let defaultMime = "image/png";
+          if (isDocument) {
+            if (mediaUrl.includes("application/pdf") || mediaUrl.match(/\.pdf/i)) defaultMime = "application/pdf";
+            else if (mediaUrl.includes("sheet") || mediaUrl.match(/\.xlsx?/i)) defaultMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            else if (mediaUrl.includes("word") || mediaUrl.match(/\.docx?/i)) defaultMime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            else defaultMime = "application/pdf";
+          } else if (isVideo) {
+            defaultMime = "video/mp4";
+          }
           const uploadRes = await uploadMediaToMeta(config, mediaUrl, defaultMime);
           if (uploadRes.success && uploadRes.mediaId) {
             mediaId = uploadRes.mediaId;
@@ -281,9 +298,44 @@ export async function sendWhatsAppTemplateMessage(
       }
 
       const directCaption = params?.freeFormText || 
-        formatDirectOfferMessage(params?.offerText || "Special Offer for you today!", recipient, bName, bLink);
+        (params?.offerText ? formatDirectOfferMessage(params.offerText, recipient, bName, bLink) : "");
 
-      if (isVideo) {
+      if (isDocument) {
+        const docFileName = params?.fileName || (typeof mediaUrl === "string" && !mediaUrl.startsWith("data:") ? mediaUrl.split("/").pop() : "document.pdf") || "document.pdf";
+        if (mediaId) {
+          payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: cleanRecipient,
+            type: "document",
+            document: {
+              id: mediaId,
+              caption: directCaption || undefined,
+              filename: docFileName,
+            },
+          };
+        } else if (mediaUrl && (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) && !mediaUrl.includes("localhost")) {
+          payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: cleanRecipient,
+            type: "document",
+            document: {
+              link: mediaUrl,
+              caption: directCaption || undefined,
+              filename: docFileName,
+            },
+          };
+        } else {
+          payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: cleanRecipient,
+            type: "text",
+            text: { body: directCaption || `Document: ${docFileName}` },
+          };
+        }
+      } else if (isVideo) {
         if (mediaId) {
           payload = {
             messaging_product: "whatsapp",
@@ -292,7 +344,7 @@ export async function sendWhatsAppTemplateMessage(
             type: "video",
             video: {
               id: mediaId,
-              caption: directCaption,
+              caption: directCaption || undefined,
             },
           };
         } else if (mediaUrl && (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) && !mediaUrl.includes("localhost")) {
@@ -303,7 +355,7 @@ export async function sendWhatsAppTemplateMessage(
             type: "video",
             video: {
               link: mediaUrl,
-              caption: directCaption,
+              caption: directCaption || undefined,
             },
           };
         } else {
@@ -312,31 +364,33 @@ export async function sendWhatsAppTemplateMessage(
             recipient_type: "individual",
             to: cleanRecipient,
             type: "text",
-            text: { body: directCaption },
+            text: { body: directCaption || "Video attached" },
           };
         }
-      } else if (mediaId) {
-        payload = {
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: cleanRecipient,
-          type: "image",
-          image: {
-            id: mediaId,
-            caption: directCaption,
-          },
-        };
-      } else if (mediaUrl && (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) && !mediaUrl.includes("localhost")) {
-        payload = {
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: cleanRecipient,
-          type: "image",
-          image: {
-            link: mediaUrl,
-            caption: directCaption,
-          },
-        };
+      } else if (isImage && (mediaId || (mediaUrl && (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) && !mediaUrl.includes("localhost")))) {
+        if (mediaId) {
+          payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: cleanRecipient,
+            type: "image",
+            image: {
+              id: mediaId,
+              caption: directCaption || undefined,
+            },
+          };
+        } else {
+          payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: cleanRecipient,
+            type: "image",
+            image: {
+              link: mediaUrl,
+              caption: directCaption || undefined,
+            },
+          };
+        }
       } else {
         payload = {
           messaging_product: "whatsapp",
@@ -344,7 +398,7 @@ export async function sendWhatsAppTemplateMessage(
           to: cleanRecipient,
           type: "text",
           text: {
-            body: directCaption,
+            body: directCaption || "Hello!",
           },
         };
       }

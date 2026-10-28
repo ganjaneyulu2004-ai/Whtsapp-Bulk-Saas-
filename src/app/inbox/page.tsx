@@ -26,18 +26,30 @@ import {
   Paperclip,
   Image as ImageIcon,
   Video,
-  Link2
+  Link2,
+  FileText,
+  Download,
+  Files
 } from "lucide-react";
 
 interface ChatMessage {
   id: string;
   sender: "customer" | "business";
-  text: string;
+  text?: string;
   timestamp: string;
   status?: "sending" | "sent" | "delivered" | "read";
   isTemplate?: boolean;
   mediaUrl?: string;
-  mediaType?: "image" | "video";
+  mediaType?: "image" | "video" | "document";
+  fileName?: string;
+}
+
+interface AttachedMediaItem {
+  id: string;
+  url: string;
+  type: "image" | "video" | "document";
+  name: string;
+  size?: number;
 }
 
 interface Conversation {
@@ -67,16 +79,12 @@ export default function InboxPage() {
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  // Media attachment state
-  const [attachedMedia, setAttachedMedia] = useState<{
-    url: string;
-    type: "image" | "video";
-    name: string;
-  } | null>(null);
+  // Multi-media attachment state
+  const [attachedMediaList, setAttachedMediaList] = useState<AttachedMediaItem[]>([]);
   const [showMediaMenu, setShowMediaMenu] = useState(false);
   const [isMediaUrlModalOpen, setIsMediaUrlModalOpen] = useState(false);
   const [inputMediaUrl, setInputMediaUrl] = useState("");
-  const [inputMediaType, setInputMediaType] = useState<"image" | "video">("image");
+  const [inputMediaType, setInputMediaType] = useState<"image" | "video" | "document">("image");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // New Chat Modal state
@@ -85,7 +93,7 @@ export default function InboxPage() {
   const [newChatName, setNewChatName] = useState("");
   const [newChatMessage, setNewChatMessage] = useState("");
   const [newChatMediaUrl, setNewChatMediaUrl] = useState("");
-  const [newChatMediaType, setNewChatMediaType] = useState<"image" | "video">("image");
+  const [newChatMediaType, setNewChatMediaType] = useState<"image" | "video" | "document">("image");
   const [isSendingNew, setIsSendingNew] = useState(false);
   const [newChatError, setNewChatError] = useState<string | null>(null);
 
@@ -226,8 +234,8 @@ export default function InboxPage() {
       );
       const last = c.messages[c.messages.length - 1];
       if (last) {
-        c.lastMessageText = last.text;
-        c.lastMessageTime = last.timestamp;
+        c.lastMessageText = last.text || (last.fileName ? `📄 ${last.fileName}` : last.mediaType ? `[${last.mediaType}]` : "");
+        c.lastMessageTime = last.timestamp || new Date().toISOString();
       }
       return c;
     }).sort(
@@ -251,87 +259,153 @@ export default function InboxPage() {
     }
   }, [activeConversation?.messages]);
 
-  // Filtered conversation list
+  // Filtered conversation list with safe guards
   const filteredConversations = conversations.filter((c) => {
     if (filterTab === "active" && !c.isWindowActive) return false;
     if (filterTab === "expired" && c.isWindowActive) return false;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchName = c.customerName.toLowerCase().includes(q);
-      const matchPhone = c.cleanPhone.includes(q) || c.phone.includes(q);
-      const matchText = c.messages.some((m) => m.text.toLowerCase().includes(q));
+      const matchName = (c.customerName || "").toLowerCase().includes(q);
+      const matchPhone = (c.cleanPhone || "").includes(q) || (c.phone || "").includes(q);
+      const matchText = c.messages.some((m) => 
+        (m.text || "").toLowerCase().includes(q) || (m.fileName || "").toLowerCase().includes(q)
+      );
       return matchName || matchPhone || matchText;
     }
     return true;
   });
 
-  // File upload handler
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, preferredType?: "image" | "video") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Multi-file upload handler supporting photos, videos, and documents
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, preferredType?: "image" | "video" | "document") => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    if (file.size > 16 * 1024 * 1024) {
-      alert("File size exceeds 16MB Meta WhatsApp limit. Please select a smaller file.");
-      return;
-    }
+    const newItems: AttachedMediaItem[] = [];
 
-    const isVideo = file.type.startsWith("video/") || preferredType === "video";
-    const type: "image" | "video" = isVideo ? "video" : "image";
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 16 * 1024 * 1024) {
+        alert(`File "${file.name}" exceeds 16MB Meta WhatsApp limit. Skipping.`);
+        continue;
+      }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAttachedMedia({
-        url: reader.result as string,
+      let type: "image" | "video" | "document" = "image";
+      const lowerName = file.name.toLowerCase();
+
+      if (
+        preferredType === "document" ||
+        file.type.includes("pdf") ||
+        file.type.includes("sheet") ||
+        file.type.includes("excel") ||
+        file.type.includes("word") ||
+        file.type.includes("document") ||
+        file.type.includes("csv") ||
+        file.type.includes("text") ||
+        Boolean(lowerName.match(/\.(pdf|docx?|xlsx?|csv|txt)$/))
+      ) {
+        type = "document";
+      } else if (
+        file.type.startsWith("video/") || 
+        preferredType === "video" || 
+        Boolean(lowerName.match(/\.(mp4|mov|webm|3gp)$/))
+      ) {
+        type = "video";
+      }
+
+      const dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      newItems.push({
+        id: `att_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`,
+        url: dataUrl,
         type,
         name: file.name,
+        size: file.size,
       });
+    }
+
+    if (newItems.length > 0) {
+      setAttachedMediaList((prev) => [...prev, ...newItems]);
       setShowMediaMenu(false);
       setTimeout(() => chatInputRef.current?.focus(), 100);
-    };
-    reader.readAsDataURL(file);
+    }
     e.target.value = "";
   };
 
-  const handleAttachMediaUrl = (url: string, type: "image" | "video") => {
+  const handleAttachMediaUrl = (url: string, type: "image" | "video" | "document") => {
     if (!url.trim()) return;
-    setAttachedMedia({
-      url: url.trim(),
-      type,
-      name: url.split("/").pop() || (type === "video" ? "video.mp4" : "image.jpg"),
-    });
+    const cleanUrl = url.trim();
+    const fallbackName =
+      type === "document" ? "document.pdf" : type === "video" ? "video.mp4" : "image.jpg";
+    const name = cleanUrl.split("/").pop() || fallbackName;
+
+    setAttachedMediaList((prev) => [
+      ...prev,
+      {
+        id: `att_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        url: cleanUrl,
+        type,
+        name,
+      },
+    ]);
     setIsMediaUrlModalOpen(false);
     setInputMediaUrl("");
     setShowMediaMenu(false);
     setTimeout(() => chatInputRef.current?.focus(), 100);
   };
 
-  // Send Direct Reply in active chat
+  const handleRemoveAttachedItem = (id: string) => {
+    setAttachedMediaList((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  // Send Direct Reply in active chat (supports multiple media files + text)
   const handleSendReply = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!activeConversation || (!replyText.trim() && !attachedMedia) || isSending) return;
+    if (!activeConversation || (!replyText.trim() && attachedMediaList.length === 0) || isSending) return;
 
     playClickSound();
     const textToSend = replyText.trim();
     const targetPhone = activeConversation.cleanPhone;
     const targetName = activeConversation.customerName;
-    const mediaToSend = attachedMedia;
+    const mediaToSend = [...attachedMediaList];
 
-    // Optimistic message added to chat
-    const tempId = `out_${Date.now()}`;
-    const newMsg: ChatMessage = {
-      id: tempId,
-      sender: "business",
-      text: textToSend,
-      timestamp: new Date().toISOString(),
-      status: "sending",
-      mediaUrl: mediaToSend?.url,
-      mediaType: mediaToSend?.type,
-    };
+    // Optimistic messages added to chat
+    const tempIds: string[] = [];
+    if (mediaToSend.length > 0) {
+      mediaToSend.forEach((item, idx) => {
+        const tempId = `out_${Date.now()}_${idx}`;
+        tempIds.push(tempId);
+        const newMsg: ChatMessage = {
+          id: tempId,
+          sender: "business",
+          text: idx === 0 ? textToSend : undefined,
+          timestamp: new Date().toISOString(),
+          status: "sending",
+          mediaUrl: item.url,
+          mediaType: item.type,
+          fileName: item.name,
+        };
+        saveSentReply(targetPhone, newMsg);
+      });
+    } else {
+      const tempId = `out_${Date.now()}`;
+      tempIds.push(tempId);
+      const newMsg: ChatMessage = {
+        id: tempId,
+        sender: "business",
+        text: textToSend,
+        timestamp: new Date().toISOString(),
+        status: "sending",
+      };
+      saveSentReply(targetPhone, newMsg);
+    }
 
-    saveSentReply(targetPhone, newMsg);
     setReplyText("");
-    setAttachedMedia(null);
+    setAttachedMediaList([]);
     setIsSending(true);
 
     // Scroll inner container immediately
@@ -349,8 +423,11 @@ export default function InboxPage() {
           recipientPhone: targetPhone,
           recipientName: targetName,
           messageText: textToSend,
-          mediaUrl: mediaToSend?.url,
-          mediaType: mediaToSend?.type,
+          mediaList: mediaToSend.map((m) => ({
+            url: m.url,
+            type: m.type,
+            name: m.name,
+          })),
         }),
       });
 
@@ -359,7 +436,7 @@ export default function InboxPage() {
         setSentReplies((prev) => {
           const list = prev[targetPhone] || [];
           const updated = list.map((m) =>
-            m.id === tempId ? { ...m, status: "delivered" as const } : m
+            tempIds.includes(m.id) ? { ...m, status: "delivered" as const } : m
           );
           localStorage.setItem(
             "wa_inbox_sent_replies_v3",
@@ -390,8 +467,8 @@ export default function InboxPage() {
       setNewChatError("Please enter a valid 10-digit phone number.");
       return;
     }
-    if (!newChatMessage.trim()) {
-      setNewChatError("Please type a message to start the conversation.");
+    if (!newChatMessage.trim() && !newChatMediaUrl.trim()) {
+      setNewChatError("Please type a message or provide a media URL to start the conversation.");
       return;
     }
 
@@ -410,6 +487,7 @@ export default function InboxPage() {
           messageText: newChatMessage.trim(),
           mediaUrl: newChatMediaUrl.trim() || undefined,
           mediaType: newChatMediaType,
+          fileName: newChatMediaUrl.trim() ? newChatMediaUrl.split("/").pop() : undefined,
         }),
       });
 
@@ -423,6 +501,7 @@ export default function InboxPage() {
           status: "delivered",
           mediaUrl: newChatMediaUrl.trim() || undefined,
           mediaType: newChatMediaType,
+          fileName: newChatMediaUrl.trim() ? newChatMediaUrl.split("/").pop() : undefined,
         };
         saveSentReply(targetPhone, outMsg);
 
@@ -445,18 +524,22 @@ export default function InboxPage() {
     }
   };
 
-  const formatMessageTime = (isoString: string) => {
+  const formatMessageTime = (isoString?: string) => {
+    if (!isoString) return "";
     try {
       const d = new Date(isoString);
+      if (isNaN(d.getTime())) return "";
       return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true });
     } catch {
       return "";
     }
   };
 
-  const formatChatListTime = (isoString: string) => {
+  const formatChatListTime = (isoString?: string) => {
+    if (!isoString) return "";
     try {
       const d = new Date(isoString);
+      if (isNaN(d.getTime())) return "";
       const now = new Date();
       const isToday = d.toDateString() === now.toDateString();
       if (isToday) {
@@ -785,10 +868,36 @@ export default function InboxPage() {
                         </div>
                       )}
 
-                      {/* Attached Image or Video */}
+                      {/* Attached Image, Video, or Document */}
                       {msg.mediaUrl && (
                         <div className="mb-2 overflow-hidden rounded-xl bg-black/5 border border-slate-200/60 shadow-2xs">
-                          {isVideo ? (
+                          {msg.mediaType === "document" || msg.mediaUrl.match(/\.(pdf|docx?|xlsx?|csv|txt)/i) || msg.mediaUrl.startsWith("data:application/") ? (
+                            <div className="p-3 bg-white/90 rounded-xl flex items-center justify-between gap-3 border border-slate-200">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center shrink-0 shadow-2xs">
+                                  <FileText className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-heading font-bold text-[#111b21] truncate max-w-[200px]">
+                                    {msg.fileName || msg.mediaUrl.split("/").pop() || "Document.pdf"}
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                                    WhatsApp Document
+                                  </div>
+                                </div>
+                              </div>
+                              <a
+                                href={msg.mediaUrl}
+                                download={msg.fileName || "document"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 rounded-lg bg-[#00a884] text-white hover:bg-[#008069] transition shrink-0 shadow-2xs flex items-center justify-center"
+                                title="Download Document"
+                              >
+                                <Download className="w-4 h-4" />
+                              </a>
+                            </div>
+                          ) : isVideo ? (
                             <video
                               src={msg.mediaUrl}
                               controls
@@ -841,11 +950,12 @@ export default function InboxPage() {
               })}
             </div>
 
-            {/* Hidden File Input */}
+            {/* Hidden File Input (supports multiple files) */}
             <input
               type="file"
               ref={fileInputRef}
               onChange={handleFileUpload}
+              multiple
               className="hidden"
             />
 
@@ -871,44 +981,83 @@ export default function InboxPage() {
               ))}
             </div>
 
-            {/* Attached Media Preview Bar */}
-            {attachedMedia && (
-              <div className="px-4 py-2 bg-[#e9edef] border-t border-slate-200 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2 shrink-0">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {attachedMedia.type === "video" ? (
-                    <div className="w-12 h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0 border border-slate-300">
-                      <Video className="w-6 h-6 text-[#25d366]" />
-                    </div>
-                  ) : (
-                    <img
-                      src={attachedMedia.url}
-                      alt="Attachment Preview"
-                      className="w-12 h-12 rounded-lg object-cover shrink-0 border border-slate-300 shadow-2xs"
-                    />
-                  )}
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-[#00a884] text-white">
-                        {attachedMedia.type === "video" ? "Video Ready" : "Photo Ready"}
-                      </span>
-                      <span className="text-xs font-bold text-[#111b21] truncate max-w-[200px]">
-                        {attachedMedia.name}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-[#667781] truncate">
-                      Add an optional caption below and click Send
-                    </p>
+            {/* Multi-Media Attachment Preview Gallery Strip */}
+            {attachedMediaList.length > 0 && (
+              <div className="px-4 py-2.5 bg-[#e9edef] border-t border-slate-200 animate-in fade-in slide-in-from-bottom-2 shrink-0 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-heading font-bold text-[#111b21]">
+                    <Files className="w-4 h-4 text-[#00a884]" />
+                    <span>{attachedMediaList.length} File{attachedMediaList.length > 1 ? "s" : ""} Attached</span>
+                    <span className="text-[10px] text-slate-500 font-normal">
+                      (Will be sent together to WhatsApp)
+                    </span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setAttachedMediaList([])}
+                    className="text-[11px] text-rose-600 hover:text-rose-800 font-bold transition cursor-pointer"
+                  >
+                    Clear All
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setAttachedMedia(null)}
-                  className="p-1.5 rounded-full hover:bg-slate-300 text-slate-500 hover:text-slate-800 transition cursor-pointer"
-                  title="Remove attachment"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                  {attachedMediaList.map((item) => (
+                    <div
+                      key={item.id}
+                      className="relative flex items-center gap-2 bg-white rounded-xl p-1.5 pr-2.5 border border-slate-300 shadow-2xs shrink-0 max-w-[220px] group"
+                    >
+                      {item.type === "document" ? (
+                        <div className="w-9 h-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-200">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                      ) : item.type === "video" ? (
+                        <div className="w-9 h-9 rounded-lg bg-purple-900 text-white flex items-center justify-center shrink-0 border border-purple-400">
+                          <Video className="w-4 h-4 text-purple-300" />
+                        </div>
+                      ) : (
+                        <img
+                          src={item.url}
+                          alt="Thumbnail"
+                          className="w-9 h-9 rounded-lg object-cover shrink-0 border border-slate-200 shadow-2xs"
+                        />
+                      )}
+
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-bold text-[#111b21] truncate max-w-[130px]" title={item.name}>
+                          {item.name}
+                        </div>
+                        <span className="text-[9px] uppercase font-bold tracking-wider px-1 py-0.2 rounded bg-slate-100 text-slate-600">
+                          {item.type}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAttachedItem(item.id)}
+                        className="p-1 rounded-full bg-slate-200 hover:bg-rose-500 hover:text-white text-slate-600 transition cursor-pointer ml-1"
+                        title="Remove file"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Add more button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.accept = "*/*";
+                        fileInputRef.current.click();
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-[#e7fce3] text-[#008069] border border-dashed border-[#00a884] text-xs font-bold transition shrink-0 cursor-pointer shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add More</span>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -917,7 +1066,7 @@ export default function InboxPage() {
               
               {/* Media Attachment Dropdown Popover */}
               {showMediaMenu && (
-                <div className="absolute bottom-16 left-4 z-40 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 space-y-1 w-52 animate-in zoom-in-95 duration-150">
+                <div className="absolute bottom-16 left-4 z-40 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 space-y-1 w-56 animate-in zoom-in-95 duration-150">
                   <button
                     type="button"
                     onClick={() => {
@@ -929,12 +1078,12 @@ export default function InboxPage() {
                     }}
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#e7fce3] text-[#111b21] hover:text-[#008069] text-xs font-heading font-bold transition text-left cursor-pointer"
                   >
-                    <div className="w-7 h-7 rounded-full bg-[#e7fce3] text-[#008069] flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-[#e7fce3] text-[#008069] flex items-center justify-center shrink-0">
                       <ImageIcon className="w-4 h-4" />
                     </div>
                     <div>
                       <div>Photos & Images</div>
-                      <div className="text-[10px] text-slate-400 font-normal">PNG, JPG, WEBP</div>
+                      <div className="text-[10px] text-slate-400 font-normal">PNG, JPG, WEBP (Multiple)</div>
                     </div>
                   </button>
 
@@ -949,12 +1098,32 @@ export default function InboxPage() {
                     }}
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-purple-50 text-[#111b21] hover:text-purple-700 text-xs font-heading font-bold transition text-left cursor-pointer"
                   >
-                    <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
                       <Video className="w-4 h-4" />
                     </div>
                     <div>
                       <div>Video Clip</div>
-                      <div className="text-[10px] text-slate-400 font-normal">MP4, 3GP, MOV</div>
+                      <div className="text-[10px] text-slate-400 font-normal">MP4, 3GP, MOV (Multiple)</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.accept = ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain";
+                        fileInputRef.current.click();
+                      }
+                      setShowMediaMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-rose-50 text-[#111b21] hover:text-rose-700 text-xs font-heading font-bold transition text-left cursor-pointer"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div>Documents</div>
+                      <div className="text-[10px] text-slate-400 font-normal">PDF, DOC, XLSX, CSV</div>
                     </div>
                   </button>
 
@@ -966,12 +1135,12 @@ export default function InboxPage() {
                     }}
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-sky-50 text-[#111b21] hover:text-sky-700 text-xs font-heading font-bold transition text-left cursor-pointer"
                   >
-                    <div className="w-7 h-7 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
                       <Link2 className="w-4 h-4" />
                     </div>
                     <div>
                       <div>Media Web Link</div>
-                      <div className="text-[10px] text-slate-400 font-normal">Direct Image / Video URL</div>
+                      <div className="text-[10px] text-slate-400 font-normal">Direct Image, Video, or PDF URL</div>
                     </div>
                   </button>
                 </div>
@@ -986,11 +1155,11 @@ export default function InboxPage() {
                     setShowMediaMenu((prev) => !prev);
                   }}
                   className={`p-2 rounded-full transition cursor-pointer ${
-                    showMediaMenu || attachedMedia
+                    showMediaMenu || attachedMediaList.length > 0
                       ? "bg-[#00a884] text-white"
                       : "text-[#54656f] hover:text-[#111b21] hover:bg-white"
                   }`}
-                  title="Attach Photo or Video"
+                  title="Attach Photos, Videos, or Documents"
                 >
                   <Paperclip className="w-5 h-5" />
                 </button>
@@ -1015,8 +1184,8 @@ export default function InboxPage() {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder={
-                      attachedMedia
-                        ? "Add a caption for this media..."
+                      attachedMediaList.length > 0
+                        ? `Add caption for ${attachedMediaList.length} attached file(s)...`
                         : `Type a message to ${activeConversation.customerName || 'Customer'}...`
                     }
                     className="w-full pl-4 pr-3 py-2.5 bg-white border border-transparent focus:border-[#00a884] rounded-2xl text-xs sm:text-sm font-medium text-[#111b21] placeholder:text-[#8696a0] focus:outline-none focus:ring-1 focus:ring-[#00a884] transition shadow-2xs"
@@ -1027,7 +1196,7 @@ export default function InboxPage() {
                 {/* WhatsApp Vibrant Green Send Button */}
                 <button
                   type="submit"
-                  disabled={(!replyText.trim() && !attachedMedia) || isSending}
+                  disabled={(!replyText.trim() && attachedMediaList.length === 0) || isSending}
                   className="w-11 h-11 rounded-full bg-[#25d366] hover:bg-[#20bd5a] disabled:opacity-40 text-white flex items-center justify-center shadow-md shadow-[#25d366]/30 transition shrink-0 cursor-pointer active:scale-95"
                   title="Send (Enter)"
                 >
@@ -1163,18 +1332,18 @@ export default function InboxPage() {
                 />
               </div>
 
-              {/* Optional Image or Video Attachment Link */}
+              {/* Optional Image, Video, or Document Attachment Link */}
               <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                 <label className="block text-[11px] font-heading font-bold text-slate-700 uppercase tracking-wider">
-                  Attach Photo / Video Link (Optional)
+                  Attach Photo / Video / Document Link (Optional)
                 </label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setNewChatMediaType("image")}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
                       newChatMediaType === "image"
-                        ? "bg-[#00a884] text-white"
+                        ? "bg-[#00a884] text-white shadow-xs"
                         : "bg-white text-slate-600 border border-slate-200"
                     }`}
                   >
@@ -1184,21 +1353,39 @@ export default function InboxPage() {
                   <button
                     type="button"
                     onClick={() => setNewChatMediaType("video")}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
                       newChatMediaType === "video"
-                        ? "bg-purple-600 text-white"
+                        ? "bg-purple-600 text-white shadow-xs"
                         : "bg-white text-slate-600 border border-slate-200"
                     }`}
                   >
                     <Video className="w-3.5 h-3.5" />
                     <span>Video</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewChatMediaType("document")}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+                      newChatMediaType === "document"
+                        ? "bg-rose-600 text-white shadow-xs"
+                        : "bg-white text-slate-600 border border-slate-200"
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Document</span>
+                  </button>
                 </div>
                 <input
                   type="url"
                   value={newChatMediaUrl}
                   onChange={(e) => setNewChatMediaUrl(e.target.value)}
-                  placeholder="https://example.com/poster.jpg or video.mp4"
+                  placeholder={
+                    newChatMediaType === "document"
+                      ? "https://example.com/brochure.pdf"
+                      : newChatMediaType === "video"
+                      ? "https://example.com/demo.mp4"
+                      : "https://example.com/poster.jpg"
+                  }
                   className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-[#111b21] focus:outline-none focus:border-[#00a884]"
                 />
               </div>
@@ -1257,7 +1444,7 @@ export default function InboxPage() {
                   Attach Media Web Link
                 </h3>
                 <p className="text-xs text-[#667781]">
-                  Share an image or video URL with client
+                  Share an image, video, or document link with client
                 </p>
               </div>
             </div>
@@ -1267,30 +1454,42 @@ export default function InboxPage() {
                 <label className="block text-xs font-heading font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Media Type
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setInputMediaType("image")}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 cursor-pointer ${
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${
                       inputMediaType === "image"
-                        ? "bg-[#e7fce3] text-[#008069] border-[#00a884]"
+                        ? "bg-[#e7fce3] text-[#008069] border-[#00a884] shadow-xs"
                         : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
                     <ImageIcon className="w-4 h-4" />
-                    <span>Photo / Image</span>
+                    <span>Photo</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setInputMediaType("video")}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 cursor-pointer ${
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${
                       inputMediaType === "video"
-                        ? "bg-purple-100 text-purple-700 border-purple-400"
+                        ? "bg-purple-100 text-purple-700 border-purple-400 shadow-xs"
                         : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
                     <Video className="w-4 h-4" />
-                    <span>Video Clip</span>
+                    <span>Video</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInputMediaType("document")}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      inputMediaType === "document"
+                        ? "bg-rose-100 text-rose-700 border-rose-400 shadow-xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Document</span>
                   </button>
                 </div>
               </div>
