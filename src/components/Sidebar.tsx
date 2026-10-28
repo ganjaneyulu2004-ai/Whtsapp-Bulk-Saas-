@@ -24,7 +24,8 @@ import {
   HelpCircle,
   PlusCircle,
   Sparkles,
-  PhoneCall
+  PhoneCall,
+  CalendarCheck
 } from "lucide-react";
 
 export function Sidebar() {
@@ -64,6 +65,7 @@ export function Sidebar() {
     { href: "/create-campaign", label: "Create Campaign", icon: PlusCircle },
     { href: "/templates", label: "Templates", icon: Sparkles },
     { href: "/inbox", label: "Inbox", icon: MessageSquare },
+    { href: "/appointments", label: "Appointments", icon: CalendarCheck },
     { href: "/campaigns", label: "Campaigns & Reports", icon: BarChart3 },
     { href: "/billing", label: "Billing & Plans", icon: CreditCard },
   ];

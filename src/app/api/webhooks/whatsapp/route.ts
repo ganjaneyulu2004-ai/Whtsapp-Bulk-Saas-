@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { processCampaignSending } from "@/lib/queue";
 
 import { setLastWebhookReceivedAt, recordMessageDeliveryStatus } from "@/lib/webhook-state";
+import { handleIncomingAiReply } from "@/lib/ai-assistant";
 
 function verifyMetaSignature(rawBody: string, signatureHeader: string | null, secret: string): boolean {
   if (!signatureHeader || !signatureHeader.startsWith("sha256=")) {
@@ -242,6 +243,16 @@ async function processWebhookPayload(body: any) {
         });
 
         console.log(`🚫 Opted-out contact for phone +${fromPhone}`);
+      } else if (textBody.length > 0) {
+        // Trigger human-like WhatsApp AI auto-reply
+        handleIncomingAiReply({
+          fromPhone,
+          customerName,
+          incomingText: textBody,
+          waPhoneNumberId: value?.metadata?.phone_number_id,
+        }).catch((err) => {
+          console.error("AI Auto-reply background error:", err);
+        });
       }
     }
   }

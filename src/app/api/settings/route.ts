@@ -42,6 +42,14 @@ export async function PUT(req: Request) {
       language,
       website,
       defaultBookingLink,
+      locationMapLink,
+      servicesAndPricing,
+      workingHours,
+      businessDescription,
+      aiBotEnabled,
+      aiTone,
+      aiCustomInstructions,
+      autoBookingEnabled,
       waToken,
       waPhoneNumberId,
       waBusinessAccountId,
@@ -50,7 +58,7 @@ export async function PUT(req: Request) {
     } = body;
 
     // Update business profile
-    const updatedBusiness = await prisma.business.update({
+    const updatedBusiness = await (prisma.business as any).update({
       where: { id: business.id },
       data: {
         name: name || business.name,
@@ -59,6 +67,14 @@ export async function PUT(req: Request) {
         address: address !== undefined ? address : business.address,
         website: website !== undefined ? website : business.website,
         defaultBookingLink: defaultBookingLink !== undefined ? defaultBookingLink : business.defaultBookingLink,
+        locationMapLink: locationMapLink !== undefined ? locationMapLink : (business as any).locationMapLink,
+        servicesAndPricing: servicesAndPricing !== undefined ? servicesAndPricing : (business as any).servicesAndPricing,
+        workingHours: workingHours !== undefined ? workingHours : (business as any).workingHours,
+        businessDescription: businessDescription !== undefined ? businessDescription : (business as any).businessDescription,
+        aiBotEnabled: aiBotEnabled !== undefined ? Boolean(aiBotEnabled) : (business as any).aiBotEnabled ?? true,
+        aiTone: aiTone !== undefined ? aiTone : (business as any).aiTone || "friendly_respectful",
+        aiCustomInstructions: aiCustomInstructions !== undefined ? aiCustomInstructions : (business as any).aiCustomInstructions,
+        autoBookingEnabled: autoBookingEnabled !== undefined ? Boolean(autoBookingEnabled) : (business as any).autoBookingEnabled ?? true,
         perMessageCost: perMessageCost !== undefined ? parseFloat(perMessageCost) : business.perMessageCost,
         language: language || business.language,
       },

@@ -60,23 +60,32 @@ model Business {
   address          String?
   website          String?
   defaultBookingLink String?
-  currency         String          @default("INR")
-  perMessageCost   Float           @default(0.80) // INR per message
-  language         String          @default("en") // 'en' | 'te'
-  apiCardLinked    Boolean         @default(false)
-  apiCardLast4     String?
-  apiCardBrand     String?
-  apiCardToken     String?
-  unbilledApiSpend Float           @default(0.0)
-  billingThreshold Float           @default(500.0)
-  totalApiCharged  Float           @default(0.0)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  whatsappConfig   WhatsAppConfig?
-  templates        Template[]
-  contactLists     ContactList[]
-  contacts         Contact[]
-  campaigns        Campaign[]
+  locationMapLink    String?
+  servicesAndPricing String?
+  workingHours       String?
+  businessDescription String?
+  aiBotEnabled       Boolean         @default(true)
+  aiTone             String?         @default("friendly_respectful")
+  aiCustomInstructions String?
+  autoBookingEnabled Boolean         @default(true)
+  currency           String          @default("INR")
+  perMessageCost     Float           @default(0.80) // INR per message
+  language           String          @default("en") // 'en' | 'te'
+  apiCardLinked      Boolean         @default(false)
+  apiCardLast4       String?
+  apiCardBrand       String?
+  apiCardToken       String?
+  unbilledApiSpend   Float           @default(0.0)
+  billingThreshold   Float           @default(500.0)
+  totalApiCharged    Float           @default(0.0)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  whatsappConfig     WhatsAppConfig?
+  templates          Template[]
+  contactLists       ContactList[]
+  contacts           Contact[]
+  campaigns          Campaign[]
+  appointments       Appointment[]
 }
 
 model WhatsAppConfig {
@@ -208,3 +217,20 @@ model IncomingMessage {
   timestamp    DateTime @default(now())
   createdAt    DateTime @default(now())
 }
+
+model Appointment {
+  id              String    @id @default(uuid())
+  businessId      String
+  business        Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerName    String
+  customerPhone   String
+  serviceName     String?
+  appointmentDate DateTime
+  slotTime        String
+  status          String    @default("CONFIRMED") // "CONFIRMED" | "PENDING" | "COMPLETED" | "CANCELLED"
+  bookedBy        String    @default("AI_CHATBOT") // "AI_CHATBOT" | "MANUAL"
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+

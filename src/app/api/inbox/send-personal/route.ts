@@ -7,11 +7,11 @@ export async function POST(req: Request) {
   try {
     const business = await getCurrentBusiness();
     const body = await req.json();
-    const { recipientPhone, recipientName, messageText } = body;
+    const { recipientPhone, recipientName, messageText, mediaUrl, mediaType } = body;
 
-    if (!recipientPhone || !messageText) {
+    if (!recipientPhone || (!messageText && !mediaUrl)) {
       return NextResponse.json(
-        { success: false, error: "Recipient phone number and personal message are required." },
+        { success: false, error: "Recipient phone number and message/media are required." },
         { status: 400 }
       );
     }
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     const targetPhone = rawPhone;
 
     const finalRecipientName = (recipientName || "Friend").trim();
-    const cleanMessage = String(messageText).trim();
+    const cleanMessage = String(messageText || "").trim();
 
     // Check if recipient has an active 24-hour customer service window in incoming messages
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     let sendResult;
 
     if (is24HourWindow) {
-      // 1. Send as direct 1-on-1 free-form WhatsApp message within 24h window
+      // 1. Send as direct 1-on-1 free-form WhatsApp message within 24h window (supports image & video)
       sendResult = await sendWhatsAppTemplateMessage(
         {
           waToken: config.waToken || undefined,
@@ -54,16 +54,17 @@ export async function POST(req: Request) {
         finalRecipientName,
         "direct_message",
         "en",
-        undefined,
+        mediaUrl || undefined,
         {
           is24HourWindow: true,
           freeFormText: cleanMessage,
           businessName: business.name || "iBrainLabs",
+          mediaType: mediaType || (mediaUrl?.match(/\.(mp4|mov|webm|3gp)/i) ? "video" : "image"),
         }
       );
     } else {
       // 2. Outside 24h window or new friend number:
-      // Use verified Meta-approved utility template to deliver the personal message reliably!
+      // If mediaUrl is supplied, use offer_poster_v1 if available, or student_welcome
       sendResult = await sendWhatsAppTemplateMessage(
         {
           waToken: config.waToken || undefined,
@@ -72,13 +73,14 @@ export async function POST(req: Request) {
         },
         targetPhone,
         finalRecipientName,
-        "student_welcome",
+        mediaUrl ? "offer_poster_v1" : "student_welcome",
         "en",
-        undefined,
+        mediaUrl || undefined,
         {
-          offerText: cleanMessage,
+          offerText: cleanMessage || "Here are our latest updates & media for you!",
           businessName: business.name || "iBrainLabs",
           is24HourWindow: false,
+          mediaType: mediaType || "image",
         }
       );
     }

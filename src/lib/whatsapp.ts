@@ -124,9 +124,17 @@ export async function uploadMediaToMeta(
     }
 
     const blob = new Blob([buffer as any], { type: detectedMime });
-    const ext = detectedMime.includes("jpeg") || detectedMime.includes("jpg") ? "jpg" : "png";
+    let ext = "png";
+    if (detectedMime.includes("jpeg") || detectedMime.includes("jpg")) ext = "jpg";
+    else if (detectedMime.includes("mp4")) ext = "mp4";
+    else if (detectedMime.includes("3gpp") || detectedMime.includes("3gp")) ext = "3gp";
+    else if (detectedMime.includes("quicktime") || detectedMime.includes("mov")) ext = "mov";
+    else if (detectedMime.includes("webm")) ext = "webm";
+    else if (detectedMime.includes("webp")) ext = "webp";
+    else if (detectedMime.includes("pdf")) ext = "pdf";
+
     const formData = new FormData();
-    formData.append("file", blob, `poster.${ext}`);
+    formData.append("file", blob, `media.${ext}`);
     formData.append("type", detectedMime);
     formData.append("messaging_product", "whatsapp");
 
@@ -234,6 +242,7 @@ export async function sendWhatsAppTemplateMessage(
     is24HourWindow?: boolean;
     freeFormText?: string;
     mediaId?: string;
+    mediaType?: "image" | "video" | "document";
   }
 ): Promise<{ success: boolean; waMessageId?: string; errorCode?: string; errorMessage?: string }> {
   const FALLBACK_TOKEN = "EAAOe4PppfZCIBSyhPLLzoYmzWUB35U5XgC3RezCojrqvjqdJzRYHoaFSWxoN4PDZBMTlsL2g8zEZCHkqrZAWnirvjSccc6ZAjFlzJjV7JtCdVwoWRPYEoFaQ6yQW3psyxIj7gA69buLULa1X3zYZBv0PkFiFqbvWYMaWrDDUzYK2sledzyJjl0RXJCN7Ou7YuADAZDZD";
@@ -255,13 +264,16 @@ export async function sendWhatsAppTemplateMessage(
     const bName = params?.businessName?.trim() || "iBrainLabs";
     const bLink = params?.bookingLink?.trim() || "";
 
-    // 1. If 24-hour customer service window is active, send free-form image + caption without template
+    // 1. If 24-hour customer service window is active, send free-form image/video/text
     if (params?.is24HourWindow) {
       let mediaId: string | null = params?.mediaId || null;
+      const isVideo = params?.mediaType === "video" || 
+        (mediaUrl && (mediaUrl.startsWith("data:video/") || Boolean(mediaUrl.match(/\.(mp4|mov|webm|3gp)/i))));
 
       if (!mediaId && mediaUrl) {
-        if (mediaUrl.startsWith("data:image/") || mediaUrl.length > 500) {
-          const uploadRes = await uploadMediaToMeta(config, mediaUrl);
+        if (mediaUrl.startsWith("data:") || mediaUrl.length > 500) {
+          const defaultMime = isVideo ? "video/mp4" : "image/png";
+          const uploadRes = await uploadMediaToMeta(config, mediaUrl, defaultMime);
           if (uploadRes.success && uploadRes.mediaId) {
             mediaId = uploadRes.mediaId;
           }
@@ -271,7 +283,39 @@ export async function sendWhatsAppTemplateMessage(
       const directCaption = params?.freeFormText || 
         formatDirectOfferMessage(params?.offerText || "Special Offer for you today!", recipient, bName, bLink);
 
-      if (mediaId) {
+      if (isVideo) {
+        if (mediaId) {
+          payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: cleanRecipient,
+            type: "video",
+            video: {
+              id: mediaId,
+              caption: directCaption,
+            },
+          };
+        } else if (mediaUrl && (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) && !mediaUrl.includes("localhost")) {
+          payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: cleanRecipient,
+            type: "video",
+            video: {
+              link: mediaUrl,
+              caption: directCaption,
+            },
+          };
+        } else {
+          payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: cleanRecipient,
+            type: "text",
+            text: { body: directCaption },
+          };
+        }
+      } else if (mediaId) {
         payload = {
           messaging_product: "whatsapp",
           recipient_type: "individual",

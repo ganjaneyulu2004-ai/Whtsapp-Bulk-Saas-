@@ -22,7 +22,11 @@ import {
   Loader2,
   Smile,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Paperclip,
+  Image as ImageIcon,
+  Video,
+  Link2
 } from "lucide-react";
 
 interface ChatMessage {
@@ -32,6 +36,8 @@ interface ChatMessage {
   timestamp: string;
   status?: "sending" | "sent" | "delivered" | "read";
   isTemplate?: boolean;
+  mediaUrl?: string;
+  mediaType?: "image" | "video";
 }
 
 interface Conversation {
@@ -61,11 +67,25 @@ export default function InboxPage() {
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
 
+  // Media attachment state
+  const [attachedMedia, setAttachedMedia] = useState<{
+    url: string;
+    type: "image" | "video";
+    name: string;
+  } | null>(null);
+  const [showMediaMenu, setShowMediaMenu] = useState(false);
+  const [isMediaUrlModalOpen, setIsMediaUrlModalOpen] = useState(false);
+  const [inputMediaUrl, setInputMediaUrl] = useState("");
+  const [inputMediaType, setInputMediaType] = useState<"image" | "video">("image");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // New Chat Modal state
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [newChatPhone, setNewChatPhone] = useState("");
   const [newChatName, setNewChatName] = useState("");
   const [newChatMessage, setNewChatMessage] = useState("");
+  const [newChatMediaUrl, setNewChatMediaUrl] = useState("");
+  const [newChatMediaType, setNewChatMediaType] = useState<"image" | "video">("image");
   const [isSendingNew, setIsSendingNew] = useState(false);
   const [newChatError, setNewChatError] = useState<string | null>(null);
 
@@ -246,15 +266,56 @@ export default function InboxPage() {
     return true;
   });
 
+  // File upload handler
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, preferredType?: "image" | "video") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 16 * 1024 * 1024) {
+      alert("File size exceeds 16MB Meta WhatsApp limit. Please select a smaller file.");
+      return;
+    }
+
+    const isVideo = file.type.startsWith("video/") || preferredType === "video";
+    const type: "image" | "video" = isVideo ? "video" : "image";
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAttachedMedia({
+        url: reader.result as string,
+        type,
+        name: file.name,
+      });
+      setShowMediaMenu(false);
+      setTimeout(() => chatInputRef.current?.focus(), 100);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleAttachMediaUrl = (url: string, type: "image" | "video") => {
+    if (!url.trim()) return;
+    setAttachedMedia({
+      url: url.trim(),
+      type,
+      name: url.split("/").pop() || (type === "video" ? "video.mp4" : "image.jpg"),
+    });
+    setIsMediaUrlModalOpen(false);
+    setInputMediaUrl("");
+    setShowMediaMenu(false);
+    setTimeout(() => chatInputRef.current?.focus(), 100);
+  };
+
   // Send Direct Reply in active chat
   const handleSendReply = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!activeConversation || !replyText.trim() || isSending) return;
+    if (!activeConversation || (!replyText.trim() && !attachedMedia) || isSending) return;
 
     playClickSound();
     const textToSend = replyText.trim();
     const targetPhone = activeConversation.cleanPhone;
     const targetName = activeConversation.customerName;
+    const mediaToSend = attachedMedia;
 
     // Optimistic message added to chat
     const tempId = `out_${Date.now()}`;
@@ -264,10 +325,13 @@ export default function InboxPage() {
       text: textToSend,
       timestamp: new Date().toISOString(),
       status: "sending",
+      mediaUrl: mediaToSend?.url,
+      mediaType: mediaToSend?.type,
     };
 
     saveSentReply(targetPhone, newMsg);
     setReplyText("");
+    setAttachedMedia(null);
     setIsSending(true);
 
     // Scroll inner container immediately
@@ -285,6 +349,8 @@ export default function InboxPage() {
           recipientPhone: targetPhone,
           recipientName: targetName,
           messageText: textToSend,
+          mediaUrl: mediaToSend?.url,
+          mediaType: mediaToSend?.type,
         }),
       });
 
@@ -342,6 +408,8 @@ export default function InboxPage() {
           recipientPhone: targetPhone,
           recipientName: newChatName.trim() || "Customer",
           messageText: newChatMessage.trim(),
+          mediaUrl: newChatMediaUrl.trim() || undefined,
+          mediaType: newChatMediaType,
         }),
       });
 
@@ -353,6 +421,8 @@ export default function InboxPage() {
           text: newChatMessage.trim(),
           timestamp: new Date().toISOString(),
           status: "delivered",
+          mediaUrl: newChatMediaUrl.trim() || undefined,
+          mediaType: newChatMediaType,
         };
         saveSentReply(targetPhone, outMsg);
 
@@ -364,6 +434,7 @@ export default function InboxPage() {
         setNewChatPhone("");
         setNewChatName("");
         setNewChatMessage("");
+        setNewChatMediaUrl("");
       } else {
         setNewChatError(data.error || "Failed to send WhatsApp message.");
       }
@@ -692,6 +763,8 @@ export default function InboxPage() {
               {/* Message Bubbles */}
               {activeConversation.messages.map((msg, index) => {
                 const isIncoming = msg.sender === "customer";
+                const isVideo = msg.mediaType === "video" || 
+                  (msg.mediaUrl && (msg.mediaUrl.startsWith("data:video/") || Boolean(msg.mediaUrl.match(/\.(mp4|mov|webm|3gp)/i))));
 
                 return (
                   <div
@@ -707,15 +780,47 @@ export default function InboxPage() {
                     >
                       {/* Customer Name Label in Emerald Green */}
                       {isIncoming && (
-                        <div className="text-[11px] font-heading font-extrabold text-[#008069] mb-0.5">
+                        <div className="text-[11px] font-heading font-extrabold text-[#008069] mb-1">
                           {activeConversation.customerName || "Customer"}
                         </div>
                       )}
 
+                      {/* Attached Image or Video */}
+                      {msg.mediaUrl && (
+                        <div className="mb-2 overflow-hidden rounded-xl bg-black/5 border border-slate-200/60 shadow-2xs">
+                          {isVideo ? (
+                            <video
+                              src={msg.mediaUrl}
+                              controls
+                              className="w-full max-h-72 rounded-xl object-contain bg-black"
+                              playsInline
+                            />
+                          ) : (
+                            <a
+                              href={msg.mediaUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block group relative"
+                            >
+                              <img
+                                src={msg.mediaUrl}
+                                alt="WhatsApp Media"
+                                className="w-full max-h-72 rounded-xl object-cover group-hover:opacity-95 transition"
+                              />
+                              <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] font-bold backdrop-blur-xs opacity-0 group-hover:opacity-100 transition">
+                                View Full
+                              </span>
+                            </a>
+                          )}
+                        </div>
+                      )}
+
                       {/* Message Content */}
-                      <p className="whitespace-pre-wrap break-words pr-2">
-                        {msg.text}
-                      </p>
+                      {msg.text && (
+                        <p className="whitespace-pre-wrap break-words pr-2">
+                          {msg.text}
+                        </p>
+                      )}
 
                       {/* Timestamp & Double Blue Ticks */}
                       <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-[#8696a0] font-mono select-none">
@@ -735,6 +840,14 @@ export default function InboxPage() {
                 );
               })}
             </div>
+
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+            />
 
             {/* 3. Quick Reply Presets Bar */}
             <div className="px-3 py-1.5 bg-[#f0f2f5] border-t border-slate-200 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
@@ -758,9 +871,131 @@ export default function InboxPage() {
               ))}
             </div>
 
+            {/* Attached Media Preview Bar */}
+            {attachedMedia && (
+              <div className="px-4 py-2 bg-[#e9edef] border-t border-slate-200 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2 shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {attachedMedia.type === "video" ? (
+                    <div className="w-12 h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0 border border-slate-300">
+                      <Video className="w-6 h-6 text-[#25d366]" />
+                    </div>
+                  ) : (
+                    <img
+                      src={attachedMedia.url}
+                      alt="Attachment Preview"
+                      className="w-12 h-12 rounded-lg object-cover shrink-0 border border-slate-300 shadow-2xs"
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-[#00a884] text-white">
+                        {attachedMedia.type === "video" ? "Video Ready" : "Photo Ready"}
+                      </span>
+                      <span className="text-xs font-bold text-[#111b21] truncate max-w-[200px]">
+                        {attachedMedia.name}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#667781] truncate">
+                      Add an optional caption below and click Send
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setAttachedMedia(null)}
+                  className="p-1.5 rounded-full hover:bg-slate-300 text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                  title="Remove attachment"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             {/* 4. WhatsApp Style Typing Composer */}
-            <div className="p-3 bg-[#f0f2f5] border-t border-slate-200/80 shrink-0">
+            <div className="p-3 bg-[#f0f2f5] border-t border-slate-200/80 shrink-0 relative">
+              
+              {/* Media Attachment Dropdown Popover */}
+              {showMediaMenu && (
+                <div className="absolute bottom-16 left-4 z-40 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 space-y-1 w-52 animate-in zoom-in-95 duration-150">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.accept = "image/*";
+                        fileInputRef.current.click();
+                      }
+                      setShowMediaMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#e7fce3] text-[#111b21] hover:text-[#008069] text-xs font-heading font-bold transition text-left cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-[#e7fce3] text-[#008069] flex items-center justify-center shrink-0">
+                      <ImageIcon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div>Photos & Images</div>
+                      <div className="text-[10px] text-slate-400 font-normal">PNG, JPG, WEBP</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.accept = "video/*";
+                        fileInputRef.current.click();
+                      }
+                      setShowMediaMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-purple-50 text-[#111b21] hover:text-purple-700 text-xs font-heading font-bold transition text-left cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                      <Video className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div>Video Clip</div>
+                      <div className="text-[10px] text-slate-400 font-normal">MP4, 3GP, MOV</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMediaMenu(false);
+                      setIsMediaUrlModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-sky-50 text-[#111b21] hover:text-sky-700 text-xs font-heading font-bold transition text-left cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                      <Link2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div>Media Web Link</div>
+                      <div className="text-[10px] text-slate-400 font-normal">Direct Image / Video URL</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+
               <form onSubmit={handleSendReply} className="flex items-center gap-2">
+                {/* Media Attachment Clip Icon */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClickSound();
+                    setShowMediaMenu((prev) => !prev);
+                  }}
+                  className={`p-2 rounded-full transition cursor-pointer ${
+                    showMediaMenu || attachedMedia
+                      ? "bg-[#00a884] text-white"
+                      : "text-[#54656f] hover:text-[#111b21] hover:bg-white"
+                  }`}
+                  title="Attach Photo or Video"
+                >
+                  <Paperclip className="w-5 h-5" />
+                </button>
+
+                {/* Emoji Smile Icon */}
                 <button
                   type="button"
                   onClick={() => {
@@ -779,7 +1014,11 @@ export default function InboxPage() {
                     type="text"
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
-                    placeholder={`Type a message to ${activeConversation.customerName || 'Customer'}...`}
+                    placeholder={
+                      attachedMedia
+                        ? "Add a caption for this media..."
+                        : `Type a message to ${activeConversation.customerName || 'Customer'}...`
+                    }
                     className="w-full pl-4 pr-3 py-2.5 bg-white border border-transparent focus:border-[#00a884] rounded-2xl text-xs sm:text-sm font-medium text-[#111b21] placeholder:text-[#8696a0] focus:outline-none focus:ring-1 focus:ring-[#00a884] transition shadow-2xs"
                     disabled={isSending}
                   />
@@ -788,7 +1027,7 @@ export default function InboxPage() {
                 {/* WhatsApp Vibrant Green Send Button */}
                 <button
                   type="submit"
-                  disabled={!replyText.trim() || isSending}
+                  disabled={(!replyText.trim() && !attachedMedia) || isSending}
                   className="w-11 h-11 rounded-full bg-[#25d366] hover:bg-[#20bd5a] disabled:opacity-40 text-white flex items-center justify-center shadow-md shadow-[#25d366]/30 transition shrink-0 cursor-pointer active:scale-95"
                   title="Send (Enter)"
                 >
@@ -803,7 +1042,7 @@ export default function InboxPage() {
               {/* Status footer notice */}
               {!activeConversation.isWindowActive && (
                 <div className="mt-1 text-[10px] text-[#8696a0] flex items-center gap-1 px-2">
-                  <span>💡 24h direct window expired. This reply will be delivered via verified Meta utility template.</span>
+                  <span>💡 24h direct window expired. This message will be delivered via verified Meta utility template.</span>
                 </div>
               )}
             </div>
@@ -924,6 +1163,46 @@ export default function InboxPage() {
                 />
               </div>
 
+              {/* Optional Image or Video Attachment Link */}
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <label className="block text-[11px] font-heading font-bold text-slate-700 uppercase tracking-wider">
+                  Attach Photo / Video Link (Optional)
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewChatMediaType("image")}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                      newChatMediaType === "image"
+                        ? "bg-[#00a884] text-white"
+                        : "bg-white text-slate-600 border border-slate-200"
+                    }`}
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>Photo</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewChatMediaType("video")}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                      newChatMediaType === "video"
+                        ? "bg-purple-600 text-white"
+                        : "bg-white text-slate-600 border border-slate-200"
+                    }`}
+                  >
+                    <Video className="w-3.5 h-3.5" />
+                    <span>Video</span>
+                  </button>
+                </div>
+                <input
+                  type="url"
+                  value={newChatMediaUrl}
+                  onChange={(e) => setNewChatMediaUrl(e.target.value)}
+                  placeholder="https://example.com/poster.jpg or video.mp4"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-[#111b21] focus:outline-none focus:border-[#00a884]"
+                />
+              </div>
+
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -951,6 +1230,102 @@ export default function InboxPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MEDIA URL MODAL */}
+      {isMediaUrlModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div 
+            className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full border border-slate-200 shadow-2xl relative animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsMediaUrlModalOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-full bg-sky-500 text-white flex items-center justify-center shadow-md shadow-sky-500/20">
+                <Link2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-heading font-extrabold text-[#111b21]">
+                  Attach Media Web Link
+                </h3>
+                <p className="text-xs text-[#667781]">
+                  Share an image or video URL with client
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-heading font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Media Type
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setInputMediaType("image")}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 cursor-pointer ${
+                      inputMediaType === "image"
+                        ? "bg-[#e7fce3] text-[#008069] border-[#00a884]"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Photo / Image</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInputMediaType("video")}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 cursor-pointer ${
+                      inputMediaType === "video"
+                        ? "bg-purple-100 text-purple-700 border-purple-400"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    <Video className="w-4 h-4" />
+                    <span>Video Clip</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-heading font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Direct Media URL *
+                </label>
+                <input
+                  type="url"
+                  value={inputMediaUrl}
+                  onChange={(e) => setInputMediaUrl(e.target.value)}
+                  placeholder={inputMediaType === "video" ? "https://example.com/demo.mp4" : "https://example.com/product.jpg"}
+                  className="w-full px-3.5 py-2.5 bg-[#f0f2f5] border border-transparent focus:border-[#00a884] rounded-xl text-sm font-medium text-[#111b21] focus:outline-none focus:ring-1 focus:ring-[#00a884] transition"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsMediaUrlModalOpen(false)}
+                  className="px-4 py-2 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-heading font-bold transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!inputMediaUrl.trim()}
+                  onClick={() => handleAttachMediaUrl(inputMediaUrl, inputMediaType)}
+                  className="px-5 py-2.5 rounded-full bg-[#00a884] hover:bg-[#008069] text-white font-heading font-bold text-xs shadow-md shadow-[#00a884]/20 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  <span>Attach Media</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
