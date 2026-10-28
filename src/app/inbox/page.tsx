@@ -42,6 +42,7 @@ interface ChatMessage {
   mediaUrl?: string;
   mediaType?: "image" | "video" | "document";
   fileName?: string;
+  isAiReply?: boolean;
 }
 
 interface AttachedMediaItem {
@@ -98,7 +99,7 @@ export default function InboxPage() {
   const [newChatError, setNewChatError] = useState<string | null>(null);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const chatInputRef = useRef<HTMLInputElement>(null);
+  const chatInputRef = useRef<any>(null);
 
   // Quick reply preset pills
   const quickChips = [
@@ -163,7 +164,7 @@ export default function InboxPage() {
   const conversations: Conversation[] = React.useMemo(() => {
     const groups: Record<string, Conversation> = {};
 
-    // Group incoming messages
+    // Group incoming messages (including AI replies and business sent messages)
     rawMessages.forEach((msg) => {
       let clean = String(msg.fromPhone || "").replace(/[^0-9]/g, "");
       if (clean.startsWith("91") && clean.length === 12) {
@@ -171,11 +172,15 @@ export default function InboxPage() {
       }
       if (!clean) return;
 
+      const isFromAi = msg.customerName === "__BUSINESS_AI__";
+      const isFromBusiness = msg.customerName === "__BUSINESS_REPLY__";
+      const isOutgoingSystem = isFromAi || isFromBusiness;
+
       if (!groups[clean]) {
         groups[clean] = {
           phone: msg.fromPhone,
           cleanPhone: clean,
-          customerName: msg.customerName || "Customer",
+          customerName: isOutgoingSystem ? "Customer" : (msg.customerName || "Customer"),
           isWindowActive: msg.isWindowActive,
           hoursRemaining: msg.hoursRemaining || 0,
           lastMessageText: msg.messageText,
@@ -183,7 +188,7 @@ export default function InboxPage() {
           messages: [],
         };
       } else {
-        if (msg.customerName && groups[clean].customerName === "Customer") {
+        if (!isOutgoingSystem && msg.customerName && groups[clean].customerName === "Customer") {
           groups[clean].customerName = msg.customerName;
         }
         if (msg.isWindowActive) {
@@ -194,10 +199,11 @@ export default function InboxPage() {
 
       groups[clean].messages.push({
         id: msg.id || `in_${clean}_${Date.now()}`,
-        sender: "customer",
+        sender: isOutgoingSystem ? "business" : "customer",
         text: msg.messageText,
         timestamp: msg.timestamp,
-        status: "read",
+        status: "delivered",
+        isAiReply: isFromAi,
       });
     });
 
@@ -924,6 +930,13 @@ export default function InboxPage() {
                         </div>
                       )}
 
+                      {/* AI Assistant Badge if sent by AI */}
+                      {msg.isAiReply && (
+                        <div className="flex items-center gap-1 text-[10px] text-emerald-800 font-bold mb-1.5 bg-emerald-100/90 px-2 py-0.5 rounded-full w-fit shadow-2xs">
+                          <span>🤖 AI Assistant</span>
+                        </div>
+                      )}
+
                       {/* Message Content */}
                       {msg.text && (
                         <p className="whitespace-pre-wrap break-words pr-2">
@@ -1169,7 +1182,7 @@ export default function InboxPage() {
                   type="button"
                   onClick={() => {
                     setReplyText((prev) => prev + " 😊");
-                    chatInputRef.current?.focus();
+                    setTimeout(() => chatInputRef.current?.focus(), 50);
                   }}
                   className="p-2 text-[#54656f] hover:text-[#111b21] hover:bg-white rounded-full transition cursor-pointer"
                   title="Add emoji"
@@ -1177,18 +1190,42 @@ export default function InboxPage() {
                   <Smile className="w-5 h-5" />
                 </button>
 
-                <div className="relative flex-1">
-                  <input
+                {/* Bullet Points Helper Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClickSound();
+                    setReplyText((prev) => (prev ? `${prev}\n• ` : "• "));
+                    setTimeout(() => chatInputRef.current?.focus(), 50);
+                  }}
+                  className="px-2 py-1.5 rounded-xl bg-white hover:bg-[#e7fce3] text-[#54656f] hover:text-[#008069] text-xs font-bold border border-slate-200/90 transition shadow-2xs shrink-0 cursor-pointer"
+                  title="Insert Bullet Point (Shift+Enter for newline)"
+                >
+                  • Point
+                </button>
+
+                <div className="relative flex-1 flex items-center">
+                  <textarea
                     ref={chatInputRef}
-                    type="text"
+                    rows={1}
                     value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
+                    onChange={(e) => {
+                      setReplyText(e.target.value);
+                      e.target.style.height = "auto";
+                      e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendReply();
+                      }
+                    }}
                     placeholder={
                       attachedMediaList.length > 0
-                        ? `Add caption for ${attachedMediaList.length} attached file(s)...`
-                        : `Type a message to ${activeConversation.customerName || 'Customer'}...`
+                        ? `Add caption for ${attachedMediaList.length} attached file(s)... (Shift+Enter for new line)`
+                        : `Type a message to ${activeConversation.customerName || 'Customer'}... (Shift+Enter for new line)`
                     }
-                    className="w-full pl-4 pr-3 py-2.5 bg-white border border-transparent focus:border-[#00a884] rounded-2xl text-xs sm:text-sm font-medium text-[#111b21] placeholder:text-[#8696a0] focus:outline-none focus:ring-1 focus:ring-[#00a884] transition shadow-2xs"
+                    className="w-full pl-4 pr-3 py-2 bg-white border border-transparent focus:border-[#00a884] rounded-2xl text-xs sm:text-sm font-medium text-[#111b21] placeholder:text-[#8696a0] focus:outline-none focus:ring-1 focus:ring-[#00a884] transition shadow-2xs resize-none max-h-32 leading-relaxed"
                     disabled={isSending}
                   />
                 </div>

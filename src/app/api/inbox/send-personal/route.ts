@@ -105,6 +105,18 @@ export async function POST(req: Request) {
 
         if (res.success) {
           results.push(res);
+          try {
+            await prisma.incomingMessage.create({
+              data: {
+                businessId: business.id,
+                fromPhone: targetPhone,
+                customerName: "__BUSINESS_REPLY__",
+                messageText: (i === 0 && cleanMessage) ? cleanMessage : (item.name ? `[${item.name}]` : `[${detectedType}]`),
+                waMessageId: res.waMessageId || `media_${Date.now()}_${i}`,
+                timestamp: new Date(),
+              },
+            });
+          } catch {}
         } else {
           anyError = res.errorMessage || "Failed to send media";
           anyErrorCode = res.errorCode || null;
@@ -164,6 +176,19 @@ export async function POST(req: Request) {
     }
 
     if (sendResult.success) {
+      try {
+        await prisma.incomingMessage.create({
+          data: {
+            businessId: business.id,
+            fromPhone: targetPhone,
+            customerName: "__BUSINESS_REPLY__",
+            messageText: cleanMessage,
+            waMessageId: sendResult.waMessageId || `manual_${Date.now()}`,
+            timestamp: new Date(),
+          },
+        });
+      } catch {}
+
       return NextResponse.json({
         success: true,
         message: `Message sent successfully to +${targetPhone}!`,

@@ -204,6 +204,9 @@ async function processWebhookPayload(body: any) {
     }
   }
 
+// Message deduplication cache to prevent duplicate AI replies when Meta retries webhooks
+const recentProcessedIds = new Map<string, number>();
+
   // 2. Process Incoming Customer Messages & Opt-Out Keywords ("STOP", "UNSUBSCRIBE", "ఆపు")
   if (value.messages && Array.isArray(value.messages)) {
     for (const msg of value.messages) {
@@ -215,11 +218,41 @@ async function processWebhookPayload(body: any) {
         ? new Date(parseInt(msg.timestamp, 10) * 1000)
         : new Date();
 
+      // Deduplication check 1: in-memory cache
+      if (waMsgId) {
+        const lastSeen = recentProcessedIds.get(waMsgId);
+        if (lastSeen && Date.now() - lastSeen < 120000) {
+          console.log(`⏩ [DEDUP] Duplicate message ID ${waMsgId} received within 2m. Skipping second reply.`);
+          continue;
+        }
+        recentProcessedIds.set(waMsgId, Date.now());
+        if (recentProcessedIds.size > 2000) {
+          const threshold = Date.now() - 300000;
+          for (const [id, ts] of recentProcessedIds.entries()) {
+            if (ts < threshold) recentProcessedIds.delete(id);
+          }
+        }
+      }
+
+      // Deduplication check 2: DB check
+      let isAlreadyInDb = false;
+      if (waMsgId) {
+        const existing = await prisma.incomingMessage.findUnique({
+          where: { waMessageId: waMsgId },
+        });
+        if (existing) {
+          isAlreadyInDb = true;
+        }
+      }
+
+      if (isAlreadyInDb) {
+        console.log(`⏩ [DEDUP] Message ${waMsgId} already exists in DB. Skipping duplicate AI reply.`);
+        continue;
+      }
+
       try {
-        await prisma.incomingMessage.upsert({
-          where: { waMessageId: waMsgId || undefined },
-          update: { messageText: textBody },
-          create: {
+        await prisma.incomingMessage.create({
+          data: {
             fromPhone,
             customerName,
             messageText: textBody,

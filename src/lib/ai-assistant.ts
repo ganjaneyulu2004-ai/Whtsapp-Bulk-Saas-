@@ -43,7 +43,7 @@ export async function handleIncomingAiReply({
     if (!business) {
       business = await prisma.business.findFirst({
         include: { whatsappConfig: true },
-        orderBy: { createdAt: "asc" },
+        orderBy: { updatedAt: "desc" },
       });
     }
 
@@ -230,11 +230,47 @@ Write your short, warm, human WhatsApp reply now:
           is24HourWindow: false,
         }
       );
+      const finalWaMsgId = fallbackRes.waMessageId;
+
+      // Save AI reply into incomingMessage so it shows in /inbox chat interface
+      try {
+        await prisma.incomingMessage.create({
+          data: {
+            businessId: business.id,
+            fromPhone: cleanPhone,
+            customerName: "__BUSINESS_AI__",
+            messageText: replyText,
+            waMessageId: finalWaMsgId || `ai_${Date.now()}`,
+            timestamp: new Date(),
+          },
+        });
+      } catch (dbErr) {
+        console.error("Failed to save AI reply to incomingMessage:", dbErr);
+      }
+
       return {
         success: fallbackRes.success,
         replyText,
         waMessageId: fallbackRes.waMessageId,
       };
+    }
+
+    const finalWaMsgId = sendResult.waMessageId;
+
+    // Save AI reply into incomingMessage so it shows in /inbox chat interface
+    try {
+      await prisma.incomingMessage.create({
+        data: {
+          businessId: business.id,
+          fromPhone: cleanPhone,
+          customerName: "__BUSINESS_AI__",
+          messageText: replyText,
+          waMessageId: finalWaMsgId || `ai_${Date.now()}`,
+          timestamp: new Date(),
+        },
+      });
+    } catch (dbErr) {
+      console.error("Failed to save AI reply to incomingMessage:", dbErr);
     }
 
     console.log(`🤖 AI Auto-Reply sent to +${cleanPhone}: "${replyText}" (Success: ${sendResult.success})`);

@@ -89,6 +89,21 @@ export default function SettingsPage() {
     loadSettings();
   }, []);
 
+  const handleToggleAi = async (enabled: boolean) => {
+    setAiBotEnabled(enabled);
+    try {
+      await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aiBotEnabled: enabled }),
+      });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
+    } catch (e) {
+      console.error("Failed to auto-save AI toggle:", e);
+    }
+  };
+
   const handleSaveSettings = async () => {
     setSaving(true);
     setSaveSuccess(false);
@@ -208,7 +223,7 @@ export default function SettingsPage() {
             <input
               type="checkbox"
               checked={aiBotEnabled}
-              onChange={(e) => setAiBotEnabled(e.target.checked)}
+              onChange={(e) => handleToggleAi(e.target.checked)}
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00a884]"></div>
@@ -312,6 +327,8 @@ export default function SettingsPage() {
               onChange={(e) => setCategory(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00a884] bg-white"
             >
+              <option value="Photography & Photo Studio">Photography & Photo Studio 📷</option>
+              <option value="Wedding & Event Photography">Wedding & Event Photography 🎥</option>
               <option value="Clothing & Saree Store">Clothing & Saree Store</option>
               <option value="Restaurant & Food">Restaurant & Cafe</option>
               <option value="Beauty Salon & Spa">Beauty Salon & Spa</option>
