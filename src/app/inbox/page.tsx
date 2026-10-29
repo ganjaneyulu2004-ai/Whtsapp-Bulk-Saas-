@@ -29,8 +29,28 @@ import {
   Link2,
   FileText,
   Download,
-  Files
+  Files,
+  Tag,
+  ChevronDown,
+  Check,
+  MousePointerClick
 } from "lucide-react";
+
+export const LEAD_TAGS: Record<string, { label: string; emoji: string; badgeClass: string; dotColor: string }> = {
+  ALL: { label: "All Chats", emoji: "💬", badgeClass: "bg-slate-100 text-slate-700 border-slate-300", dotColor: "#64748b" },
+  HOT_LEAD: { label: "Hot Lead", emoji: "🔥", badgeClass: "bg-rose-50 text-rose-700 border-rose-200", dotColor: "#e11d48" },
+  WEDDING_ENQUIRY: { label: "Wedding Enquiry", emoji: "💍", badgeClass: "bg-purple-50 text-purple-700 border-purple-200", dotColor: "#9333ea" },
+  ADVANCE_PAID: { label: "Advance Paid", emoji: "💰", badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200", dotColor: "#16a34a" },
+  PENDING_FOLLOWUP: { label: "Pending Follow-up", emoji: "⏳", badgeClass: "bg-amber-50 text-amber-700 border-amber-200", dotColor: "#d97706" },
+  VIP_CLIENT: { label: "VIP Client", emoji: "⭐", badgeClass: "bg-blue-50 text-blue-700 border-blue-200", dotColor: "#2563eb" },
+  NEW_ENQUIRY: { label: "New Enquiry", emoji: "🆕", badgeClass: "bg-slate-50 text-slate-700 border-slate-200", dotColor: "#64748b" },
+};
+
+export const PRESET_INTERACTIVE_BUTTONS = [
+  { id: "btn_book", title: "📅 Book Slot" },
+  { id: "btn_packages", title: "🏷️ View Packages" },
+  { id: "btn_call", title: "📞 Call Studio" },
+];
 
 interface ChatMessage {
   id: string;
@@ -62,6 +82,7 @@ interface Conversation {
   lastMessageText: string;
   lastMessageTime: string;
   messages: ChatMessage[];
+  leadTag?: string;
 }
 
 export default function InboxPage() {
@@ -80,6 +101,16 @@ export default function InboxPage() {
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const isSendingRef = useRef(false);
+
+  // Customer Lead Stage Tags
+  const [contactTags, setContactTags] = useState<Record<string, { tag: string; notes?: string }>>({});
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string>("ALL");
+  const [showTagMenuForPhone, setShowTagMenuForPhone] = useState<string | null>(null);
+
+  // WhatsApp Interactive Reply Buttons state
+  const [attachedButtons, setAttachedButtons] = useState<Array<{ id: string; title: string }>>([]);
+  const [showButtonMenu, setShowButtonMenu] = useState(false);
+  const [customButtonTitle, setCustomButtonTitle] = useState("");
 
   // Multi-media attachment state
   const [attachedMediaList, setAttachedMediaList] = useState<AttachedMediaItem[]>([]);
@@ -155,8 +186,43 @@ export default function InboxPage() {
       });
   };
 
+  const fetchTags = () => {
+    fetch("/api/inbox/tags", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.tags) {
+          setContactTags(data.tags);
+        }
+      })
+      .catch((e) => console.error(e));
+  };
+
+  const handleUpdateContactTag = async (phone: string, newTag: string) => {
+    playClickSound();
+    let clean = phone.replace(/[^0-9]/g, "");
+    if (clean.startsWith("91") && clean.length === 12) clean = clean.slice(2);
+
+    setContactTags((prev) => ({
+      ...prev,
+      [clean]: { tag: newTag },
+      [phone]: { tag: newTag },
+    }));
+    setShowTagMenuForPhone(null);
+
+    try {
+      await fetch("/api/inbox/tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, tag: newTag }),
+      });
+    } catch (e) {
+      console.error("Failed to persist lead tag:", e);
+    }
+  };
+
   useEffect(() => {
     fetchInbox();
+    fetchTags();
     const interval = setInterval(fetchInbox, 4000);
     return () => clearInterval(interval);
   }, []);
@@ -187,6 +253,7 @@ export default function InboxPage() {
           lastMessageText: msg.messageText,
           lastMessageTime: msg.timestamp,
           messages: [],
+          leadTag: contactTags[clean]?.tag || "NEW_ENQUIRY",
         };
       } else {
         if (!isOutgoingSystem && msg.customerName && groups[clean].customerName === "Customer") {
@@ -195,6 +262,9 @@ export default function InboxPage() {
         if (msg.isWindowActive) {
           groups[clean].isWindowActive = true;
           groups[clean].hoursRemaining = Math.max(groups[clean].hoursRemaining, msg.hoursRemaining || 0);
+        }
+        if (contactTags[clean]?.tag) {
+          groups[clean].leadTag = contactTags[clean].tag;
         }
       }
 
@@ -223,6 +293,7 @@ export default function InboxPage() {
           lastMessageText: msgs[msgs.length - 1]?.text || "",
           lastMessageTime: msgs[msgs.length - 1]?.timestamp || new Date().toISOString(),
           messages: [],
+          leadTag: contactTags[clean]?.tag || "NEW_ENQUIRY",
         };
       }
 
@@ -306,7 +377,7 @@ export default function InboxPage() {
     }).sort(
       (a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
     );
-  }, [rawMessages, sentReplies]);
+  }, [rawMessages, sentReplies, contactTags]);
 
   // Auto-select first conversation on desktop if none selected
   useEffect(() => {
@@ -328,6 +399,12 @@ export default function InboxPage() {
   const filteredConversations = conversations.filter((c) => {
     if (filterTab === "active" && !c.isWindowActive) return false;
     if (filterTab === "expired" && c.isWindowActive) return false;
+
+    // Filter by Lead Stage Tag
+    if (selectedTagFilter !== "ALL") {
+      const cTag = contactTags[c.cleanPhone]?.tag || c.leadTag || "NEW_ENQUIRY";
+      if (cTag !== selectedTagFilter) return false;
+    }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -444,6 +521,10 @@ export default function InboxPage() {
     const targetPhone = activeConversation.cleanPhone;
     const targetName = activeConversation.customerName;
     const mediaToSend = [...attachedMediaList];
+    const buttonsToSend = [...attachedButtons];
+    const buttonSuffix = buttonsToSend.length > 0
+      ? "\n\n🔘 Buttons: " + buttonsToSend.map(b => `[ ${b.title} ]`).join("  ")
+      : "";
 
     // Optimistic messages added to chat
     const tempIds: string[] = [];
@@ -454,7 +535,7 @@ export default function InboxPage() {
         const newMsg: ChatMessage = {
           id: tempId,
           sender: "business",
-          text: idx === 0 ? textToSend : undefined,
+          text: idx === 0 ? (textToSend + buttonSuffix) : undefined,
           timestamp: new Date().toISOString(),
           status: "sending",
           mediaUrl: item.url,
@@ -469,7 +550,7 @@ export default function InboxPage() {
       const newMsg: ChatMessage = {
         id: tempId,
         sender: "business",
-        text: textToSend,
+        text: textToSend + buttonSuffix,
         timestamp: new Date().toISOString(),
         status: "sending",
       };
@@ -478,6 +559,7 @@ export default function InboxPage() {
 
     setReplyText("");
     setAttachedMediaList([]);
+    setAttachedButtons([]);
     setIsSending(true);
 
     // Scroll inner container immediately
@@ -495,6 +577,7 @@ export default function InboxPage() {
           recipientPhone: targetPhone,
           recipientName: targetName,
           messageText: textToSend,
+          buttons: buttonsToSend,
           mediaList: mediaToSend.map((m) => ({
             url: m.url,
             type: m.type,
@@ -730,6 +813,34 @@ export default function InboxPage() {
                 <span>Expired</span>
               </button>
             </div>
+
+            {/* Lead Stage Tag Filter Scrollable Strip */}
+            <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+              <span className="text-[10px] font-heading font-extrabold text-slate-400 shrink-0 flex items-center gap-0.5">
+                <Tag className="w-3 h-3 text-[#00a884]" />
+                Tags:
+              </span>
+              {Object.entries(LEAD_TAGS).map(([k, t]) => {
+                const isSelected = selectedTagFilter === k;
+                return (
+                  <button
+                    key={k}
+                    onClick={() => {
+                      playClickSound();
+                      setSelectedTagFilter(k);
+                    }}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-heading font-extrabold shrink-0 transition flex items-center gap-1 cursor-pointer border ${
+                      isSelected
+                        ? `${t.badgeClass} ring-2 ring-offset-1 ring-[#00a884]/40 shadow-xs`
+                        : "bg-[#f8fafc] text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    <span>{t.emoji}</span>
+                    <span>{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Conversation List Scrollable */}
@@ -743,10 +854,13 @@ export default function InboxPage() {
                 <MessageCircle className="w-9 h-9 text-slate-300 mx-auto" />
                 <p className="text-xs font-heading font-bold text-slate-700">No conversations found</p>
                 <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
-                  {searchQuery ? "No contacts match your query." : "Incoming customer messages appear here in real-time!"}
+                  {selectedTagFilter !== "ALL" ? `No contacts tagged under "${LEAD_TAGS[selectedTagFilter]?.label}".` : searchQuery ? "No contacts match your query." : "Incoming customer messages appear here in real-time!"}
                 </p>
                 <button
-                  onClick={() => setIsNewChatOpen(true)}
+                  onClick={() => {
+                    setSelectedTagFilter("ALL");
+                    setIsNewChatOpen(true);
+                  }}
                   className="mt-2 text-xs font-bold text-[#00a884] hover:underline cursor-pointer"
                 >
                   + Start a new chat
@@ -755,6 +869,9 @@ export default function InboxPage() {
             ) : (
               filteredConversations.map((c) => {
                 const isSelected = selectedPhone === c.cleanPhone;
+                const contactTagKey = contactTags[c.cleanPhone]?.tag || c.leadTag || "NEW_ENQUIRY";
+                const contactTagInfo = LEAD_TAGS[contactTagKey] || LEAD_TAGS.NEW_ENQUIRY;
+
                 return (
                   <div
                     key={c.cleanPhone}
@@ -809,8 +926,16 @@ export default function InboxPage() {
                         )}
                       </div>
 
-                      <div className="text-[10px] font-mono text-[#8696a0] truncate mt-0.5">
-                        +{c.cleanPhone}
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        <span className="text-[10px] font-mono text-[#8696a0] truncate">
+                          +{c.cleanPhone}
+                        </span>
+
+                        {/* Customer Lead Stage Tag Pill */}
+                        <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-heading font-extrabold border shrink-0 ${contactTagInfo.badgeClass}`}>
+                          <span>{contactTagInfo.emoji}</span>
+                          <span>{contactTagInfo.label}</span>
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -871,8 +996,56 @@ export default function InboxPage() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons & Lead Tag Selector */}
               <div className="flex items-center gap-2 shrink-0">
+                {/* Lead Stage Tag Selector Dropdown */}
+                {(() => {
+                  const currentTag = contactTags[activeConversation.cleanPhone]?.tag || activeConversation.leadTag || "NEW_ENQUIRY";
+                  const currentInfo = LEAD_TAGS[currentTag] || LEAD_TAGS.NEW_ENQUIRY;
+                  const isOpen = showTagMenuForPhone === activeConversation.cleanPhone;
+
+                  return (
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowTagMenuForPhone(isOpen ? null : activeConversation.cleanPhone)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-heading font-extrabold border transition shadow-2xs cursor-pointer ${currentInfo.badgeClass}`}
+                        title="Click to change Lead Stage Tag"
+                      >
+                        <span>{currentInfo.emoji}</span>
+                        <span>{currentInfo.label}</span>
+                        <ChevronDown className="w-3 h-3 ml-0.5 opacity-60" />
+                      </button>
+
+                      {isOpen && (
+                        <div className="absolute right-0 top-10 z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 space-y-1 w-52 animate-in zoom-in-95 duration-100">
+                          <div className="px-2.5 py-1 text-[10px] uppercase font-heading font-extrabold text-slate-400 tracking-wider">
+                            Set Lead Stage Tag
+                          </div>
+                          {Object.entries(LEAD_TAGS)
+                            .filter(([k]) => k !== "ALL")
+                            .map(([k, t]) => (
+                              <button
+                                key={k}
+                                onClick={() => handleUpdateContactTag(activeConversation.cleanPhone, k)}
+                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-heading font-bold transition text-left cursor-pointer ${
+                                  currentTag === k
+                                    ? `${t.badgeClass} ring-1 ring-inset ring-current`
+                                    : "hover:bg-slate-50 text-slate-700"
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  <span>{t.emoji}</span>
+                                  <span>{t.label}</span>
+                                </div>
+                                {currentTag === k && <Check className="w-3.5 h-3.5" />}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <a
                   href={`tel:+${activeConversation.cleanPhone}`}
                   className="p-2 rounded-full text-[#54656f] hover:text-[#00a884] hover:bg-white transition cursor-pointer"
@@ -1006,9 +1179,37 @@ export default function InboxPage() {
 
                       {/* Message Content */}
                       {msg.text && (
-                        <p className="whitespace-pre-wrap break-words pr-2">
-                          {msg.text}
-                        </p>
+                        <div>
+                          <p className="whitespace-pre-wrap break-words pr-2">
+                            {msg.text.split("🔘 Buttons:")[0].trim()}
+                          </p>
+
+                          {/* WhatsApp Interactive Buttons Preview */}
+                          {msg.text.includes("🔘 Buttons:") && (
+                            <div className="mt-2.5 pt-2 border-t border-black/10 space-y-1.5">
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                                <MousePointerClick className="w-3 h-3 text-[#00a884]" />
+                                Interactive Buttons
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {msg.text
+                                  .split("🔘 Buttons:")[1]
+                                  ?.match(/\[\s*(.*?)\s*\]/g)
+                                  ?.map((btnStr, bIdx) => {
+                                    const cleanTitle = btnStr.replace(/^\[\s*|\s*\]$/g, "");
+                                    return (
+                                      <div
+                                        key={bIdx}
+                                        className="px-3 py-1.5 rounded-xl bg-white/95 border border-[#00a884]/40 text-[#008069] font-heading font-extrabold text-xs shadow-2xs flex items-center gap-1.5"
+                                      >
+                                        <span>{cleanTitle}</span>
+                                      </div>
+                                    );
+                                  })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       )}
 
                       {/* Timestamp & Double Blue Ticks */}
@@ -1226,6 +1427,32 @@ export default function InboxPage() {
                 </div>
               )}
 
+              {/* Attached Interactive Buttons Preview Strip */}
+              {attachedButtons.length > 0 && (
+                <div className="mb-2.5 flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar animate-in slide-in-from-bottom-2 duration-150">
+                  <span className="text-[10px] font-heading font-extrabold text-[#008069] flex items-center gap-1 shrink-0 uppercase tracking-wider bg-[#e7fce3] px-2.5 py-1 rounded-xl border border-[#00a884]/30 shadow-2xs">
+                    <MousePointerClick className="w-3.5 h-3.5" />
+                    Buttons ({attachedButtons.length}/3):
+                  </span>
+                  {attachedButtons.map((btn, bIdx) => (
+                    <div
+                      key={bIdx}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-[#008069] border border-[#00a884] text-xs font-heading font-extrabold shrink-0 shadow-2xs"
+                    >
+                      <span>{btn.title}</span>
+                      <button
+                        type="button"
+                        onClick={() => setAttachedButtons((prev) => prev.filter((_, i) => i !== bIdx))}
+                        className="p-0.5 rounded-full hover:bg-rose-500 hover:text-white text-slate-400 transition cursor-pointer"
+                        title="Remove button"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -1277,6 +1504,110 @@ export default function InboxPage() {
                 >
                   • Point
                 </button>
+
+                {/* Interactive Buttons Helper Tool */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClickSound();
+                      setShowButtonMenu((prev) => !prev);
+                    }}
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-heading font-extrabold border transition shadow-2xs shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                      attachedButtons.length > 0 || showButtonMenu
+                        ? "bg-[#e7fce3] text-[#008069] border-[#00a884]"
+                        : "bg-white text-[#54656f] hover:text-[#008069] hover:bg-[#e7fce3] border-slate-200/90"
+                    }`}
+                    title="Attach WhatsApp Interactive Buttons"
+                  >
+                    <MousePointerClick className="w-3.5 h-3.5" />
+                    <span>Buttons {attachedButtons.length > 0 ? `(${attachedButtons.length})` : ""}</span>
+                  </button>
+
+                  {showButtonMenu && (
+                    <div className="absolute bottom-12 left-0 z-50 bg-white rounded-2xl shadow-xl border border-slate-200 p-2.5 space-y-2 w-64 animate-in zoom-in-95 duration-100">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                        <span className="text-[11px] font-heading font-extrabold text-[#111b21] flex items-center gap-1">
+                          <MousePointerClick className="w-3.5 h-3.5 text-[#00a884]" />
+                          <span>Interactive Buttons (Max 3)</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowButtonMenu(false)}
+                          className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="text-[10px] text-slate-400 uppercase font-heading font-extrabold tracking-wider">Quick Presets:</div>
+                        {PRESET_INTERACTIVE_BUTTONS.map((btn) => {
+                          const isAttached = attachedButtons.some((b) => b.id === btn.id);
+                          return (
+                            <button
+                              key={btn.id}
+                              type="button"
+                              onClick={() => {
+                                playClickSound();
+                                if (isAttached) {
+                                  setAttachedButtons((prev) => prev.filter((b) => b.id !== btn.id));
+                                } else if (attachedButtons.length < 3) {
+                                  setAttachedButtons((prev) => [...prev, btn]);
+                                } else {
+                                  alert("Meta WhatsApp allows a maximum of 3 buttons per message.");
+                                }
+                              }}
+                              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-heading font-bold transition text-left cursor-pointer ${
+                                isAttached
+                                  ? "bg-[#e7fce3] text-[#008069] border border-[#00a884]/40"
+                                  : "bg-slate-50 hover:bg-slate-100 text-slate-700"
+                              }`}
+                            >
+                              <span>{btn.title}</span>
+                              {isAttached ? <Check className="w-3.5 h-3.5 text-[#008069]" /> : <Plus className="w-3.5 h-3.5 text-slate-400" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Custom Button Input */}
+                      <div className="pt-1.5 border-t border-slate-100 space-y-1.5">
+                        <div className="text-[10px] text-slate-400 uppercase font-heading font-extrabold tracking-wider">Custom Button:</div>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={customButtonTitle}
+                            onChange={(e) => setCustomButtonTitle(e.target.value.slice(0, 20))}
+                            placeholder="e.g. ⭐ Google Review"
+                            className="flex-1 px-2.5 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-[#00a884] font-medium"
+                            maxLength={20}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!customButtonTitle.trim()) return;
+                              if (attachedButtons.length >= 3) {
+                                alert("Meta WhatsApp allows maximum 3 buttons per message.");
+                                return;
+                              }
+                              setAttachedButtons((prev) => [
+                                ...prev,
+                                { id: `custom_${Date.now()}`, title: customButtonTitle.trim() },
+                              ]);
+                              setCustomButtonTitle("");
+                            }}
+                            disabled={!customButtonTitle.trim() || attachedButtons.length >= 3}
+                            className="px-2.5 py-1 bg-[#00a884] text-white rounded-lg text-xs font-heading font-bold disabled:opacity-40 cursor-pointer"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        <span className="text-[9px] text-slate-400 block font-normal">Max 20 chars per button (Meta limit)</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="relative flex-1 flex items-center">
                   <textarea

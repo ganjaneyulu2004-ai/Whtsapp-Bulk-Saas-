@@ -144,6 +144,14 @@ CRITICAL RULES FOR CHATTING LIKE A REAL HUMAN:
      <<<BOOK_APPOINTMENT:{"customerName":"${customerName || "Customer"}","phone":"${cleanPhone}","date":"YYYY-MM-DD","time":"HH:MM AM/PM","service":"service name","notes":"any note"}>>>
      (Replace with actual details. If date is 'tomorrow', calculate from today's date ${new Date().toISOString().slice(0, 10)}).` : ""}
 
+5. INTERACTIVE BUTTON CLICKS:
+   - If customer clicked "📅 Book Slot" or "Book Slot":
+     Politely ask which photoshoot or service, date, and time slot they prefer so we can book it immediately!
+   - If customer clicked "🏷️ View Packages" or "View Packages":
+     Share our packages and pricing highlights from the knowledge base warmly in 2-3 short sentences!
+   - If customer clicked "📞 Call Studio" or "Call Us":
+     Provide our studio contact phone number and invite them to call us anytime during business hours!
+
 RECENT CONVERSATION:
 ${conversationHistoryText}
 

@@ -251,6 +251,7 @@ export async function sendWhatsAppTemplateMessage(
     mediaId?: string;
     mediaType?: "image" | "video" | "document";
     fileName?: string;
+    buttons?: Array<{ id: string; title: string }>;
   }
 ): Promise<{ success: boolean; waMessageId?: string; errorCode?: string; errorMessage?: string }> {
   const token = config.waToken || process.env.WA_TOKEN || FALLBACK_WA_TOKEN;
@@ -391,6 +392,31 @@ export async function sendWhatsAppTemplateMessage(
             },
           };
         }
+      } else if (params?.buttons && Array.isArray(params.buttons) && params.buttons.length > 0) {
+        // Meta WhatsApp Interactive Reply Buttons (Up to 3 buttons, max 20 chars per title)
+        const validButtons = params.buttons.slice(0, 3).map((btn, idx) => ({
+          type: "reply",
+          reply: {
+            id: btn.id || `btn_${idx}_${Date.now()}`,
+            title: (btn.title || "Select").trim().slice(0, 20),
+          },
+        }));
+
+        payload = {
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: cleanRecipient,
+          type: "interactive",
+          interactive: {
+            type: "button",
+            body: {
+              text: directCaption || "Please choose an option:",
+            },
+            action: {
+              buttons: validButtons,
+            },
+          },
+        };
       } else {
         payload = {
           messaging_product: "whatsapp",

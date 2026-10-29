@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   try {
     const business = await getCurrentBusiness();
     const body = await req.json();
-    const { recipientPhone, recipientName, messageText, mediaUrl, mediaType, mediaList, fileName } = body;
+    const { recipientPhone, recipientName, messageText, mediaUrl, mediaType, mediaList, fileName, buttons } = body;
 
     const items: Array<{ url: string; type: "image" | "video" | "document"; name?: string }> =
       Array.isArray(mediaList) && mediaList.length > 0
@@ -168,6 +168,7 @@ export async function POST(req: Request) {
         is24HourWindow: true,
         freeFormText: cleanMessage,
         businessName: business.name || "iBrainLabs",
+        buttons: Array.isArray(buttons) && buttons.length > 0 ? buttons : undefined,
       }
     );
 
@@ -190,12 +191,16 @@ export async function POST(req: Request) {
 
     if (sendResult.success) {
       try {
+        const buttonDisplay = Array.isArray(buttons) && buttons.length > 0
+          ? "\n\n🔘 Buttons: " + buttons.map((b: any) => `[ ${b.title || b.text} ]`).join("  ")
+          : "";
+
         await prisma.incomingMessage.create({
           data: {
             businessId: business.id,
             fromPhone: targetPhone,
             customerName: "__BUSINESS_REPLY__",
-            messageText: cleanMessage,
+            messageText: cleanMessage + buttonDisplay,
             waMessageId: sendResult.waMessageId || `manual_${Date.now()}`,
             timestamp: new Date(),
           },

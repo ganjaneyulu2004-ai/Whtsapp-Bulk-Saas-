@@ -149,6 +149,7 @@ model Contact {
   contactList  ContactList? @relation(fields: [listId], references: [id], onDelete: SetNull)
   name         String
   phone        String
+  leadTag      String?      @default("NEW_ENQUIRY")
   optedOut     Boolean      @default(false)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
@@ -233,4 +234,14 @@ model Appointment {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
+
+model ContactTag {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  tag       String   @default("NEW_ENQUIRY") // "HOT_LEAD" | "WEDDING_ENQUIRY" | "ADVANCE_PAID" | "PENDING_FOLLOWUP" | "VIP_CLIENT" | "NEW_ENQUIRY"
+  notes     String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
 

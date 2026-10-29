@@ -213,7 +213,13 @@ async function processWebhookPayload(body: any) {
     for (const msg of value.messages) {
       const fromPhone = (msg.from || "").replace(/[^0-9]/g, "");
       const customerName = contactsMap.get(msg.from) || "Customer";
-      const textBody = (msg.text?.body || msg.button?.text || "").trim();
+      const textBody = (
+        msg.text?.body ||
+        msg.button?.text ||
+        msg.interactive?.button_reply?.title ||
+        msg.interactive?.list_reply?.title ||
+        ""
+      ).trim();
       const waMsgId = msg.id;
       const msgTimestamp = msg.timestamp
         ? new Date(parseInt(msg.timestamp, 10) * 1000)
