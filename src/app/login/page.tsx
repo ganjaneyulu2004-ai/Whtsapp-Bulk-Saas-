@@ -321,7 +321,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen w-full circuit-svg-bg text-[#2B2350] flex flex-col font-sans selection:bg-[#6B2D8F] selection:text-white relative overflow-x-hidden">
+    <div className="min-h-screen w-full bg-[#F8F7FC] text-[#2B2350] flex flex-col font-sans selection:bg-[#6B2D8F] selection:text-white relative overflow-x-hidden">
       
       {/* Celebration Overlay Modal */}
       {celebrating && (
@@ -356,9 +356,6 @@ function LoginForm() {
               <div className="flex items-center gap-1.5">
                 <span className="font-heading font-black text-xl tracking-tight text-[#2B2350] group-hover:text-[#6B2D8F] transition-colors">
                   OneAmple
-                </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm bg-purple-100 text-[#6B2D8F] border border-purple-200">
-                  v2.0
                 </span>
               </div>
               <span className="text-[11px] font-medium text-slate-500">
@@ -404,24 +401,13 @@ function LoginForm() {
             
             {/* Left: Solid Royal Purple Panel (#3B1553) - Simple & Clean Design */}
             <div className="hidden lg:flex lg:col-span-5 bg-[#3B1553] p-8 sm:p-10 text-white flex-col justify-between relative overflow-hidden">
-              {/* Subtle Circuit Overlay Lines */}
-              <div className="absolute inset-0 opacity-10 pointer-events-none">
-                <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                  <line x1="20" y1="40" x2="280" y2="40" stroke="#FFFFFF" strokeWidth="2" />
-                  <circle cx="280" cy="40" r="4" fill="#FFFFFF" />
-                  <line x1="280" y1="40" x2="280" y2="240" stroke="#FFFFFF" strokeWidth="2" />
-                  <circle cx="280" cy="240" r="4" fill="#FFFFFF" />
-                </svg>
-              </div>
-
               <div className="relative z-10 space-y-6">
                 {/* Meta Verified Live Badge */}
-                <div className="flex items-center justify-between">
+                <div>
                   <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     Meta Cloud API Live
                   </span>
-                  <span className="text-xs font-semibold text-purple-200">v2.0</span>
                 </div>
 
                 {/* Brand Typography */}
