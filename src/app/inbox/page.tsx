@@ -49,7 +49,7 @@ const LEAD_TAGS: Record<string, { label: string; emoji: string; badgeClass: stri
 const PRESET_INTERACTIVE_BUTTONS = [
   { id: "btn_book", title: "📅 Book Slot" },
   { id: "btn_packages", title: "🏷️ View Packages" },
-  { id: "btn_call", title: "📞 Call Studio" },
+  { id: "btn_call", title: "📞 Call Us Now" },
 ];
 
 interface ChatMessage {

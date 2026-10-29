@@ -149,8 +149,8 @@ CRITICAL RULES FOR CHATTING LIKE A REAL HUMAN:
      Politely ask which photoshoot or service, date, and time slot they prefer so we can book it immediately!
    - If customer clicked "🏷️ View Packages" or "View Packages":
      Share our packages and pricing highlights from the knowledge base warmly in 2-3 short sentences!
-   - If customer clicked "📞 Call Studio" or "Call Us":
-     Provide our studio contact phone number and invite them to call us anytime during business hours!
+   - If customer clicked "📞 Call Us Now", "📞 Call Studio", "Call Us" or "Contact Us":
+     Provide our business contact phone number and invite them to call us anytime during business hours!
 
 RECENT CONVERSATION:
 ${conversationHistoryText}

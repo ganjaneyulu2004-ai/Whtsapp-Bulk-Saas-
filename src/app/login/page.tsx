@@ -485,7 +485,7 @@ function LoginForm() {
                         Interactive Click Buttons
                       </h4>
                       <p className="text-[11px] text-white/70 leading-tight">
-                        One-tap quick reply buttons: Book Slot, View Packages & Call Studio.
+                        One-tap quick reply buttons: Book Slot, View Packages & Contact Us.
                       </p>
                     </div>
                   </div>
@@ -735,7 +735,7 @@ function LoginForm() {
                 24/7 Smart AI Auto-Bookings
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Trained on photo studio packages, appointments, and retail catalogues. Understands natural Telugu and English, captures customer dates, and confirms bookings instantly.
+                Trained on business packages, appointments, and service catalogues. Understands natural Telugu and English, captures customer dates, and confirms bookings instantly.
               </p>
             </div>
 
@@ -748,7 +748,7 @@ function LoginForm() {
                 Interactive Click Buttons
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Empower customers to tap `[ 📅 Book Slot ]`, `[ 🏷️ View Packages ]`, or `[ 📞 Call Studio ]` directly inside WhatsApp chats without typing long paragraphs.
+                Empower customers to tap `[ 📅 Book Slot ]`, `[ 🏷️ View Packages ]`, or `[ 📞 Contact Us ]` directly inside WhatsApp chats without typing long paragraphs.
               </p>
             </div>
 
@@ -817,8 +817,8 @@ function LoginForm() {
                     <Check className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <h4 className="font-heading font-semibold text-sm text-[#2B2350]">Instant Studio Slot Booking</h4>
-                    <p className="text-xs text-slate-500">Captures wedding date, photo shoot requirements, and locks slot.</p>
+                    <h4 className="font-heading font-semibold text-sm text-[#2B2350]">Instant Appointment & Slot Booking</h4>
+                    <p className="text-xs text-slate-500">Captures preferred dates, client requirements, and locks slots automatically.</p>
                   </div>
                 </div>
 
@@ -855,7 +855,7 @@ function LoginForm() {
                     </div>
                     <div>
                       <div className="text-xs font-bold flex items-center gap-1">
-                        <span>OneAmple Studio</span>
+                        <span>OneAmple</span>
                         <CheckCheck className="w-3.5 h-3.5 text-cyan-400" />
                       </div>
                       <div className="text-[10px] text-emerald-400">Verified Business Account</div>
@@ -869,7 +869,7 @@ function LoginForm() {
                   {/* Incoming Broadcast */}
                   <div className="bg-[#1f2c34] text-slate-200 rounded-2xl rounded-tl-xs p-3.5 shadow-md border border-slate-700/60 max-w-[90%] space-y-2">
                     <p className="font-medium">
-                      Namaste! 📸 Wedding & Event Photography special packages are open for this season.
+                      Namaste! 🚀 Exclusive festive offers and special service packages are now available.
                     </p>
                     <p className="text-[11px] text-slate-400">
                       Tap any button below to proceed:
@@ -884,7 +884,7 @@ function LoginForm() {
                         <span>🏷️ View Packages</span>
                       </div>
                       <div className="w-full py-2 px-3 rounded-xl bg-[#2a3942] hover:bg-[#32444f] text-amber-300 font-semibold text-center border border-amber-500/20 cursor-pointer flex items-center justify-center gap-1.5">
-                        <span>📞 Call Studio</span>
+                        <span>📞 Contact Us</span>
                       </div>
                     </div>
 
@@ -906,7 +906,7 @@ function LoginForm() {
                       <span>OneAmple AI Assistant</span>
                     </div>
                     <p className="text-[11px] leading-relaxed">
-                      "Sure! మీ ఫోటోషూట్ తేదీ మరియు సమయం చెప్పండి, నేను వెంటనే మీ స్లాట్ కన్ఫర్మ్ చేస్తాను."
+                      "Sure! మీ అపాయింట్‌మెంట్ తేదీ మరియు సమయం చెప్పండి, నేను వెంటనే మీ స్లాట్ కన్ఫర్మ్ చేస్తాను."
                     </p>
                     <div className="text-[10px] text-slate-500 text-right mt-1">Just now</div>
                   </div>
@@ -1096,7 +1096,7 @@ function LoginForm() {
                 Does the AI assistant understand Telugu customer messages?
               </h4>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Yes! OneAmple's AI is specifically fine-tuned for Telugu and English. It can reply in fluent Telugu, Telugu in English script (Tenglish), and English to answer photo studio packages and booking requests.
+                Yes! OneAmple's AI is specifically fine-tuned for Telugu and English. It can reply in fluent Telugu, Telugu in English script (Tenglish), and English to answer business packages, pricing queries, and appointment bookings.
               </p>
             </div>
 
