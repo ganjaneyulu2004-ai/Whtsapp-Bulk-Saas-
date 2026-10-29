@@ -94,21 +94,24 @@ export default function RegisterPage() {
         
         {/* Header with Logo */}
         <div className="text-center mb-8">
-          <div className="inline-block bg-brand-light p-3 rounded-2xl border border-brand-soft mb-4">
+          <div className="inline-block bg-brand-light p-3 rounded-2xl border border-brand-soft mb-3 shadow-xs">
             <Image
               src="/brand/ibrainlabs-logo.png"
               alt="iBrainLabs"
               width={180}
               height={50}
-              className="h-10 w-auto object-contain mx-auto"
+              className="h-9 w-auto object-contain mx-auto"
               priority
             />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-heading font-bold text-text-main">
-            Create iBrainLabs Account
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 mb-2">
+            OneAmple Cloud Platform
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-heading font-black text-text-main">
+            Create OneAmple Account
           </h1>
-          <p className="text-sm text-slate-muted mt-1">
-            Start reaching customers with high-delivery WhatsApp campaigns.
+          <p className="text-sm text-slate-muted mt-1 font-medium">
+            OneAmple by iBrainLabs – Start reaching customers with official WhatsApp campaigns & AI automation.
           </p>
         </div>
 
@@ -274,7 +277,7 @@ export default function RegisterPage() {
                   <span>Creating Account...</span>
                 </>
               ) : (
-                <span>Create Account & Get Started</span>
+                <span>Create OneAmple Account & Get Started</span>
               )}
             </button>
           </div>

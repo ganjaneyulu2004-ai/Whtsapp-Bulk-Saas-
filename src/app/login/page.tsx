@@ -32,7 +32,10 @@ import {
   ExternalLink,
   Wifi,
   Battery,
-  Instagram
+  Instagram,
+  Bot,
+  Tag,
+  MousePointerClick
 } from "lucide-react";
 
 function LoginForm() {
@@ -336,11 +339,14 @@ function LoginForm() {
 
       {/* Main Split Layout Card */}
       <div className="w-full max-w-5xl bg-white rounded-3xl shadow-card border border-brand-soft overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10 my-auto">
-        
         {/* Left: Brand Solid Panel (Desktop Only) */}
-        <div className="hidden lg:flex lg:col-span-5 bg-[#3B1553] p-8 sm:p-12 text-white flex-col justify-between relative overflow-hidden">
+        <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-br from-[#250538] via-[#3B1553] to-[#180324] p-8 sm:p-10 text-white flex-col justify-between relative overflow-hidden">
+          {/* Ambient Background Glows */}
+          <div className="absolute top-0 right-0 w-72 h-72 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
           {/* Subtle Circuit Overlay Lines */}
-          <div className="absolute inset-0 opacity-15 pointer-events-none">
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
             <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
               <line x1="20" y1="40" x2="280" y2="40" stroke="#FFFFFF" strokeWidth="2" />
               <circle cx="280" cy="40" r="5" fill="#FFFFFF" />
@@ -353,74 +359,132 @@ function LoginForm() {
             </svg>
           </div>
 
-          <div className="relative z-10">
-            {/* Logo */}
-            <div className="bg-white/95 rounded-2xl p-4 inline-block shadow-md mb-8">
-              <Image
-                src="/brand/ibrainlabs-logo.png"
-                alt="iBrainLabs"
-                width={190}
-                height={55}
-                className="h-10 sm:h-12 w-auto object-contain"
-                priority
-              />
+          <div className="relative z-10 space-y-5">
+            {/* Top Brand Pill & Corporate Logo */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl px-3.5 py-1.5 inline-flex items-center shadow-md">
+                <Image
+                  src="/brand/ibrainlabs-logo.png"
+                  alt="iBrainLabs"
+                  width={140}
+                  height={38}
+                  className="h-7 w-auto object-contain"
+                  priority
+                />
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Meta Cloud API Live
+              </span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-heading font-extrabold tracking-tight text-white mb-3">
-              iBrainLabs
-            </h1>
-            <p className="text-brand-soft text-base font-medium tracking-wide mb-8">
-              Expertise In Every Execution
+            {/* Main Product Title */}
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-white/10 text-white/90 text-[10px] font-bold tracking-wider uppercase mb-1.5 border border-white/10">
+                Enterprise WhatsApp SaaS
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-heading font-black tracking-tight text-white flex items-baseline gap-2">
+                <span>OneAmple</span>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-yellow-400/20 text-yellow-300 border border-yellow-300/30">
+                  v2.0
+                </span>
+              </h1>
+              <p className="text-purple-200 text-xs sm:text-sm font-semibold tracking-wide mt-1 flex items-center gap-1.5">
+                <span>by</span>
+                <span className="text-white font-bold underline decoration-yellow-400 decoration-2 underline-offset-2">
+                  iBrainLabs
+                </span>
+                <span className="text-white/40">•</span>
+                <span className="text-xs text-white/75 font-normal">Expertise In Every Execution</span>
+              </p>
+            </div>
+
+            {/* Hero Subtitle */}
+            <p className="text-white/80 text-xs leading-relaxed border-l-2 border-yellow-400/80 pl-3">
+              Official Meta Verified WhatsApp Cloud Marketing, 24/7 Smart AI Auto-Booking & Customer CRM Engine.
             </p>
 
-            {/* 3 Key Benefits */}
-            <div className="space-y-4 pt-4 border-t border-white/20">
-              <div className="flex items-start gap-3.5">
-                <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0 mt-0.5">
-                  <Zap className="w-4 h-4 text-yellow-300" />
+            {/* 5 Core Feature Cards */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-start gap-3 p-2.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs hover:bg-white/10 transition-colors">
+                <div className="w-7 h-7 rounded-xl bg-yellow-400/20 text-yellow-300 flex items-center justify-center shrink-0 mt-0.5">
+                  <Zap className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <h4 className="font-heading font-semibold text-sm text-white">
-                    High-Speed WhatsApp Messaging
+                  <h4 className="font-heading font-semibold text-xs text-white">
+                    Official Meta Cloud API
                   </h4>
-                  <p className="text-xs text-white/80">
-                    Official Meta Cloud API engine delivering 20 msgs/sec safely.
+                  <p className="text-[11px] text-white/70 leading-tight mt-0.5">
+                    100% Ban-free high-speed broadcasting delivering 20 msgs/sec safely.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3.5">
-                <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0 mt-0.5">
-                  <BarChart3 className="w-4 h-4 text-cyan-300" />
+              <div className="flex items-start gap-3 p-2.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs hover:bg-white/10 transition-colors">
+                <div className="w-7 h-7 rounded-xl bg-purple-400/20 text-purple-300 flex items-center justify-center shrink-0 mt-0.5">
+                  <Bot className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <h4 className="font-heading font-semibold text-sm text-white">
-                    Real-Time Delivery & Read Tracking
+                  <h4 className="font-heading font-semibold text-xs text-white">
+                    24/7 Smart AI Assistant
                   </h4>
-                  <p className="text-xs text-white/80">
-                    Live delivery ticks, read receipts, and read-rate percentage analytics.
+                  <p className="text-[11px] text-white/70 leading-tight mt-0.5">
+                    Multilingual Telugu & English AI auto-replies, bookings & package quotes.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3.5">
-                <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0 mt-0.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-300" />
+              <div className="flex items-start gap-3 p-2.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs hover:bg-white/10 transition-colors">
+                <div className="w-7 h-7 rounded-xl bg-cyan-400/20 text-cyan-300 flex items-center justify-center shrink-0 mt-0.5">
+                  <MousePointerClick className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <h4 className="font-heading font-semibold text-sm text-white">
-                    Targeted Re-Engagement Engine
+                  <h4 className="font-heading font-semibold text-xs text-white">
+                    Interactive Click Buttons
                   </h4>
-                  <p className="text-xs text-white/80">
-                    One-click resend campaigns for customers who have not read yet.
+                  <p className="text-[11px] text-white/70 leading-tight mt-0.5">
+                    One-tap quick reply buttons: Book Slot, View Packages & Call Studio.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-2.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs hover:bg-white/10 transition-colors">
+                <div className="w-7 h-7 rounded-xl bg-emerald-400/20 text-emerald-300 flex items-center justify-center shrink-0 mt-0.5">
+                  <Tag className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <h4 className="font-heading font-semibold text-xs text-white">
+                    Lead Stage CRM & Filters
+                  </h4>
+                  <p className="text-[11px] text-white/70 leading-tight mt-0.5">
+                    Segment chats by Hot Lead, Wedding Enquiry, Advance Paid & VIP Client.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-2.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs hover:bg-white/10 transition-colors">
+                <div className="w-7 h-7 rounded-xl bg-blue-400/20 text-blue-300 flex items-center justify-center shrink-0 mt-0.5">
+                  <BarChart3 className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <h4 className="font-heading font-semibold text-xs text-white">
+                    Real-Time Read Tracking
+                  </h4>
+                  <p className="text-[11px] text-white/70 leading-tight mt-0.5">
+                    Live blue delivery ticks & 1-click smart re-engagement for unread users.
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="relative z-10 pt-8 mt-8 border-t border-white/15 text-xs text-white/70">
-            © 2026 iBrainLabs. All rights reserved.
+          {/* Bottom Trust & Copyright */}
+          <div className="relative z-10 pt-4 mt-6 border-t border-white/15 flex items-center justify-between text-[11px] text-white/70">
+            <span>© 2026 OneAmple by iBrainLabs</span>
+            <span className="flex items-center gap-1 text-emerald-300 font-medium">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Meta Verified Engine
+            </span>
           </div>
         </div>
 
@@ -435,21 +499,28 @@ function LoginForm() {
                   alt="iBrainLabs"
                   width={150}
                   height={44}
-                  className="h-8 w-auto object-contain"
+                  className="h-8 w-auto object-contain mx-auto"
                   priority
                 />
               </div>
+              <h2 className="text-lg font-heading font-extrabold text-brand-purple">
+                OneAmple <span className="text-xs font-normal text-slate-muted">by iBrainLabs</span>
+              </h2>
               <p className="text-xs text-slate-muted font-medium">Expertise In Every Execution</p>
             </div>
 
             {/* ACCOUNT LOGIN */}
             <div className="animate-in fade-in duration-200">
                 <div className="mb-6">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 mb-2.5">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                    OneAmple Cloud Portal
+                  </div>
                   <h2 className="text-2xl sm:text-3xl font-heading font-bold text-text-main mb-1.5">
-                    Account Login
+                    Sign in to OneAmple
                   </h2>
                   <p className="text-sm text-slate-muted">
-                    Enter your credentials to access your campaign management portal.
+                    Enter your credentials to access your campaign management and AI inbox portal.
                   </p>
                 </div>
 
@@ -535,7 +606,7 @@ function LoginForm() {
                   <button
                     type="submit"
                     disabled={loading || celebrating}
-                    className="w-full py-3.5 px-6 rounded-2xl bg-[#5A237A] hover:bg-[#471A62] text-white font-heading font-semibold text-sm shadow-xs transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer active:scale-[0.99]"
+                    className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#5A237A] to-[#3B1553] hover:from-[#491a64] hover:to-[#2e0e42] text-white font-heading font-semibold text-sm shadow-md shadow-brand-purple/20 transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer active:scale-[0.99]"
                   >
                     {loading || celebrating ? (
                       <>
@@ -544,12 +615,12 @@ function LoginForm() {
                       </>
                     ) : (
                       <>
-                        <span>Login to iBrainLabs</span>
+                        <Sparkles className="w-4 h-4 text-yellow-300" />
+                        <span>Sign In to OneAmple</span>
                       </>
                     )}
                   </button>
                 </form>
-
 
                 {/* Register Link */}
                 <div className="mt-6 pt-5 border-t border-brand-soft text-center">
@@ -559,18 +630,15 @@ function LoginForm() {
                       href="/register"
                       className="font-heading font-semibold text-brand-purple hover:text-brand-blue transition-colors underline-offset-4 hover:underline"
                     >
-                      Create account
+                      Create a OneAmple account
                     </Link>
                   </p>
                 </div>
               </div>
-
-
+            </div>
           </div>
         </div>
-
       </div>
-    </div>
   );
 }
 

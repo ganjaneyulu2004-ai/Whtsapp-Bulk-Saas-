@@ -14,10 +14,10 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "iBrainLabs | Expertise In Every Execution",
-    template: "iBrainLabs | %s",
+    default: "OneAmple by iBrainLabs | Meta WhatsApp Marketing Engine",
+    template: "OneAmple | %s",
   },
-  description: "Official Meta WhatsApp Cloud API Marketing Engine for Businesses – Expertise In Every Execution.",
+  description: "OneAmple by iBrainLabs – Official Meta WhatsApp Cloud API Marketing Engine, 24/7 Smart AI Auto-Bookings & Lead CRM for Modern Businesses.",
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",

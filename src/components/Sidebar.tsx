@@ -89,15 +89,19 @@ export function Sidebar() {
       {/* 1. Top Logo Branding (iBrainLabs) */}
       <div className="px-3.5 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
         <Link href="/" className="flex-1 group">
-          <div className="w-full h-13 sm:h-14 flex items-center justify-center px-3 py-1.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs group-hover:border-slate-300 group-hover:shadow-xs transition-all">
+          <div className="w-full flex flex-col items-center justify-center px-3 py-1.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs group-hover:border-slate-300 group-hover:shadow-xs transition-all">
             <Image
               src="/brand/ibrainlabs-logo.png"
               alt="iBrainLabs"
               width={200}
               height={45}
-              className="h-9 sm:h-10 w-full object-contain group-hover:scale-102 transition-transform"
+              className="h-8 sm:h-9 w-full object-contain group-hover:scale-102 transition-transform"
               priority
             />
+            <div className="w-full mt-1 pt-1 border-t border-slate-100 flex items-center justify-between text-[11px]">
+              <span className="font-heading font-black text-brand-purple tracking-tight">OneAmple</span>
+              <span className="text-[10px] text-slate-400 font-medium">by iBrainLabs</span>
+            </div>
           </div>
         </Link>
 
