@@ -5,14 +5,17 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 1. Static assets and branding files
+  // 1. Static assets, SEO endpoints, and branding files
   if (
     pathname.startsWith("/brand") ||
     pathname.startsWith("/uploads") ||
     pathname.startsWith("/_next") ||
-    pathname.match(/\.(jpg|jpeg|png|gif|svg|ico|webp|avif|mp3|wav|ogg)$/i) ||
+    pathname.match(/\.(jpg|jpeg|png|gif|svg|ico|webp|avif|mp3|wav|ogg|xml|txt)$/i) ||
     pathname === "/favicon.ico" ||
-    pathname === "/favicon.png"
+    pathname === "/favicon.png" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname.startsWith("/sitemap")
   ) {
     return NextResponse.next();
   }
