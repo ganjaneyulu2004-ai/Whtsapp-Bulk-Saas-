@@ -134,7 +134,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-muted">
-                  <User className="w-4 h-4 text-brand-purple/70" />
+                  <User className="w-4 h-4 text-[#0066FD]" />
                 </div>
                 <input
                   type="text"
@@ -142,7 +142,7 @@ export default function RegisterPage() {
                   value={form.name}
                   onChange={handleChange}
                   placeholder="e.g. Rahul Sharma"
-                  className="w-full pl-10 pr-4 py-2.5 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-2xl text-[#00153D] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0066FD]/40 focus:border-[#0066FD]"
                   required
                 />
               </div>
@@ -154,7 +154,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-muted">
-                  <Store className="w-4 h-4 text-brand-purple/70" />
+                  <Store className="w-4 h-4 text-[#0066FD]" />
                 </div>
                 <input
                   type="text"
@@ -162,7 +162,7 @@ export default function RegisterPage() {
                   value={form.businessName}
                   onChange={handleChange}
                   placeholder="e.g. Royal Silks Store"
-                  className="w-full pl-10 pr-4 py-2.5 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-2xl text-[#00153D] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0066FD]/40 focus:border-[#0066FD]"
                   required
                 />
               </div>
@@ -172,12 +172,12 @@ export default function RegisterPage() {
           {/* Mobile & Username */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-heading font-semibold text-[#00153D] uppercase tracking-wider mb-1.5">
                 Mobile Number
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-muted">
-                  <Phone className="w-4 h-4 text-brand-purple/70" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Phone className="w-4 h-4 text-[#0066FD]" />
                 </div>
                 <input
                   type="tel"
@@ -185,19 +185,19 @@ export default function RegisterPage() {
                   value={form.mobile}
                   onChange={handleChange}
                   placeholder="+91 98765 43210"
-                  className="w-full pl-10 pr-4 py-2.5 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-2xl text-[#00153D] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0066FD]/40 focus:border-[#0066FD]"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-heading font-semibold text-[#00153D] uppercase tracking-wider mb-1.5">
                 Username
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-muted">
-                  <AtSign className="w-4 h-4 text-brand-purple/70" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <AtSign className="w-4 h-4 text-[#0066FD]" />
                 </div>
                 <input
                   type="text"
@@ -206,7 +206,7 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   placeholder="e.g. rahul2026"
                   autoComplete="username"
-                  className="w-full pl-10 pr-4 py-2.5 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-2xl text-[#00153D] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0066FD]/40 focus:border-[#0066FD]"
                   required
                 />
               </div>
@@ -216,12 +216,12 @@ export default function RegisterPage() {
           {/* Password & Confirm Password */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-heading font-semibold text-[#00153D] uppercase tracking-wider mb-1.5">
                 Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-muted">
-                  <Lock className="w-4 h-4 text-brand-purple/70" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Lock className="w-4 h-4 text-[#0066FD]" />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -230,13 +230,13 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   placeholder="Min 6 characters"
                   autoComplete="new-password"
-                  className="w-full pl-10 pr-10 py-2.5 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
+                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50/70 border border-slate-200 rounded-2xl text-[#00153D] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0066FD]/40 focus:border-[#0066FD]"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-muted hover:text-brand-purple"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#0066FD]"
                 >
                   {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
@@ -244,12 +244,12 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-heading font-semibold text-[#00153D] uppercase tracking-wider mb-1.5">
                 Confirm Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-muted">
-                  <Lock className="w-4 h-4 text-brand-purple/70" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Lock className="w-4 h-4 text-[#0066FD]" />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -258,7 +258,7 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   placeholder="Repeat password"
                   autoComplete="new-password"
-                  className="w-full pl-10 pr-4 py-2.5 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50/70 border border-slate-200 rounded-2xl text-[#00153D] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0066FD]/40 focus:border-[#0066FD]"
                   required
                 />
               </div>

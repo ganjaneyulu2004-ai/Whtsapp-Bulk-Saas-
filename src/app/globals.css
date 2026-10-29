@@ -5,20 +5,21 @@
 @tailwind utilities;
 
 :root {
-  --brand-purple: #6B2D8F;
-  --brand-blue: #4A66B0;
-  --brand-gradient: linear-gradient(135deg, #6B2D8F 0%, #4A66B0 100%);
-  --brand-light: #F4F1FA;
-  --brand-soft: #E9E4F5;
-  --text-main: #2B2350;
-  --text-muted: #645D7E;
-  --success: #22C55E;
+  --brand-purple: #0066FD;
+  --brand-blue: #0066FD;
+  --brand-navy: #00153D;
+  --brand-gradient: linear-gradient(135deg, #00153D 0%, #0066FD 100%);
+  --brand-light: #F8FAFC;
+  --brand-soft: #E2EAFC;
+  --text-main: #00153D;
+  --text-muted: #4B5563;
+  --success: #10B981;
   --warning: #F59E0B;
   --error: #EF4444;
 
-  --background: #F4F1FA;
-  --foreground: #2B2350;
-  --heading: #2B2350;
+  --background: #F8FAFC;
+  --foreground: #00153D;
+  --heading: #00153D;
 }
 
 body {
@@ -37,11 +38,11 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 
 /* Background Soft Brand Blobs */
 .bg-pastel-blobs {
-  background-color: #F4F1FA;
+  background-color: #F8FAFC;
   background-image: 
-    radial-gradient(circle at 10% 15%, rgba(107, 45, 143, 0.05) 0%, transparent 45%),
-    radial-gradient(circle at 90% 25%, rgba(74, 102, 176, 0.06) 0%, transparent 45%),
-    radial-gradient(circle at 50% 90%, rgba(233, 228, 245, 0.6) 0%, transparent 50%);
+    radial-gradient(circle at 10% 15%, rgba(0, 102, 253, 0.04) 0%, transparent 45%),
+    radial-gradient(circle at 90% 25%, rgba(0, 21, 61, 0.03) 0%, transparent 45%),
+    radial-gradient(circle at 50% 90%, rgba(226, 234, 252, 0.5) 0%, transparent 50%);
 }
 
 /* Clean light solid background for login & brand pages */
@@ -51,16 +52,16 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 
 /* Brand Button & Background Utilities (OneAmple Navy & Electric Blue Aesthetic) */
 .bg-brand-gradient {
-  background-color: #0066FF;
+  background-color: #0066FD;
 }
 
 .text-brand-gradient {
-  color: #0066FF;
+  color: #0066FD;
 }
 
 @supports (-webkit-background-clip: text) or (background-clip: text) {
   .text-brand-gradient {
-    background: linear-gradient(135deg, #03173D 0%, #0066FF 100%);
+    background: linear-gradient(135deg, #00153D 0%, #0066FD 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;

@@ -321,23 +321,23 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#F8F7FC] text-[#2B2350] flex flex-col font-sans selection:bg-[#6B2D8F] selection:text-white relative overflow-x-hidden">
+    <div className="min-h-screen w-full bg-[#F8FAFC] text-[#00153D] flex flex-col font-sans selection:bg-[#0066FD] selection:text-white relative overflow-x-hidden">
       
       {/* Celebration Overlay Modal */}
       {celebrating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md animate-in fade-in zoom-in-95 duration-300">
-          <div className="bg-white border-2 border-brand-soft shadow-2xl rounded-3xl p-8 max-w-md w-full mx-4 text-center transform transition-all">
-            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-brand-purple to-brand-blue flex items-center justify-center text-white mb-5 shadow-lg shadow-brand-purple/30 animate-bounce">
-              <Sparkles className="w-10 h-10 text-yellow-300" />
+          <div className="bg-white border-2 border-slate-200 shadow-2xl rounded-3xl p-8 max-w-md w-full mx-4 text-center transform transition-all">
+            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-[#00153D] to-[#0066FD] flex items-center justify-center text-white mb-5 shadow-lg shadow-[#0066FD]/30 animate-bounce">
+              <Sparkles className="w-10 h-10 text-blue-200" />
             </div>
-            <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-brand-purple mb-2">
+            <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-[#00153D] mb-2">
               Welcome, {welcomeName}!
             </h2>
             <p className="text-slate-600 text-sm font-medium">
               {celebrationSubtitle}
             </p>
             <div className="mt-6 flex justify-center">
-              <div className="w-8 h-8 border-4 border-brand-purple/20 border-t-brand-purple rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-[#0066FD]/20 border-t-[#0066FD] rounded-full animate-spin" />
             </div>
           </div>
         </div>
@@ -394,13 +394,13 @@ function LoginForm() {
           {/* The Iconic iBrainLabs Two-Column Split Card */}
           <div id="login-card" className="w-full max-w-5xl mx-auto bg-white rounded-3xl shadow-card border border-brand-soft overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10 scroll-mt-20">
             
-            {/* Left: Solid Midnight Navy Panel (#03173D) with OneAmple Icon */}
-            <div className="hidden lg:flex lg:col-span-5 bg-[#03173D] p-8 sm:p-10 text-white flex-col justify-between relative overflow-hidden">
+            {/* Left: Solid Midnight Navy Panel (#00153D) with OneAmple Icon */}
+            <div className="hidden lg:flex lg:col-span-5 bg-[#00153D] p-8 sm:p-10 text-white flex-col justify-between relative overflow-hidden">
               <div className="relative z-10 space-y-6">
                 {/* Meta Verified Live Badge */}
                 <div>
-                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#0066FF]/20 text-blue-300 border border-[#0066FF]/40">
-                    <span className="w-2 h-2 rounded-full bg-[#0066FF] animate-pulse" />
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#0066FD]/20 text-[#60A5FA] border border-[#0066FD]/40">
+                    <span className="w-2 h-2 rounded-full bg-[#0066FD] animate-pulse" />
                     Official Meta Verified Partner
                   </span>
                 </div>
@@ -435,21 +435,21 @@ function LoginForm() {
                 {/* 3 Simple, Clean Highlights */}
                 <div className="space-y-3.5 pt-2">
                   <div className="flex items-center gap-3 text-sm text-white/90">
-                    <div className="w-8 h-8 rounded-xl bg-[#0066FF]/20 flex items-center justify-center shrink-0 text-[#38BDF8]">
+                    <div className="w-8 h-8 rounded-xl bg-[#0066FD]/20 flex items-center justify-center shrink-0 text-[#60A5FA]">
                       <Zap className="w-4 h-4" />
                     </div>
                     <span className="font-medium">Official Meta Cloud API • 100% Ban-Free</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm text-white/90">
-                    <div className="w-8 h-8 rounded-xl bg-[#0066FF]/20 flex items-center justify-center shrink-0 text-[#38BDF8]">
+                    <div className="w-8 h-8 rounded-xl bg-[#0066FD]/20 flex items-center justify-center shrink-0 text-[#60A5FA]">
                       <Bot className="w-4 h-4" />
                     </div>
                     <span className="font-medium">24/7 Smart AI Auto-Bookings (Telugu & English)</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm text-white/90">
-                    <div className="w-8 h-8 rounded-xl bg-[#0066FF]/20 flex items-center justify-center shrink-0 text-[#38BDF8]">
+                    <div className="w-8 h-8 rounded-xl bg-[#0066FD]/20 flex items-center justify-center shrink-0 text-[#60A5FA]">
                       <MousePointerClick className="w-4 h-4" />
                     </div>
                     <span className="font-medium">Interactive Click Buttons & Intelligent Lead CRM</span>
@@ -486,11 +486,11 @@ function LoginForm() {
 
                 {/* Login Form Header */}
                 <div className="mb-5">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#0066FF] border border-blue-200/80 mb-2">
-                    <Sparkles className="w-3 h-3 text-[#0066FF]" />
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#0066FD] border border-blue-200/80 mb-2">
+                    <Sparkles className="w-3 h-3 text-[#0066FD]" />
                     OneAmple Cloud Portal
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#03173D] mb-1">
+                  <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#00153D] mb-1">
                     Sign in to OneAmple
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-500">
@@ -576,11 +576,11 @@ function LoginForm() {
                     </label>
                   </div>
 
-                  {/* Solid Electric Royal Blue Button (#0066FF) */}
+                  {/* Solid Electric Royal Blue Button (#0066FD) */}
                   <button
                     type="submit"
                     disabled={loading || celebrating}
-                    className="w-full py-3.5 px-6 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-heading font-semibold text-sm shadow-xs transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer active:scale-[0.99]"
+                    className="w-full py-3.5 px-6 rounded-2xl bg-[#0066FD] hover:bg-[#0057D9] text-white font-heading font-semibold text-sm shadow-xs transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer active:scale-[0.99]"
                   >
                     {loading || celebrating ? (
                       <>
@@ -737,16 +737,16 @@ function LoginForm() {
       </section>
 
       {/* 5. SECTION: 🤖 AI BOOKING & INTERACTIVE BUTTONS MOCKUP */}
-      <section id="ai-bot" className="py-14 sm:py-18 bg-white border-y border-[#E9E4F5]">
+      <section id="ai-bot" className="py-14 sm:py-18 bg-white border-y border-slate-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             
             {/* Left Description */}
             <div className="lg:col-span-6 space-y-5">
-              <span className="text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-[#6B2D8F] border border-purple-200 uppercase tracking-wider">
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-50 text-[#0066FD] border border-blue-200 uppercase tracking-wider">
                 Automated Conversations
               </span>
-              <h2 className="text-3xl sm:text-4xl font-heading font-black text-[#2B2350] leading-tight">
+              <h2 className="text-3xl sm:text-4xl font-heading font-black text-[#00153D] leading-tight">
                 Engage Customers in Telugu & English with Clickable Buttons
               </h2>
               <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
@@ -843,7 +843,7 @@ function LoginForm() {
 
                   {/* AI Instant Bot Reply */}
                   <div className="bg-[#1f2c34] text-slate-200 rounded-2xl rounded-tl-xs p-3 shadow-md border border-slate-700/60 max-w-[85%]">
-                    <div className="flex items-center gap-1 text-[10px] text-purple-300 font-semibold mb-1">
+                    <div className="flex items-center gap-1 text-[10px] text-[#60A5FA] font-semibold mb-1">
                       <Bot className="w-3 h-3" />
                       <span>OneAmple AI Assistant</span>
                     </div>
@@ -880,7 +880,7 @@ function LoginForm() {
               <span className="font-heading font-bold text-xs">Hot Lead</span>
               <span className="text-[10px] text-slate-500 mt-1">High Intent</span>
             </div>
-            <div className="p-4 rounded-2xl bg-white border border-purple-200 text-purple-700 flex flex-col items-center shadow-xs">
+            <div className="p-4 rounded-2xl bg-white border border-blue-200 text-[#0066FD] flex flex-col items-center shadow-xs">
               <span className="text-2xl mb-1">💍</span>
               <span className="font-heading font-bold text-xs">Wedding Enquiry</span>
               <span className="text-[10px] text-slate-500 mt-1">Photo Packages</span>
@@ -939,8 +939,8 @@ function LoginForm() {
                   }}
                   className={`px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors border ${
                     testSelectedPreset === preset.id
-                      ? "bg-[#5A237A] text-white border-[#5A237A]"
-                      : "bg-white text-slate-700 border-[#E9E4F5] hover:border-purple-300"
+                      ? "bg-[#00153D] text-white border-[#00153D]"
+                      : "bg-white text-slate-700 border-slate-200 hover:border-[#0066FD]/40"
                   }`}
                 >
                   {preset.label}
@@ -963,7 +963,7 @@ function LoginForm() {
                   value={testRecipientPhone}
                   onChange={(e) => setTestRecipientPhone(e.target.value)}
                   placeholder="e.g. 9876543210"
-                  className="flex-1 px-4 py-3 bg-white border border-[#E9E4F5] rounded-2xl text-slate-800 placeholder:text-slate-400 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#6B2D8F]"
+                  className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-2xl text-slate-800 placeholder:text-slate-400 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0066FD]"
                 />
               </div>
             </div>
@@ -1015,10 +1015,10 @@ function LoginForm() {
       <section className="py-14 sm:py-18">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-[#6B2D8F] border border-purple-200 uppercase tracking-wider">
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-50 text-[#0066FD] border border-blue-200 uppercase tracking-wider">
               Answers & Clarifications
             </span>
-            <h2 className="text-3xl font-heading font-black text-[#2B2350] mt-3">
+            <h2 className="text-3xl font-heading font-black text-[#00153D] mt-3">
               Frequently Asked Questions
             </h2>
           </div>
@@ -1107,8 +1107,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-brand-light">
-          <Loader2 className="w-8 h-8 text-brand-purple animate-spin" />
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <Loader2 className="w-8 h-8 text-[#0066FD] animate-spin" />
         </div>
       }
     >

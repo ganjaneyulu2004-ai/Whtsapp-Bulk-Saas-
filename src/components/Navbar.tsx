@@ -104,25 +104,15 @@ export function Navbar() {
           <div className="flex items-center justify-between h-16 sm:h-20">
             
             {/* Logo & Brand Header */}
-            <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
-              <div className="h-9 sm:h-11 flex items-center justify-center p-1 sm:p-1.5 rounded-xl sm:rounded-2xl bg-white border border-brand-soft shadow-xs group-hover:scale-105 transition-transform">
-                <Image
-                  src="/brand/ibrainlabs-logo.png"
-                  alt="iBrainLabs"
-                  width={130}
-                  height={38}
-                  className="h-6 sm:h-7 w-auto object-contain"
-                  priority
-                />
-              </div>
-              <div>
-                <span className="font-heading font-extrabold text-base sm:text-xl text-brand-purple tracking-tight block leading-tight">
-                  iBrainLabs
-                </span>
-                <span className="hidden sm:block text-[9px] sm:text-[10px] font-semibold text-slate-muted tracking-wider uppercase">
-                  Expertise In Every Execution
-                </span>
-              </div>
+            <Link href="/" className="flex items-center group shrink-0">
+              <Image
+                src="/brand/oneample-logo.png"
+                alt="OneAmple — Business, Made Intelligent."
+                width={180}
+                height={45}
+                className="h-8 sm:h-9 w-auto object-contain group-hover:scale-102 transition-transform"
+                priority
+              />
             </Link>
 
             {/* Desktop Center Navigation Menu */}
