@@ -343,47 +343,42 @@ function LoginForm() {
         </div>
       )}
 
-      {/* 1. STICKY TOP NAVIGATION BAR (Clean iBrainLabs Style, Zero White Box Logo) */}
-      <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-[#E9E4F5] shadow-xs">
+      {/* 1. STICKY TOP NAVIGATION BAR (Authentic OneAmple Branding) */}
+      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           
-          {/* Brand Identity: NO white box logo, just pure sleek typography & icon */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-[#5A237A] border border-purple-400/30 flex items-center justify-center text-white font-bold shadow-xs group-hover:scale-105 transition-transform">
-              <Zap className="w-5 h-5 text-yellow-300 fill-yellow-300" />
-            </div>
-            <div className="flex flex-col leading-tight">
-              <div className="flex items-center gap-1.5">
-                <span className="font-heading font-black text-xl tracking-tight text-[#2B2350] group-hover:text-[#6B2D8F] transition-colors">
-                  OneAmple
-                </span>
-              </div>
-              <span className="text-[11px] font-medium text-slate-500">
-                by <span className="text-[#6B2D8F] font-bold">iBrainLabs</span>
-              </span>
-            </div>
+          {/* Brand Identity: Authentic OneAmple Logo */}
+          <Link href="/" className="flex items-center group">
+            <Image
+              src="/brand/oneample-logo.png"
+              alt="OneAmple — Business, Made Intelligent."
+              width={180}
+              height={45}
+              className="h-8 sm:h-9 w-auto object-contain group-hover:scale-102 transition-transform"
+              priority
+            />
           </Link>
 
           {/* Center Navigation Links (Desktop) */}
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-600">
-            <a href="#features" className="hover:text-[#6B2D8F] transition-colors">Features</a>
-            <a href="#ai-bot" className="hover:text-[#6B2D8F] transition-colors">AI Booking Bot</a>
-            <a href="#buttons" className="hover:text-[#6B2D8F] transition-colors">Interactive Buttons</a>
-            <a href="#crm" className="hover:text-[#6B2D8F] transition-colors">Lead CRM</a>
-            <a href="#live-demo" className="hover:text-[#6B2D8F] transition-colors">Live Test</a>
+            <a href="#features" className="hover:text-[#0066FF] transition-colors">Features</a>
+            <a href="#ai-bot" className="hover:text-[#0066FF] transition-colors">AI Booking Bot</a>
+            <a href="#buttons" className="hover:text-[#0066FF] transition-colors">Interactive Buttons</a>
+            <a href="#crm" className="hover:text-[#0066FF] transition-colors">Lead CRM</a>
+            <a href="#live-demo" className="hover:text-[#0066FF] transition-colors">Live Test</a>
           </nav>
 
           {/* Right Header CTAs */}
           <div className="flex items-center gap-3">
             <a
               href="#login-card"
-              className="px-3.5 py-1.5 text-xs font-semibold text-[#6B2D8F] hover:text-[#5A237A] transition-colors"
+              className="px-3.5 py-1.5 text-xs font-semibold text-[#0066FF] hover:text-[#03173D] transition-colors"
             >
               Sign In
             </a>
             <Link
               href="/register"
-              className="px-4 py-2 rounded-xl bg-[#5A237A] hover:bg-[#471A62] text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5"
             >
               <span>Get Started</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -399,56 +394,65 @@ function LoginForm() {
           {/* The Iconic iBrainLabs Two-Column Split Card */}
           <div id="login-card" className="w-full max-w-5xl mx-auto bg-white rounded-3xl shadow-card border border-brand-soft overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10 scroll-mt-20">
             
-            {/* Left: Solid Royal Purple Panel (#3B1553) - Simple & Clean Design */}
-            <div className="hidden lg:flex lg:col-span-5 bg-[#3B1553] p-8 sm:p-10 text-white flex-col justify-between relative overflow-hidden">
+            {/* Left: Solid Midnight Navy Panel (#03173D) with OneAmple Icon */}
+            <div className="hidden lg:flex lg:col-span-5 bg-[#03173D] p-8 sm:p-10 text-white flex-col justify-between relative overflow-hidden">
               <div className="relative z-10 space-y-6">
                 {/* Meta Verified Live Badge */}
                 <div>
-                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    Meta Cloud API Live
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#0066FF]/20 text-blue-300 border border-[#0066FF]/40">
+                    <span className="w-2 h-2 rounded-full bg-[#0066FF] animate-pulse" />
+                    Official Meta Verified Partner
                   </span>
                 </div>
 
-                {/* Brand Typography */}
+                {/* Brand Typography & Icon */}
                 <div>
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-lg border border-white/15 mb-3">
+                    <Image
+                      src="/brand/oneample-icon.png"
+                      alt="OneAmple Icon"
+                      width={56}
+                      height={56}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <h1 className="text-3xl sm:text-4xl font-heading font-black tracking-tight text-white">
                     OneAmple
                   </h1>
-                  <p className="text-sm font-semibold text-yellow-300 mt-1">
-                    by iBrainLabs
+                  <p className="text-sm font-semibold text-[#38BDF8] mt-1">
+                    Business, Made Intelligent.
                   </p>
-                  <p className="text-xs text-white/70 font-medium mt-0.5">
-                    Expertise In Every Execution
+                  <p className="text-xs text-white/60 font-medium mt-0.5">
+                    by iBrainLabs
                   </p>
                 </div>
 
                 {/* Clean Subtitle */}
                 <p className="text-sm text-white/85 leading-relaxed font-normal">
-                  Official Meta Verified WhatsApp Cloud Marketing, 24/7 Smart AI Auto-Bookings & Lead CRM Engine.
+                  Official Meta Verified WhatsApp Cloud Marketing, 24/7 Smart AI Auto-Bookings & Intelligent Lead CRM.
                 </p>
 
                 {/* 3 Simple, Clean Highlights */}
                 <div className="space-y-3.5 pt-2">
                   <div className="flex items-center gap-3 text-sm text-white/90">
-                    <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0 text-yellow-300">
+                    <div className="w-8 h-8 rounded-xl bg-[#0066FF]/20 flex items-center justify-center shrink-0 text-[#38BDF8]">
                       <Zap className="w-4 h-4" />
                     </div>
                     <span className="font-medium">Official Meta Cloud API • 100% Ban-Free</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm text-white/90">
-                    <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0 text-purple-300">
+                    <div className="w-8 h-8 rounded-xl bg-[#0066FF]/20 flex items-center justify-center shrink-0 text-[#38BDF8]">
                       <Bot className="w-4 h-4" />
                     </div>
                     <span className="font-medium">24/7 Smart AI Auto-Bookings (Telugu & English)</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm text-white/90">
-                    <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0 text-cyan-300">
+                    <div className="w-8 h-8 rounded-xl bg-[#0066FF]/20 flex items-center justify-center shrink-0 text-[#38BDF8]">
                       <MousePointerClick className="w-4 h-4" />
                     </div>
-                    <span className="font-medium">Interactive Click Buttons & Lead CRM</span>
+                    <span className="font-medium">Interactive Click Buttons & Intelligent Lead CRM</span>
                   </div>
                 </div>
               </div>
@@ -456,7 +460,7 @@ function LoginForm() {
               {/* Bottom Copyright */}
               <div className="relative z-10 pt-6 mt-6 border-t border-white/15 flex items-center justify-between text-xs text-white/70">
                 <span>© 2026 OneAmple by iBrainLabs</span>
-                <span className="flex items-center gap-1.5 text-emerald-300 font-medium">
+                <span className="flex items-center gap-1.5 text-blue-300 font-medium">
                   <ShieldCheck className="w-4 h-4" />
                   Meta Verified
                 </span>
@@ -467,24 +471,29 @@ function LoginForm() {
             <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center bg-white">
               <div className="max-w-md w-full mx-auto">
                 
-                {/* Mobile Header (No white box) */}
+                {/* Mobile Header (OneAmple Logo) */}
                 <div className="lg:hidden mb-5 text-center">
-                  <h2 className="text-2xl font-heading font-black text-[#2B2350]">
-                    OneAmple
-                  </h2>
-                  <p className="text-xs font-bold text-[#6B2D8F]">by iBrainLabs • Expertise In Every Execution</p>
+                  <Image
+                    src="/brand/oneample-logo.png"
+                    alt="OneAmple"
+                    width={180}
+                    height={45}
+                    className="h-9 w-auto object-contain mx-auto mb-1"
+                    priority
+                  />
+                  <p className="text-xs font-semibold text-[#0066FF]">Business, Made Intelligent.</p>
                 </div>
 
                 {/* Login Form Header */}
                 <div className="mb-5">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 mb-2">
-                    <Sparkles className="w-3 h-3 text-purple-600" />
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#0066FF] border border-blue-200/80 mb-2">
+                    <Sparkles className="w-3 h-3 text-[#0066FF]" />
                     OneAmple Cloud Portal
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-heading font-bold text-text-main mb-1">
+                  <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#03173D] mb-1">
                     Sign in to OneAmple
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-muted">
+                  <p className="text-xs sm:text-sm text-slate-500">
                     Enter your credentials to access your marketing & AI inbox portal.
                   </p>
                 </div>
@@ -509,12 +518,12 @@ function LoginForm() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Username */}
                   <div>
-                    <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-heading font-semibold text-[#03173D] uppercase tracking-wider mb-1.5">
                       Username
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-muted">
-                        <UserIcon className="w-4 h-4 text-brand-purple/70" />
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <UserIcon className="w-4 h-4 text-[#0066FF]" />
                       </div>
                       <input
                         type="text"
@@ -522,19 +531,19 @@ function LoginForm() {
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="e.g. admin or username"
                         autoComplete="username"
-                        className="w-full pl-10 pr-4 py-3 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main placeholder:text-slate-muted/60 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40 focus:border-brand-purple transition-all"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50/70 border border-slate-200 rounded-2xl text-[#03173D] placeholder:text-slate-400 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0066FF]/30 focus:border-[#0066FF] transition-all"
                       />
                     </div>
                   </div>
 
                   {/* Password */}
                   <div>
-                    <label className="block text-xs font-heading font-semibold text-text-main uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-heading font-semibold text-[#03173D] uppercase tracking-wider mb-1.5">
                       Password
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-muted">
-                        <Lock className="w-4 h-4 text-brand-purple/70" />
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <Lock className="w-4 h-4 text-[#0066FF]" />
                       </div>
                       <input
                         type={showPassword ? "text" : "password"}
@@ -542,12 +551,12 @@ function LoginForm() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Enter your password"
                         autoComplete="current-password"
-                        className="w-full pl-10 pr-11 py-3 bg-brand-light/70 border border-brand-soft rounded-2xl text-text-main placeholder:text-slate-muted/60 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple/40 focus:border-brand-purple transition-all"
+                        className="w-full pl-10 pr-11 py-3 bg-slate-50/70 border border-slate-200 rounded-2xl text-[#03173D] placeholder:text-slate-400 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0066FF]/30 focus:border-[#0066FF] transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-muted hover:text-brand-purple transition-colors cursor-pointer"
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-[#0066FF] transition-colors cursor-pointer"
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -556,22 +565,22 @@ function LoginForm() {
 
                   {/* Remember Me */}
                   <div className="flex items-center justify-between pt-0.5">
-                    <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-muted select-none">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-500 select-none">
                       <input
                         type="checkbox"
                         checked={rememberMe}
                         onChange={(e) => setRememberMe(e.target.checked)}
-                        className="w-4 h-4 rounded border-brand-soft text-brand-purple focus:ring-brand-purple/30 accent-brand-purple"
+                        className="w-4 h-4 rounded border-slate-300 text-[#0066FF] focus:ring-[#0066FF]/30 accent-[#0066FF]"
                       />
                       Remember me
                     </label>
                   </div>
 
-                  {/* Solid iBrainLabs Button (#5A237A) */}
+                  {/* Solid Electric Royal Blue Button (#0066FF) */}
                   <button
                     type="submit"
                     disabled={loading || celebrating}
-                    className="w-full py-3.5 px-6 rounded-2xl bg-[#5A237A] hover:bg-[#471A62] text-white font-heading font-semibold text-sm shadow-xs transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer active:scale-[0.99]"
+                    className="w-full py-3.5 px-6 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-heading font-semibold text-sm shadow-xs transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer active:scale-[0.99]"
                   >
                     {loading || celebrating ? (
                       <>
@@ -580,7 +589,7 @@ function LoginForm() {
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4 text-yellow-300" />
+                        <Sparkles className="w-4 h-4 text-blue-200" />
                         <span>Sign In to OneAmple</span>
                       </>
                     )}
@@ -588,12 +597,12 @@ function LoginForm() {
                 </form>
 
                 {/* Register Link */}
-                <div className="mt-5 pt-4 border-t border-brand-soft text-center">
-                  <p className="text-xs text-slate-muted">
+                <div className="mt-5 pt-4 border-t border-slate-100 text-center">
+                  <p className="text-xs text-slate-500">
                     New to OneAmple?{" "}
                     <Link
                       href="/register"
-                      className="font-heading font-semibold text-brand-purple hover:text-brand-blue transition-colors underline-offset-4 hover:underline"
+                      className="font-heading font-semibold text-[#0066FF] hover:text-[#03173D] transition-colors underline-offset-4 hover:underline"
                     >
                       Create a free account
                     </Link>
@@ -606,24 +615,24 @@ function LoginForm() {
         </div>
       </section>
 
-      {/* 3. PERFORMANCE METRICS STRIP (Clean iBrainLabs Style) */}
-      <section className="py-8 bg-white border-y border-[#E9E4F5]">
+      {/* 3. PERFORMANCE METRICS STRIP (OneAmple Theme) */}
+      <section className="py-8 bg-white border-y border-slate-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="p-4 rounded-2xl bg-[#F4F1FA] border border-[#E9E4F5]">
-              <div className="text-2xl sm:text-3xl font-heading font-black text-[#5A237A]">20 msgs/s</div>
+            <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200/80">
+              <div className="text-2xl sm:text-3xl font-heading font-black text-[#03173D]">20 msgs/s</div>
               <p className="text-xs text-slate-600 mt-1 font-semibold">Safe Broadcast Speed</p>
             </div>
-            <div className="p-4 rounded-2xl bg-[#F4F1FA] border border-[#E9E4F5]">
+            <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200/80">
               <div className="text-2xl sm:text-3xl font-heading font-black text-emerald-600">99.9%</div>
               <p className="text-xs text-slate-600 mt-1 font-semibold">Delivery & Read Accuracy</p>
             </div>
-            <div className="p-4 rounded-2xl bg-[#F4F1FA] border border-[#E9E4F5]">
-              <div className="text-2xl sm:text-3xl font-heading font-black text-[#6B2D8F]">24/7 AI</div>
-              <p className="text-xs text-slate-600 mt-1 font-semibold">Telugu & English Bookings</p>
+            <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200/80">
+              <div className="text-2xl sm:text-3xl font-heading font-black text-[#0066FF]">24/7 AI</div>
+              <p className="text-xs text-slate-600 mt-1 font-semibold">Multilingual Auto-Bookings</p>
             </div>
-            <div className="p-4 rounded-2xl bg-[#F4F1FA] border border-[#E9E4F5]">
-              <div className="text-2xl sm:text-3xl font-heading font-black text-[#4A66B0]">3x Higher</div>
+            <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200/80">
+              <div className="text-2xl sm:text-3xl font-heading font-black text-[#03173D]">3x Higher</div>
               <p className="text-xs text-slate-600 mt-1 font-semibold">Button Click Conversions</p>
             </div>
           </div>
@@ -634,10 +643,10 @@ function LoginForm() {
       <section id="features" className="py-14 sm:py-18">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-[#6B2D8F] border border-purple-200 uppercase tracking-wider">
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-50 text-[#0066FF] border border-blue-200 uppercase tracking-wider">
               Comprehensive Platform
             </span>
-            <h2 className="text-3xl sm:text-4xl font-heading font-black text-[#2B2350] mt-3">
+            <h2 className="text-3xl sm:text-4xl font-heading font-black text-[#03173D] mt-3">
               Everything You Need to Scale on WhatsApp
             </h2>
             <p className="text-slate-600 text-sm sm:text-base mt-2">
@@ -647,8 +656,8 @@ function LoginForm() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Feature 1 */}
-            <div className="p-6 rounded-3xl bg-white border border-[#E9E4F5] hover:border-purple-300 transition-all hover:shadow-md group">
-              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#6B2D8F] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 hover:border-blue-300 transition-all hover:shadow-md group">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0066FF] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                 <Zap className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-heading font-bold text-[#2B2350] mb-2">
@@ -660,11 +669,11 @@ function LoginForm() {
             </div>
 
             {/* Feature 2 */}
-            <div className="p-6 rounded-3xl bg-white border border-[#E9E4F5] hover:border-purple-300 transition-all hover:shadow-md group">
-              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#6B2D8F] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 hover:border-blue-300 transition-all hover:shadow-md group">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0066FF] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                 <Bot className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-heading font-bold text-[#2B2350] mb-2">
+              <h3 className="text-lg font-heading font-bold text-[#03173D] mb-2">
                 24/7 Smart AI Auto-Bookings
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -673,11 +682,11 @@ function LoginForm() {
             </div>
 
             {/* Feature 3 */}
-            <div className="p-6 rounded-3xl bg-white border border-[#E9E4F5] hover:border-purple-300 transition-all hover:shadow-md group">
-              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#6B2D8F] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 hover:border-blue-300 transition-all hover:shadow-md group">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0066FF] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                 <MousePointerClick className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-heading font-bold text-[#2B2350] mb-2">
+              <h3 className="text-lg font-heading font-bold text-[#03173D] mb-2">
                 Interactive Click Buttons
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -686,11 +695,11 @@ function LoginForm() {
             </div>
 
             {/* Feature 4 */}
-            <div className="p-6 rounded-3xl bg-white border border-[#E9E4F5] hover:border-purple-300 transition-all hover:shadow-md group">
-              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#6B2D8F] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 hover:border-blue-300 transition-all hover:shadow-md group">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0066FF] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                 <Tag className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-heading font-bold text-[#2B2350] mb-2">
+              <h3 className="text-lg font-heading font-bold text-[#03173D] mb-2">
                 Lead Stage CRM & Filters
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -699,11 +708,11 @@ function LoginForm() {
             </div>
 
             {/* Feature 5 */}
-            <div className="p-6 rounded-3xl bg-white border border-[#E9E4F5] hover:border-purple-300 transition-all hover:shadow-md group">
-              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#6B2D8F] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 hover:border-blue-300 transition-all hover:shadow-md group">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0066FF] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                 <BarChart3 className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-heading font-bold text-[#2B2350] mb-2">
+              <h3 className="text-lg font-heading font-bold text-[#03173D] mb-2">
                 Real-Time Read Tracking
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -712,11 +721,11 @@ function LoginForm() {
             </div>
 
             {/* Feature 6 */}
-            <div className="p-6 rounded-3xl bg-white border border-[#E9E4F5] hover:border-purple-300 transition-all hover:shadow-md group">
-              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#6B2D8F] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 hover:border-blue-300 transition-all hover:shadow-md group">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0066FF] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                 <Video className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-heading font-bold text-[#2B2350] mb-2">
+              <h3 className="text-lg font-heading font-bold text-[#03173D] mb-2">
                 Rich Multi-Media Suite
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -982,7 +991,7 @@ function LoginForm() {
               type="button"
               onClick={handleSendTest}
               disabled={testSending || isLimitReached}
-              className="w-full py-3.5 px-6 rounded-2xl bg-[#5A237A] hover:bg-[#471A62] text-white font-heading font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="w-full py-3.5 px-6 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-heading font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {testSending ? (
                 <>
@@ -1054,17 +1063,23 @@ function LoginForm() {
         </div>
       </section>
 
-      {/* 9. COMPREHENSIVE FOOTER */}
-      <footer className="py-10 bg-[#2B2350] text-xs text-white/70">
+      {/* 9. COMPREHENSIVE FOOTER (OneAmple Navy Theme) */}
+      <footer className="py-10 bg-[#03173D] text-xs text-white/70">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#5A237A] flex items-center justify-center text-white font-bold">
-                <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 border border-white/10">
+                <Image
+                  src="/brand/oneample-icon.png"
+                  alt="OneAmple Icon"
+                  width={36}
+                  height={36}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <span className="font-heading font-black text-white text-base">OneAmple</span>
-                <span className="text-yellow-300 ml-1.5 font-bold">by iBrainLabs</span>
+                <span className="text-[#38BDF8] ml-2 font-medium">Business, Made Intelligent.</span>
               </div>
             </div>
 
@@ -1078,7 +1093,7 @@ function LoginForm() {
               <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             </div>
 
-            <div className="text-center md:text-right text-[11px] text-white/60">
+            <div className="text-center md:text-right text-[11px] text-white/50">
               © 2026 OneAmple by iBrainLabs. All rights reserved.
             </div>
           </div>

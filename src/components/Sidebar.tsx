@@ -86,22 +86,18 @@ export function Sidebar() {
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-white select-none">
-      {/* 1. Top Logo Branding (iBrainLabs) */}
+      {/* 1. Top Logo Branding (OneAmple) */}
       <div className="px-3.5 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
         <Link href="/" className="flex-1 group">
-          <div className="w-full flex flex-col items-center justify-center px-3 py-1.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs group-hover:border-slate-300 group-hover:shadow-xs transition-all">
+          <div className="w-full flex items-center justify-center p-2 rounded-2xl bg-white border border-slate-200/90 shadow-2xs group-hover:border-slate-300 group-hover:shadow-xs transition-all">
             <Image
-              src="/brand/ibrainlabs-logo.png"
-              alt="iBrainLabs"
-              width={200}
-              height={45}
-              className="h-8 sm:h-9 w-full object-contain group-hover:scale-102 transition-transform"
+              src="/brand/oneample-logo.png"
+              alt="OneAmple — Business, Made Intelligent."
+              width={220}
+              height={55}
+              className="h-9 w-auto object-contain group-hover:scale-102 transition-transform"
               priority
             />
-            <div className="w-full mt-1 pt-1 border-t border-slate-100 flex items-center justify-between text-[11px]">
-              <span className="font-heading font-black text-brand-purple tracking-tight">OneAmple</span>
-              <span className="text-[10px] text-slate-400 font-medium">by iBrainLabs</span>
-            </div>
           </div>
         </Link>
 
@@ -124,9 +120,9 @@ export function Sidebar() {
       {/* 3. Navigation Links (Middle Scrollable) */}
       <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-1 custom-scrollbar">
         {isAdmin && (
-          <div className="px-3 py-1 mb-1 flex items-center justify-between text-[10px] font-bold text-brand-purple uppercase tracking-wider">
+          <div className="px-3 py-1 mb-1 flex items-center justify-between text-[10px] font-bold text-[#0066FF] uppercase tracking-wider">
             <span>Admin Suite</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-brand-purple/10 text-brand-purple font-extrabold text-[9px]">
+            <span className="px-1.5 py-0.2 rounded-full bg-blue-100 text-[#0066FF] font-extrabold text-[9px]">
               Super Admin
             </span>
           </div>
@@ -142,14 +138,12 @@ export function Sidebar() {
               href={item.href}
               className={`flex items-center justify-between px-3 py-2 rounded-xl font-heading text-xs font-semibold transition-all duration-150 ${
                 isActive
-                  ? isAdmin
-                    ? "bg-brand-purple text-white shadow-xs"
-                    : "bg-slate-900 text-white shadow-xs"
-                  : "text-slate-700 hover:text-slate-900 hover:bg-slate-100/80"
+                  ? "bg-[#03173D] text-white shadow-xs"
+                  : "text-slate-700 hover:text-[#03173D] hover:bg-blue-50/70"
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <Icon className={`w-4 h-4 ${isActive ? "text-white" : isAdmin ? "text-brand-purple" : "text-slate-500"}`} />
+                <Icon className={`w-4 h-4 ${isActive ? "text-[#0066FF]" : "text-slate-500"}`} />
                 <span>{item.label}</span>
               </div>
               {item.badge && (
@@ -217,11 +211,11 @@ export function Sidebar() {
       <header className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 h-16 flex items-center justify-between shadow-2xs">
         <Link href="/" className="flex items-center gap-2">
           <Image
-            src="/brand/ibrainlabs-logo.png"
-            alt="iBrainLabs"
+            src="/brand/oneample-logo.png"
+            alt="OneAmple"
             width={160}
-            height={38}
-            className="h-8 sm:h-9 w-auto object-contain"
+            height={40}
+            className="h-8 w-auto object-contain"
             priority
           />
         </Link>

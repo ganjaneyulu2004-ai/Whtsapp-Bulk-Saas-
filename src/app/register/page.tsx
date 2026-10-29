@@ -89,28 +89,28 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 circuit-svg-bg relative">
-      <div className="w-full max-w-xl bg-white rounded-3xl shadow-card border border-brand-soft p-8 sm:p-10 relative z-10">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] relative">
+      <div className="w-full max-w-xl bg-white rounded-3xl shadow-card border border-slate-200/80 p-8 sm:p-10 relative z-10">
         
         {/* Header with Logo */}
         <div className="text-center mb-8">
-          <div className="inline-block bg-brand-light p-3 rounded-2xl border border-brand-soft mb-3 shadow-xs">
+          <div className="inline-block p-2 rounded-2xl bg-white border border-slate-200/90 mb-3 shadow-2xs">
             <Image
-              src="/brand/ibrainlabs-logo.png"
-              alt="iBrainLabs"
-              width={180}
-              height={50}
-              className="h-9 w-auto object-contain mx-auto"
+              src="/brand/oneample-logo.png"
+              alt="OneAmple — Business, Made Intelligent."
+              width={220}
+              height={55}
+              className="h-10 w-auto object-contain mx-auto"
               priority
             />
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#0066FF] border border-blue-200/80 mb-2">
             OneAmple Cloud Platform
           </div>
-          <h1 className="text-2xl sm:text-3xl font-heading font-black text-text-main">
+          <h1 className="text-2xl sm:text-3xl font-heading font-black text-[#03173D]">
             Create OneAmple Account
           </h1>
-          <p className="text-sm text-slate-muted mt-1 font-medium">
+          <p className="text-sm text-slate-500 mt-1 font-medium">
             OneAmple by iBrainLabs – Start reaching customers with official WhatsApp campaigns & AI automation.
           </p>
         </div>
@@ -269,7 +269,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-6 rounded-2xl bg-[#5A237A] hover:bg-[#471A62] text-white font-heading font-semibold text-sm shadow-xs transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 active:scale-[0.99]"
+              className="w-full py-3.5 px-6 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-heading font-semibold text-sm shadow-xs transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 active:scale-[0.99]"
             >
               {loading ? (
                 <>
@@ -283,12 +283,12 @@ export default function RegisterPage() {
           </div>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-brand-soft text-center">
-          <p className="text-sm text-slate-muted">
+        <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+          <p className="text-sm text-slate-500">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-heading font-semibold text-brand-purple hover:text-brand-blue transition-colors underline-offset-4 hover:underline"
+              className="font-heading font-semibold text-[#0066FF] hover:text-[#03173D] transition-colors underline-offset-4 hover:underline"
             >
               Sign In
             </Link>

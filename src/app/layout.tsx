@@ -9,15 +9,15 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: "#6B2D8F",
+  themeColor: "#03173D",
 };
 
 export const metadata: Metadata = {
   title: {
-    default: "OneAmple by iBrainLabs | Meta WhatsApp Marketing Engine",
+    default: "OneAmple — Business, Made Intelligent. | by iBrainLabs",
     template: "OneAmple | %s",
   },
-  description: "OneAmple by iBrainLabs – Official Meta WhatsApp Cloud API Marketing Engine, 24/7 Smart AI Auto-Bookings & Lead CRM for Modern Businesses.",
+  description: "OneAmple — Business, Made Intelligent. Official Meta WhatsApp Cloud API Marketing Engine, 24/7 Smart AI Auto-Bookings & Lead CRM for Modern Businesses.",
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",

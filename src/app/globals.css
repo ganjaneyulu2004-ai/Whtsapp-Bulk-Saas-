@@ -49,18 +49,18 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
   background-color: #F8F7FC;
 }
 
-/* Brand Button & Background Utilities (Modern Solid Aesthetic) */
+/* Brand Button & Background Utilities (OneAmple Navy & Electric Blue Aesthetic) */
 .bg-brand-gradient {
-  background-color: #5A237A;
+  background-color: #0066FF;
 }
 
 .text-brand-gradient {
-  color: #6B2D8F;
+  color: #0066FF;
 }
 
 @supports (-webkit-background-clip: text) or (background-clip: text) {
   .text-brand-gradient {
-    background: linear-gradient(135deg, #6B2D8F 0%, #4A66B0 100%);
+    background: linear-gradient(135deg, #03173D 0%, #0066FF 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -73,12 +73,12 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
   height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: #F4F1FA;
+  background: #F1F5F9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D5CEE8;
+  background: #CBD5E1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #6B2D8F;
+  background: #0066FF;
 }
