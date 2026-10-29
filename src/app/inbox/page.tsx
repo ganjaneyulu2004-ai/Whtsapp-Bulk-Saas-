@@ -36,7 +36,7 @@ import {
   MousePointerClick
 } from "lucide-react";
 
-export const LEAD_TAGS: Record<string, { label: string; emoji: string; badgeClass: string; dotColor: string }> = {
+const LEAD_TAGS: Record<string, { label: string; emoji: string; badgeClass: string; dotColor: string }> = {
   ALL: { label: "All Chats", emoji: "💬", badgeClass: "bg-slate-100 text-slate-700 border-slate-300", dotColor: "#64748b" },
   HOT_LEAD: { label: "Hot Lead", emoji: "🔥", badgeClass: "bg-rose-50 text-rose-700 border-rose-200", dotColor: "#e11d48" },
   WEDDING_ENQUIRY: { label: "Wedding Enquiry", emoji: "💍", badgeClass: "bg-purple-50 text-purple-700 border-purple-200", dotColor: "#9333ea" },
@@ -46,7 +46,7 @@ export const LEAD_TAGS: Record<string, { label: string; emoji: string; badgeClas
   NEW_ENQUIRY: { label: "New Enquiry", emoji: "🆕", badgeClass: "bg-slate-50 text-slate-700 border-slate-200", dotColor: "#64748b" },
 };
 
-export const PRESET_INTERACTIVE_BUTTONS = [
+const PRESET_INTERACTIVE_BUTTONS = [
   { id: "btn_book", title: "📅 Book Slot" },
   { id: "btn_packages", title: "🏷️ View Packages" },
   { id: "btn_call", title: "📞 Call Studio" },
