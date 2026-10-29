@@ -402,129 +402,76 @@ function LoginForm() {
           {/* The Iconic iBrainLabs Two-Column Split Card */}
           <div id="login-card" className="w-full max-w-5xl mx-auto bg-white rounded-3xl shadow-card border border-brand-soft overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10 scroll-mt-20">
             
-            {/* Left: Solid Royal Purple Panel (#3B1553) - Zero White Box Logo */}
+            {/* Left: Solid Royal Purple Panel (#3B1553) - Simple & Clean Design */}
             <div className="hidden lg:flex lg:col-span-5 bg-[#3B1553] p-8 sm:p-10 text-white flex-col justify-between relative overflow-hidden">
               {/* Subtle Circuit Overlay Lines */}
-              <div className="absolute inset-0 opacity-15 pointer-events-none">
+              <div className="absolute inset-0 opacity-10 pointer-events-none">
                 <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                   <line x1="20" y1="40" x2="280" y2="40" stroke="#FFFFFF" strokeWidth="2" />
-                  <circle cx="280" cy="40" r="5" fill="#FFFFFF" />
-                  <line x1="280" y1="40" x2="280" y2="180" stroke="#FFFFFF" strokeWidth="2" />
-                  <circle cx="280" cy="180" r="5" fill="#FFFFFF" />
-                  <line x1="40" y1="240" x2="200" y2="240" stroke="#FFFFFF" strokeWidth="2" />
-                  <circle cx="40" cy="240" r="5" fill="#FFFFFF" />
-                  <line x1="200" y1="240" x2="320" y2="360" stroke="#FFFFFF" strokeWidth="2" />
-                  <circle cx="320" cy="360" r="5" fill="#FFFFFF" />
+                  <circle cx="280" cy="40" r="4" fill="#FFFFFF" />
+                  <line x1="280" y1="40" x2="280" y2="240" stroke="#FFFFFF" strokeWidth="2" />
+                  <circle cx="280" cy="240" r="4" fill="#FFFFFF" />
                 </svg>
               </div>
 
-              <div className="relative z-10 space-y-5">
-                {/* Meta Verified Pill at top (No white image box!) */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="relative z-10 space-y-6">
+                {/* Meta Verified Live Badge */}
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     Meta Cloud API Live
                   </span>
-                  <span className="text-[11px] font-semibold text-purple-200">v2.0</span>
+                  <span className="text-xs font-semibold text-purple-200">v2.0</span>
                 </div>
 
-                {/* Bold Clean Typography (No clunky white logo box) */}
+                {/* Brand Typography */}
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-heading font-black tracking-tight text-white">
                     OneAmple
                   </h1>
-                  <p className="text-sm font-bold text-yellow-300 mt-0.5">
+                  <p className="text-sm font-semibold text-yellow-300 mt-1">
                     by iBrainLabs
                   </p>
-                  <p className="text-xs text-white/75 font-medium mt-0.5">
+                  <p className="text-xs text-white/70 font-medium mt-0.5">
                     Expertise In Every Execution
                   </p>
                 </div>
 
-                {/* Subtitle */}
-                <p className="text-xs text-white/85 leading-relaxed border-l-2 border-yellow-400/80 pl-3">
-                  Official Meta Verified WhatsApp Cloud Marketing, 24/7 Smart AI Auto-Booking & Lead CRM Engine.
+                {/* Clean Subtitle */}
+                <p className="text-sm text-white/85 leading-relaxed font-normal">
+                  Official Meta Verified WhatsApp Cloud Marketing, 24/7 Smart AI Auto-Bookings & Lead CRM Engine.
                 </p>
 
-                {/* 5 Core Feature Cards */}
-                <div className="space-y-2.5 pt-1">
-                  <div className="flex items-start gap-2.5 p-2 rounded-xl bg-white/5 border border-white/10">
-                    <div className="w-6 h-6 rounded-lg bg-yellow-400/20 text-yellow-300 flex items-center justify-center shrink-0 mt-0.5">
-                      <Zap className="w-3.5 h-3.5" />
+                {/* 3 Simple, Clean Highlights */}
+                <div className="space-y-3.5 pt-2">
+                  <div className="flex items-center gap-3 text-sm text-white/90">
+                    <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0 text-yellow-300">
+                      <Zap className="w-4 h-4" />
                     </div>
-                    <div>
-                      <h4 className="font-heading font-semibold text-xs text-white">
-                        Official Meta Cloud API
-                      </h4>
-                      <p className="text-[11px] text-white/70 leading-tight">
-                        100% Ban-free high-speed broadcasting (20 msgs/sec).
-                      </p>
-                    </div>
+                    <span className="font-medium">Official Meta Cloud API • 100% Ban-Free</span>
                   </div>
 
-                  <div className="flex items-start gap-2.5 p-2 rounded-xl bg-white/5 border border-white/10">
-                    <div className="w-6 h-6 rounded-lg bg-purple-400/20 text-purple-300 flex items-center justify-center shrink-0 mt-0.5">
-                      <Bot className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-3 text-sm text-white/90">
+                    <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0 text-purple-300">
+                      <Bot className="w-4 h-4" />
                     </div>
-                    <div>
-                      <h4 className="font-heading font-semibold text-xs text-white">
-                        24/7 Smart AI Assistant
-                      </h4>
-                      <p className="text-[11px] text-white/70 leading-tight">
-                        Multilingual Telugu & English AI bookings & package quotes.
-                      </p>
-                    </div>
+                    <span className="font-medium">24/7 Smart AI Auto-Bookings (Telugu & English)</span>
                   </div>
 
-                  <div className="flex items-start gap-2.5 p-2 rounded-xl bg-white/5 border border-white/10">
-                    <div className="w-6 h-6 rounded-lg bg-cyan-400/20 text-cyan-300 flex items-center justify-center shrink-0 mt-0.5">
-                      <MousePointerClick className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-3 text-sm text-white/90">
+                    <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0 text-cyan-300">
+                      <MousePointerClick className="w-4 h-4" />
                     </div>
-                    <div>
-                      <h4 className="font-heading font-semibold text-xs text-white">
-                        Interactive Click Buttons
-                      </h4>
-                      <p className="text-[11px] text-white/70 leading-tight">
-                        One-tap quick reply buttons: Book Slot, View Packages & Contact Us.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 p-2 rounded-xl bg-white/5 border border-white/10">
-                    <div className="w-6 h-6 rounded-lg bg-emerald-400/20 text-emerald-300 flex items-center justify-center shrink-0 mt-0.5">
-                      <Tag className="w-3.5 h-3.5" />
-                    </div>
-                    <div>
-                      <h4 className="font-heading font-semibold text-xs text-white">
-                        Lead Stage CRM & Filters
-                      </h4>
-                      <p className="text-[11px] text-white/70 leading-tight">
-                        Segment chats by Hot Lead, Wedding Enquiry, Advance Paid & VIP Client.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 p-2 rounded-xl bg-white/5 border border-white/10">
-                    <div className="w-6 h-6 rounded-lg bg-blue-400/20 text-blue-300 flex items-center justify-center shrink-0 mt-0.5">
-                      <BarChart3 className="w-3.5 h-3.5" />
-                    </div>
-                    <div>
-                      <h4 className="font-heading font-semibold text-xs text-white">
-                        Real-Time Read Tracking
-                      </h4>
-                      <p className="text-[11px] text-white/70 leading-tight">
-                        Live blue delivery ticks & 1-click smart re-engagement for unread users.
-                      </p>
-                    </div>
+                    <span className="font-medium">Interactive Click Buttons & Lead CRM</span>
                   </div>
                 </div>
               </div>
 
               {/* Bottom Copyright */}
-              <div className="relative z-10 pt-4 mt-4 border-t border-white/15 flex items-center justify-between text-[11px] text-white/70">
+              <div className="relative z-10 pt-6 mt-6 border-t border-white/15 flex items-center justify-between text-xs text-white/70">
                 <span>© 2026 OneAmple by iBrainLabs</span>
-                <span className="flex items-center gap-1 text-emerald-300 font-medium">
-                  <ShieldCheck className="w-3.5 h-3.5" />
+                <span className="flex items-center gap-1.5 text-emerald-300 font-medium">
+                  <ShieldCheck className="w-4 h-4" />
                   Meta Verified
                 </span>
               </div>
