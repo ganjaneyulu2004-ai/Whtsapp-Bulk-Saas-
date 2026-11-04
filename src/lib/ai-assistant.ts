@@ -90,10 +90,13 @@ export async function handleIncomingAiReply({
       .map((m) => `${m.customerName || "Customer"}: "${m.messageText}"`)
       .join("\n");
 
-    // 3. Setup Gemini AI with candidate models & robust fallbacks
-    const fallbackKey = Buffer.from("QVEuQWI4Uk42SWtsVmFZZGJtS24yLS1PS3F6U09FQXBsWGVHeHFHR3E2c1lybGlXelhmbGc=", "base64").toString("utf-8");
-    const apiKey = process.env.GEMINI_API_KEY || fallbackKey;
-    const genAI = new GoogleGenerativeAI(apiKey);
+    // 3. Setup Gemini AI with candidate models (loaded strictly from environment)
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey.trim() === "") {
+      console.warn("⚠️ GEMINI_API_KEY is missing in environment. Skipping AI auto-reply.");
+      return null;
+    }
+    const genAI = new GoogleGenerativeAI(apiKey.trim());
 
     const businessName = business.name || "Our Business";
     const category = business.category || "Service Business";
