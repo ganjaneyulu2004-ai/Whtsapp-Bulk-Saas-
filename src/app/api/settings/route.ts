@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
+import { encryptToken, decryptToken, maskToken } from "@/lib/encryption";
 
 export async function GET() {
   try {
@@ -17,9 +18,16 @@ export async function GET() {
       orderBy: { updatedAt: "desc" },
     });
 
+    const safeConfig = config
+      ? {
+          ...config,
+          waToken: maskToken(config.waToken),
+        }
+      : null;
+
     return NextResponse.json({
       business,
-      whatsappConfig: config,
+      whatsappConfig: safeConfig,
       optOutCount,
       optOutContacts,
     });
@@ -80,16 +88,29 @@ export async function PUT(req: Request) {
       },
     });
 
+    // Check existing configuration
+    const existingConfig = await prisma.whatsAppConfig.findUnique({
+      where: { businessId: business.id },
+    });
+
+    // Resolve effective token:
+    // If client sent a new plain token (not masked with '...'), use it and encrypt it.
+    // If client sent a masked token or omitted it, keep existing encrypted token.
+    const isNewTokenProvided = typeof waToken === "string" && waToken.trim() !== "" && !waToken.includes("...");
+    const effectivePlainToken = isNewTokenProvided
+      ? waToken.trim()
+      : decryptToken(existingConfig?.waToken);
+
     // Fetch WhatsApp details from Meta if token & phoneId provided
     let displayPhoneNumber: string | undefined;
     let verifiedName: string | undefined;
     let qualityRating: string | undefined;
 
-    if (waToken && waPhoneNumberId && !waToken.startsWith("EAAG...")) {
+    if (effectivePlainToken && waPhoneNumberId && !effectivePlainToken.startsWith("EAAG...")) {
       try {
         const version = waApiVersion || "v26.0";
         const metaRes = await fetch(`https://graph.facebook.com/${version}/${waPhoneNumberId}`, {
-          headers: { Authorization: `Bearer ${waToken}` },
+          headers: { Authorization: `Bearer ${effectivePlainToken}` },
         });
         if (metaRes.ok) {
           const metaData = await metaRes.json();
@@ -100,11 +121,22 @@ export async function PUT(req: Request) {
       } catch {}
     }
 
+    // Determine encrypted token to write:
+    // If new token is provided -> encrypt it.
+    // If empty string explicitly passed -> clear it (null).
+    // If masked or undefined -> keep existing.
+    let tokenToWrite: string | null | undefined = undefined;
+    if (isNewTokenProvided) {
+      tokenToWrite = encryptToken(effectivePlainToken);
+    } else if (waToken === "") {
+      tokenToWrite = null;
+    }
+
     // Update WhatsApp credentials
     const updatedConfig = await prisma.whatsAppConfig.upsert({
       where: { businessId: business.id },
       update: {
-        waToken: waToken !== undefined ? waToken : undefined,
+        ...(tokenToWrite !== undefined ? { waToken: tokenToWrite } : {}),
         waPhoneNumberId: waPhoneNumberId !== undefined ? waPhoneNumberId : undefined,
         waBusinessAccountId: waBusinessAccountId !== undefined ? waBusinessAccountId : undefined,
         waApiVersion: waApiVersion || "v26.0",
@@ -112,12 +144,12 @@ export async function PUT(req: Request) {
         displayPhoneNumber: displayPhoneNumber || undefined,
         verifiedName: verifiedName || undefined,
         qualityRating: qualityRating || undefined,
-        isConnected: !!(waToken && waPhoneNumberId),
+        isConnected: !!((tokenToWrite !== undefined ? tokenToWrite : existingConfig?.waToken) && (waPhoneNumberId || existingConfig?.waPhoneNumberId)),
         connectionMethod: "MANUAL",
       },
       create: {
         businessId: business.id,
-        waToken,
+        waToken: tokenToWrite || null,
         waPhoneNumberId,
         waBusinessAccountId,
         waApiVersion: waApiVersion || "v26.0",
@@ -125,12 +157,17 @@ export async function PUT(req: Request) {
         displayPhoneNumber,
         verifiedName,
         qualityRating,
-        isConnected: !!(waToken && waPhoneNumberId),
+        isConnected: !!(tokenToWrite && waPhoneNumberId),
         connectionMethod: "MANUAL",
       },
     });
 
-    return NextResponse.json({ business: updatedBusiness, whatsappConfig: updatedConfig });
+    const safeConfig = {
+      ...updatedConfig,
+      waToken: maskToken(updatedConfig.waToken),
+    };
+
+    return NextResponse.json({ business: updatedBusiness, whatsappConfig: safeConfig });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

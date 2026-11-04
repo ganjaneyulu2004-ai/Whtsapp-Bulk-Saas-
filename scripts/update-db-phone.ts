@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { encryptToken } from "../src/lib/encryption";
 const prisma = new PrismaClient();
 
 async function updateDbPhone() {
@@ -9,14 +10,14 @@ async function updateDbPhone() {
       update: {
         waPhoneNumberId: "1182593274945416",
         waBusinessAccountId: "1769046204220658",
-        waToken: process.env.WA_TOKEN,
+        waToken: encryptToken(process.env.WA_TOKEN || null),
         isConnected: true,
       },
       create: {
         businessId: business.id,
         waPhoneNumberId: "1182593274945416",
         waBusinessAccountId: "1769046204220658",
-        waToken: process.env.WA_TOKEN,
+        waToken: encryptToken(process.env.WA_TOKEN || null),
         isConnected: true,
       },
     });

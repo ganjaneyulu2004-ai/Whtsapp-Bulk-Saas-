@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
+import { decryptToken } from "@/lib/encryption";
 
 // 3.5-second deduplication cache to prevent accidental double-submits from client
 const recentPersonalSends = new Map<string, { timestamp: number; response: any }>();
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
     const config: any = business.whatsappConfig || {};
 
     const waConfig = {
-      waToken: config.waToken || undefined,
+      waToken: decryptToken(config.waToken) || undefined,
       waPhoneNumberId: config.waPhoneNumberId || undefined,
       waApiVersion: process.env.WA_API_VERSION || config.waApiVersion || "v26.0",
     };

@@ -43,17 +43,18 @@ export default function TemplatesPage() {
 
     try {
       const cleanName = templateName.toLowerCase().replace(/[^a-z0-9_]/g, "_");
-      const res = await fetch("https://graph.facebook.com/v20.0/2367270804076581/message_templates", {
+      const res = await fetch("/api/templates", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer EAAOe4PppfZCIBSyhPLLzoYmzWUB35U5XgC3RezCojrqvjqdJzRYHoaFSWxoN4PDZBMTlsL2g8zEZCHkqrZAWnirvjSccc6ZAjFlzJjV7JtCdVwoWRPYEoFaQ6yQW3psyxIj7gA69buLULa1X3zYZBv0PkFiFqbvWYMaWrDDUzYK2sledzyJjl0RXJCN7Ou7YuADAZDZD",
+
         },
         body: JSON.stringify({
           name: cleanName,
           category: category,
           language: language,
-          components: [{ type: "BODY", text: bodyText }],
+          bodyText: bodyText,
+          headerType: "NONE",
         }),
       });
 

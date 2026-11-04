@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { encryptToken } from "@/lib/encryption";
 
 export const dynamic = "force-dynamic";
 
@@ -123,7 +124,7 @@ export async function POST(req: Request) {
     });
 
     // 11. Ensure / Reset Master WhatsApp Config
-    const waToken = process.env.WA_TOKEN || null;
+    const waToken = encryptToken(process.env.WA_TOKEN || null);
     const waPhoneId = process.env.WA_PHONE_NUMBER_ID || "1443849605471143";
     const waAccountId = process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581";
 

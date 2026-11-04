@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { encryptToken } from "../src/lib/encryption";
 const prisma = new PrismaClient();
 
 async function updateDbConfig() {
@@ -8,13 +9,13 @@ async function updateDbConfig() {
       where: { businessId: business.id },
       update: {
         waBusinessAccountId: "1769046204220658",
-        waToken: process.env.WA_TOKEN,
+        waToken: encryptToken(process.env.WA_TOKEN || null),
         isConnected: true,
       },
       create: {
         businessId: business.id,
         waBusinessAccountId: "1769046204220658",
-        waToken: process.env.WA_TOKEN,
+        waToken: encryptToken(process.env.WA_TOKEN || null),
         isConnected: true,
       },
     });

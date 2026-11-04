@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
+import { decryptToken } from "./encryption";
 
 interface GenerateAiReplyParams {
   fromPhone: string;
@@ -223,7 +224,7 @@ Write your short, warm, human WhatsApp reply now:
     const config = business.whatsappConfig || {};
     const sendResult = await sendWhatsAppTemplateMessage(
       {
-        waToken: config.waToken || undefined,
+        waToken: decryptToken(config.waToken) || undefined,
         waPhoneNumberId: config.waPhoneNumberId || undefined,
         waApiVersion: process.env.WA_API_VERSION || config.waApiVersion || "v26.0",
       },
@@ -243,7 +244,7 @@ Write your short, warm, human WhatsApp reply now:
       console.log(`⚠️ Direct AI message failed (${sendResult.errorMessage}). Retrying via verified template...`);
       const fallbackRes = await sendWhatsAppTemplateMessage(
         {
-          waToken: config.waToken || undefined,
+          waToken: decryptToken(config.waToken) || undefined,
           waPhoneNumberId: config.waPhoneNumberId || undefined,
           waApiVersion: process.env.WA_API_VERSION || config.waApiVersion || "v26.0",
         },

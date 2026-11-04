@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness, getCurrentUserSession } from "@/lib/session";
+import { encryptToken } from "@/lib/encryption";
 
 export async function POST(req: Request) {
   try {
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
     const config = await prisma.whatsAppConfig.upsert({
       where: { businessId: business.id },
       update: {
-        waToken: finalToken || undefined,
+        waToken: encryptToken(finalToken) || undefined,
         waPhoneNumberId: targetPhoneNumberId,
         waBusinessAccountId: targetWabaId,
         waApiVersion: apiVersion,
@@ -105,7 +106,7 @@ export async function POST(req: Request) {
       },
       create: {
         businessId: business.id,
-        waToken: finalToken,
+        waToken: encryptToken(finalToken),
         waPhoneNumberId: targetPhoneNumberId,
         waBusinessAccountId: targetWabaId,
         waApiVersion: apiVersion,

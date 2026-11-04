@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
+import { decryptToken } from "@/lib/encryption";
 
-const FALLBACK_TOKEN = "EAAOe4PppfZCIBSyhPLLzoYmzWUB35U5XgC3RezCojrqvjqdJzRYHoaFSWxoN4PDZBMTlsL2g8zEZCHkqrZAWnirvjSccc6ZAjFlzJjV7JtCdVwoWRPYEoFaQ6yQW3psyxIj7gA69buLULa1X3zYZBv0PkFiFqbvWYMaWrDDUzYK2sledzyJjl0RXJCN7Ou7YuADAZDZD";
-const FALLBACK_PHONE_ID = "1443849605471143";
+const FALLBACK_TOKEN = process.env.WA_TOKEN || "";
+const FALLBACK_PHONE_ID = process.env.WA_PHONE_NUMBER_ID || "";
 
 export async function POST(req: Request) {
   try {
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
     const targetPhone = rawPhone;
 
     const config: any = business.whatsappConfig || {};
-    const token = config.waToken || process.env.WA_TOKEN || FALLBACK_TOKEN;
+    const token = decryptToken(config.waToken) || process.env.WA_TOKEN || FALLBACK_TOKEN;
     const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID || FALLBACK_PHONE_ID;
     const apiVersion = process.env.WA_API_VERSION || config.waApiVersion || "v20.0";
 

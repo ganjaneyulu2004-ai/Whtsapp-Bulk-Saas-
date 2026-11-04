@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
+import { encryptToken, decryptToken, maskToken } from "@/lib/encryption";
 
 export const dynamic = "force-dynamic";
 
@@ -173,7 +174,7 @@ export async function POST(req: Request) {
           qualityRating: "High (Green)",
           messagingLimitTier: "TIER_250",
           waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-          waToken: process.env.WA_TOKEN || null,
+          waToken: encryptToken(process.env.WA_TOKEN || null),
           waApiVersion: "v20.0",
         },
         create: {
@@ -186,7 +187,7 @@ export async function POST(req: Request) {
           qualityRating: "High (Green)",
           messagingLimitTier: "TIER_250",
           waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-          waToken: process.env.WA_TOKEN || null,
+          waToken: encryptToken(process.env.WA_TOKEN || null),
           waApiVersion: "v20.0",
         },
       });
@@ -194,7 +195,7 @@ export async function POST(req: Request) {
       return NextResponse.json({
         success: true,
         message: `Activated ${brandDisplay} (${phoneDisplay}) successfully with Phone Number ID ${cleanPhoneId}!`,
-        config: updated,
+        config: { ...updated, waToken: maskToken(updated.waToken) },
       });
     }
 
@@ -227,7 +228,7 @@ export async function POST(req: Request) {
 
       const pingResult = await sendWhatsAppTemplateMessage(
         {
-          waToken: cfg.waToken || process.env.WA_TOKEN || "",
+          waToken: decryptToken(cfg.waToken) || process.env.WA_TOKEN || "",
           waPhoneNumberId: cfg.waPhoneNumberId,
           waApiVersion: cfg.waApiVersion || "v20.0",
         },

@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import { encryptToken } from "./encryption";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -67,7 +68,7 @@ export const authOptions: NextAuthOptions = {
                 connectionMethod: "OFFICIAL_OFFICE_API",
                 waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
                 waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-                waToken: process.env.WA_TOKEN || null,
+                waToken: encryptToken(process.env.WA_TOKEN || null),
               },
             });
 

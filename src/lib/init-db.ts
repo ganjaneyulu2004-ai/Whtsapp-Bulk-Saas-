@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
+import { encryptToken } from "./encryption";
 
 export async function initializeDatabase() {
   const ddlStatements = [
@@ -233,7 +234,7 @@ export async function initializeDatabase() {
     await prisma.whatsAppConfig.create({
       data: {
         businessId: business.id,
-        waToken: process.env.WA_TOKEN || null,
+        waToken: encryptToken(process.env.WA_TOKEN || null),
         waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
         waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
         waApiVersion: process.env.WA_API_VERSION || "v26.0",
@@ -290,7 +291,7 @@ export async function initializeDatabase() {
       displayPhoneNumber: null,
       waPhoneNumberId: null,
       waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-      waToken: process.env.WA_TOKEN || null,
+      waToken: encryptToken(process.env.WA_TOKEN || null),
       qualityRating: "High (Green)",
       messagingLimitTier: "TIER_250",
     },
@@ -301,7 +302,7 @@ export async function initializeDatabase() {
       displayPhoneNumber: null,
       waPhoneNumberId: null,
       waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-      waToken: process.env.WA_TOKEN || null,
+      waToken: encryptToken(process.env.WA_TOKEN || null),
       qualityRating: "High (Green)",
       messagingLimitTier: "TIER_250",
     },

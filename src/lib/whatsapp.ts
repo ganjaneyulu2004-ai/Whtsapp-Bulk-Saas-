@@ -1,3 +1,5 @@
+import { decryptToken } from "./encryption";
+
 export interface MetaTemplatePayload {
   name: string;
   category: "MARKETING" | "UTILITY";
@@ -46,7 +48,7 @@ export async function submitTemplateToMeta(
   },
   payload: MetaTemplatePayload
 ): Promise<{ success: boolean; metaTemplateId?: string; status: string; error?: string }> {
-  const token = config.waToken || process.env.WA_TOKEN;
+  const token = decryptToken(config.waToken) || process.env.WA_TOKEN;
   const wabaId = config.waBusinessAccountId || process.env.WA_BUSINESS_ACCOUNT_ID;
   const version = config.waApiVersion || process.env.WA_API_VERSION || "v26.0";
 
@@ -92,8 +94,8 @@ export async function submitTemplateToMeta(
   }
 }
 
-const FALLBACK_WA_TOKEN = process.env.WA_TOKEN || "EAAOe4PppfZCIBSw8bnTbkrI0EWU8D68qhy2lz8Kh5uPuXIiiHPccosU1UV9qvtVhgrWUCBlHNQJG4wmrqf2WyFFMg7vBqtZAXphqcqr8L2xevpjtb42dWNSfagbV02Y3719EM2EPJ0hcZAvQ2VAelZBDWVWrk6zgMdbbvvjdemZCsWQSyahiowxZCPqAHMxcumZAQZDZD";
-const FALLBACK_WA_PHONE_ID = process.env.WA_PHONE_NUMBER_ID || "1416726644852842";
+const FALLBACK_WA_TOKEN = process.env.WA_TOKEN || "";
+const FALLBACK_WA_PHONE_ID = process.env.WA_PHONE_NUMBER_ID || "";
 
 export async function uploadMediaToMeta(
   config: {
@@ -104,7 +106,7 @@ export async function uploadMediaToMeta(
   base64OrBuffer: string | Buffer,
   mimeType = "image/png"
 ): Promise<{ success: boolean; mediaId?: string; error?: string }> {
-  const token = config.waToken || process.env.WA_TOKEN || FALLBACK_WA_TOKEN;
+  const token = decryptToken(config.waToken) || process.env.WA_TOKEN || FALLBACK_WA_TOKEN;
   const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID || FALLBACK_WA_PHONE_ID;
   const version = process.env.WA_API_VERSION || config.waApiVersion || "v26.0";
 
@@ -254,7 +256,7 @@ export async function sendWhatsAppTemplateMessage(
     buttons?: Array<{ id: string; title: string }>;
   }
 ): Promise<{ success: boolean; waMessageId?: string; errorCode?: string; errorMessage?: string }> {
-  const token = config.waToken || process.env.WA_TOKEN || FALLBACK_WA_TOKEN;
+  const token = decryptToken(config.waToken) || process.env.WA_TOKEN || FALLBACK_WA_TOKEN;
   const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID || FALLBACK_WA_PHONE_ID;
   const version = process.env.WA_API_VERSION || config.waApiVersion || "v26.0";
 
@@ -580,7 +582,8 @@ export async function testWhatsAppConnection(config: {
   waPhoneNumberId: string;
   waApiVersion?: string;
 }): Promise<{ ok: boolean; message: string }> {
-  if (!config.waToken || !config.waPhoneNumberId) {
+  const rawToken = decryptToken(config.waToken) || config.waToken;
+  if (!rawToken || !config.waPhoneNumberId) {
     return { ok: false, message: "Missing Token or Phone Number ID." };
   }
   if (config.waToken.startsWith("EAAG...")) {
@@ -591,7 +594,7 @@ export async function testWhatsAppConnection(config: {
     const version = config.waApiVersion || process.env.WA_API_VERSION || "v26.0";
     const url = `https://graph.facebook.com/${version}/${config.waPhoneNumberId}`;
     const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${config.waToken}` },
+      headers: { Authorization: `Bearer ${rawToken}` },
     });
     const data = await res.json();
     if (res.ok) {

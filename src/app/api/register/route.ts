@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { encryptToken } from "@/lib/encryption";
 
 export async function POST(req: Request) {
   try {
@@ -83,7 +84,7 @@ export async function POST(req: Request) {
         qualityRating: "High (Green)",
         connectionMethod: "PENDING_ACTIVATION",
         waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-        waToken: process.env.WA_TOKEN || null,
+        waToken: encryptToken(process.env.WA_TOKEN || null),
       },
     });
 

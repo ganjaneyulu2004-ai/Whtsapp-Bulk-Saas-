@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth";
 import { prisma } from "./prisma";
+import { encryptToken } from "./encryption";
 
 export async function getCurrentBusiness() {
   try {
@@ -47,7 +48,7 @@ export async function getCurrentBusiness() {
               connectionMethod: "OFFICIAL_OFFICE_API",
               waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
               waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-              waToken: process.env.WA_TOKEN || null,
+              waToken: encryptToken(process.env.WA_TOKEN || null),
               waApiVersion: "v26.0",
             },
           });
@@ -98,7 +99,7 @@ export async function getCurrentBusiness() {
               connectionMethod: "NONE",
               waPhoneNumberId: null,
               waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-              waToken: process.env.WA_TOKEN || null,
+              waToken: encryptToken(process.env.WA_TOKEN || null),
               waApiVersion: "v20.0",
             },
           });

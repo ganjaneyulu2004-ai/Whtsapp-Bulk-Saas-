@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { submitTemplateToMeta } from "@/lib/whatsapp";
+import { decryptToken } from "@/lib/encryption";
 
 export async function GET() {
   try {
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
     // Submit to Meta WhatsApp Graph API
     const metaRes = await submitTemplateToMeta(
       {
-        waToken: business.whatsappConfig?.waToken || undefined,
+        waToken: decryptToken(business.whatsappConfig?.waToken) || undefined,
         waBusinessAccountId: business.whatsappConfig?.waBusinessAccountId || undefined,
         waApiVersion: business.whatsappConfig?.waApiVersion || undefined,
       },

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
+import { encryptToken } from "@/lib/encryption";
 
 export const dynamic = "force-dynamic";
 
@@ -205,7 +206,7 @@ export async function GET(req: Request) {
           connectionMethod: "NONE",
           waPhoneNumberId: null,
           waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-          waToken: process.env.WA_TOKEN || null,
+          waToken: encryptToken(process.env.WA_TOKEN || null),
           waApiVersion: "v20.0",
         },
         select: {
