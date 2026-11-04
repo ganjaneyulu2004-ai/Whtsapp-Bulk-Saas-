@@ -27,7 +27,7 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">2. Permitted Use & Spam Policy</h2>
+            <h2 className="text-xl font-bold text-white mb-3">2. Permitted Use &amp; Spam Policy</h2>
             <p>
               Users are strictly prohibited from transmitting unsolicited spam, abusive, fraudulent, or prohibited content. All WhatsApp campaign recipients must have given prior consent (opt-in) to receive communications in accordance with WhatsApp Business messaging guidelines.
             </p>
@@ -53,6 +53,15 @@ export default function TermsOfServicePage() {
               Email: support@oneample.com | IBrainLabs
             </p>
           </section>
+        </div>
+
+        <div className="mt-10 pt-6 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
+          <p>&copy; {new Date().getFullYear()} OneAmple &bull; iBrain Labs. All rights reserved.</p>
+          <div className="flex gap-4">
+            <Link href="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="text-emerald-400 hover:underline font-semibold">Terms of Service</Link>
+            <Link href="/data-deletion" className="hover:text-slate-300 transition-colors">Data Deletion</Link>
+          </div>
         </div>
       </div>
     </div>

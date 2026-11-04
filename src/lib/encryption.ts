@@ -111,3 +111,4 @@ export function maskToken(rawOrEncryptedToken: string | null | undefined): strin
   const prefix = plain.startsWith("EAA") ? "EAA" : "••••";
   return `${prefix}...${last4}`;
 }
+

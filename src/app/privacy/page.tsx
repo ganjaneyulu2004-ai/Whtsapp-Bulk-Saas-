@@ -54,7 +54,11 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-xl font-bold text-white mb-3">5. Data Retention and Deletion</h2>
             <p>
-              You may request deletion of your account, contact lists, and stored access tokens at any time by contacting our support team or disconnecting your WhatsApp account in Dashboard Settings.
+              You may request complete deletion of your account, customer contact lists, and stored WhatsApp access tokens at any time. All client data requested for deletion is permanently purged within 30 days. For step-by-step instructions, please visit our dedicated{" "}
+              <Link href="/data-deletion" className="text-emerald-400 hover:text-emerald-300 font-semibold underline">
+                Data Deletion Instructions
+              </Link>{" "}
+              page.
             </p>
           </section>
 
@@ -67,6 +71,15 @@ export default function PrivacyPolicyPage() {
               Email: support@oneample.com | WhatsApp: +91 96426 83699
             </p>
           </section>
+        </div>
+
+        <div className="mt-10 pt-6 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
+          <p>&copy; {new Date().getFullYear()} OneAmple &bull; iBrain Labs. All rights reserved.</p>
+          <div className="flex gap-4">
+            <Link href="/privacy" className="text-emerald-400 hover:underline font-semibold">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
+            <Link href="/data-deletion" className="hover:text-slate-300 transition-colors">Data Deletion</Link>
+          </div>
         </div>
       </div>
     </div>

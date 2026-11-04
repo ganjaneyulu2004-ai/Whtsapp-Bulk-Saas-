@@ -25,6 +25,7 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/webhooks") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/register") ||
+    pathname.startsWith("/api/cron") ||
     pathname === "/api/campaigns/send-test" ||
     pathname === "/api/campaigns/status" ||
     pathname === "/api/init-db"
@@ -52,6 +53,8 @@ export async function middleware(req: NextRequest) {
     pathname === "/register" ||
     pathname === "/privacy" ||
     pathname === "/terms" ||
+    pathname === "/data-deletion" ||
+    pathname.startsWith("/data-deletion") ||
     pathname.startsWith("/privacy") ||
     pathname.startsWith("/terms") ||
     pathname === "/test" ||

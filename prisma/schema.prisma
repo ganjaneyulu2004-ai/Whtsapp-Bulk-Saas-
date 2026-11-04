@@ -18,6 +18,9 @@ model User {
   businessName  String?
   mobile        String?
   role          String         @default("USER") // "ADMIN" | "USER"
+  status        String         @default("ACTIVE") // "ACTIVE" | "DELETION_PENDING" | "PURGED"
+  deletionRequestedAt DateTime?
+  scheduledPurgeAt    DateTime?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   businesses    Business[]
@@ -242,6 +245,22 @@ model ContactTag {
   notes     String?
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+}
+
+model AccountDeletionAudit {
+  id               String    @id @default(uuid())
+  userId           String
+  username         String
+  businessName     String?
+  userPhone        String?
+  status           String    @default("PENDING_PURGE") // "PENDING_PURGE" | "PURGED" | "CANCELLED"
+  confirmationCode String    @unique
+  requestedAt      DateTime  @default(now())
+  scheduledPurgeAt DateTime
+  purgedAt         DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
 }
 
 

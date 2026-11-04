@@ -1091,6 +1091,7 @@ function LoginForm() {
               <Link href="/register" className="hover:text-white transition-colors">Create Account</Link>
               <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
               <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+              <Link href="/data-deletion" className="hover:text-white transition-colors">Data Deletion</Link>
             </div>
 
             <div className="text-center md:text-right text-[11px] text-white/50">
