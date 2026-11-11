@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   X
 } from "lucide-react";
+import WhatsAppEmbeddedSignup from "@/components/WhatsAppEmbeddedSignup";
 
 export default function SettingsPage() {
   const { t } = useLanguage();
@@ -45,6 +46,9 @@ export default function SettingsPage() {
   const [aiTone, setAiTone] = useState("friendly_respectful");
   const [aiCustomInstructions, setAiCustomInstructions] = useState("");
   const [autoBookingEnabled, setAutoBookingEnabled] = useState(true);
+
+  // WhatsApp Embedded Signup & Config State
+  const [waConfig, setWaConfig] = useState<any>(null);
 
   // Meta Credentials
   const [waToken, setWaToken] = useState("");
@@ -118,6 +122,7 @@ export default function SettingsPage() {
         }
         if (data.whatsappConfig) {
           const c = data.whatsappConfig;
+          setWaConfig(c);
           setWaToken(c.waToken || "");
           setWaPhoneNumberId(c.waPhoneNumberId || "");
           setWaBusinessAccountId(c.waBusinessAccountId || "");
@@ -246,7 +251,15 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* 1. REAL HUMAN AI WHATSAPP CHATBOT SETTINGS */}
+      {/* 1. Official Meta WhatsApp Embedded Signup Channel */}
+      <WhatsAppEmbeddedSignup
+        initialConfig={waConfig}
+        metaAppId={process.env.NEXT_PUBLIC_META_APP_ID || "2068663130431385"}
+        metaConfigId={process.env.NEXT_PUBLIC_META_CONFIG_ID || "1620839459718786"}
+        onConfigUpdated={loadSettings}
+      />
+
+      {/* 2. REAL HUMAN AI WHATSAPP CHATBOT SETTINGS */}
       <div className="bg-gradient-to-br from-white to-[#f0fdf4] rounded-3xl p-5 sm:p-8 border border-emerald-200 shadow-sm space-y-6">
         <div className="flex items-center justify-between border-b border-emerald-100 pb-4">
           <div className="flex items-center gap-3">

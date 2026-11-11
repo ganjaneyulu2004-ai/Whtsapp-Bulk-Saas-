@@ -98,7 +98,7 @@ model WhatsAppConfig {
   waToken             String?
   waPhoneNumberId     String?
   waBusinessAccountId String?
-  waApiVersion        String    @default("v19.0")
+  waApiVersion        String    @default("v21.0")
   metaAppId           String?
   messagingLimitTier  String    @default("TIER_250")
   isConnected         Boolean   @default(false)
@@ -107,6 +107,8 @@ model WhatsAppConfig {
   verifiedName        String?
   qualityRating       String?
   embeddedSignupAt    DateTime?
+  pin                 String?
+  status              String?   @default("CONNECTED")
   updatedAt           DateTime  @updatedAt
 }
 

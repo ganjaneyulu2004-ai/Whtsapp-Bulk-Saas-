@@ -6,11 +6,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageContext";
-import { 
-  PlusCircle, 
-  Send, 
-  CheckCheck, 
-  Eye, 
+import {
+  PlusCircle,
+  Send,
+  CheckCheck,
+  Eye,
   Calendar,
   Sparkles,
   ArrowRight,
@@ -64,7 +64,7 @@ export default function DashboardPage() {
         const u = await res.json();
         setUsage(u);
       }
-    } catch {}
+    } catch { }
   };
 
   const fetchCardData = async () => {
@@ -74,7 +74,7 @@ export default function DashboardPage() {
         const c = await res.json();
         setCardData(c);
       }
-    } catch {}
+    } catch { }
   };
 
   const fetchStats = async (isManual = false) => {
@@ -428,7 +428,8 @@ export default function DashboardPage() {
       {/* 1. Official Meta WhatsApp Embedded Signup for Client */}
       <WhatsAppEmbeddedSignup
         initialConfig={waConfig}
-        metaAppId={process.env.NEXT_PUBLIC_META_APP_ID || "1019114041212914"}
+        metaAppId={process.env.NEXT_PUBLIC_META_APP_ID || "2068663130431385"}
+        metaConfigId={process.env.NEXT_PUBLIC_META_CONFIG_ID || "1620839459718786"}
         onConfigUpdated={() => fetchStats(true)}
       />
 
@@ -594,11 +595,10 @@ export default function DashboardPage() {
                 key={r}
                 type="button"
                 onClick={() => setFilterRange(r)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                  filterRange === r
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${filterRange === r
                     ? "bg-slate-900 text-white shadow-2xs"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                }`}
+                  }`}
               >
                 {r === "today" ? "Today" : r === "7days" ? "7 Days" : "30 Days"}
               </button>

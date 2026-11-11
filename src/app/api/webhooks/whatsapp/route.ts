@@ -81,9 +81,33 @@ export async function POST(req: Request) {
 
 async function processWebhookPayload(body: any) {
   const entry = body?.entry?.[0];
+  const wabaId = entry?.id;
   const changes = entry?.changes?.[0];
   const value = changes?.value;
   const field = changes?.field;
+
+  const phoneId = value?.metadata?.phone_number_id;
+
+  // Resolve which client business owns this incoming WhatsApp phone number or WABA
+  let clientBusinessId: string | undefined = undefined;
+  if (phoneId || wabaId) {
+    try {
+      const config = await prisma.whatsAppConfig.findFirst({
+        where: {
+          OR: [
+            ...(phoneId ? [{ waPhoneNumberId: phoneId }] : []),
+            ...(wabaId ? [{ waBusinessAccountId: wabaId }] : []),
+          ],
+        },
+        select: { businessId: true },
+      });
+      if (config?.businessId) {
+        clientBusinessId = config.businessId;
+      }
+    } catch (e) {
+      console.warn("Could not match incoming webhook to businessId:", e);
+    }
+  }
 
   // Handle Meta Template Approval Events (message_template_status_update)
   if (field === "message_template_status_update" || value?.event) {
@@ -91,11 +115,14 @@ async function processWebhookPayload(body: any) {
     const eventStatus = (value?.event || value?.status || "").toUpperCase(); // APPROVED, REJECTED
 
     if (templateName && (eventStatus === "APPROVED" || eventStatus === "REJECTED")) {
-      console.log(`✨ Template Webhook Notification: ${templateName} -> ${eventStatus}`);
+      console.log(`✨ Template Webhook Notification: ${templateName} -> ${eventStatus} (WABA: ${wabaId})`);
       
-      // Update template status in DB
+      // Update template status in DB for the specific client business
       const updatedTemplates = await prisma.template.updateMany({
-        where: { name: templateName },
+        where: {
+          name: templateName,
+          ...(clientBusinessId ? { businessId: clientBusinessId } : {}),
+        },
         data: {
           status: eventStatus,
           rejectionReason: value?.reason || null,
@@ -105,7 +132,10 @@ async function processWebhookPayload(body: any) {
       // If APPROVED, auto-start all campaigns waiting for approval!
       if (eventStatus === "APPROVED") {
         const approvedTemplates = await prisma.template.findMany({
-          where: { name: templateName },
+          where: {
+            name: templateName,
+            ...(clientBusinessId ? { businessId: clientBusinessId } : {}),
+          },
           select: { id: true },
         });
         const templateIds = approvedTemplates.map((t) => t.id);
@@ -275,6 +305,7 @@ async function processWebhookPayload(body: any) {
       try {
         await prisma.incomingMessage.create({
           data: {
+            businessId: clientBusinessId || null,
             fromPhone,
             customerName,
             messageText: textBody,
@@ -290,6 +321,7 @@ async function processWebhookPayload(body: any) {
       if (upperText === "STOP" || upperText === "UNSUBSCRIBE" || upperText.includes("ఆపు")) {
         await prisma.contact.updateMany({
           where: {
+            ...(clientBusinessId ? { businessId: clientBusinessId } : {}),
             phone: {
               contains: fromPhone.slice(-10),
             },
@@ -297,14 +329,15 @@ async function processWebhookPayload(body: any) {
           data: { optedOut: true },
         });
 
-        console.log(`🚫 Opted-out contact for phone +${fromPhone}`);
+        console.log(`🚫 Opted-out contact for phone +${fromPhone} (Business: ${clientBusinessId || "GLOBAL"})`);
       } else if (textBody.length > 0) {
-        // Trigger human-like WhatsApp AI auto-reply
+        // Trigger human-like WhatsApp AI auto-reply scoped to the exact client's business
         handleIncomingAiReply({
           fromPhone,
           customerName,
           incomingText: textBody,
           waPhoneNumberId: value?.metadata?.phone_number_id,
+          businessId: clientBusinessId,
         }).catch((err) => {
           console.error("AI Auto-reply background error:", err);
         });

@@ -3,9 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { decryptToken } from "@/lib/encryption";
 
-const FALLBACK_TOKEN = process.env.WA_TOKEN || "";
-const FALLBACK_PHONE_ID = process.env.WA_PHONE_NUMBER_ID || "";
-
 export async function POST(req: Request) {
   try {
     const business = await getCurrentBusiness();
@@ -16,6 +13,8 @@ export async function POST(req: Request) {
       recipientName, 
       offerText, 
       businessName,
+      templateName,
+      languageCode,
     } = body;
 
     let rawPhone = String(recipientPhone || phone || business.phone || "919390487233").replace(/[^0-9]/g, "");
@@ -27,40 +26,71 @@ export async function POST(req: Request) {
     const targetPhone = rawPhone;
 
     const config: any = business.whatsappConfig || {};
-    const token = decryptToken(config.waToken) || process.env.WA_TOKEN || FALLBACK_TOKEN;
-    const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID || FALLBACK_PHONE_ID;
-    const apiVersion = process.env.WA_API_VERSION || config.waApiVersion || "v20.0";
+    const token = decryptToken(config.waToken) || process.env.WA_TOKEN;
+    const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID;
+    const apiVersion = process.env.WA_API_VERSION || config.waApiVersion || "v21.0";
 
-    const bName = (businessName || business.name || "iBrainLabs").trim();
-    const messageContent = (offerText || `Live Test Message from OneAmple by ${bName}! 🚀 Your WhatsApp Cloud API campaign setup is active, verified, and transmitting successfully.`).trim();
+    if (!token || !phoneId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No WhatsApp number connected for your account. Please connect your number via Embedded Signup first.",
+        },
+        { status: 400 }
+      );
+    }
 
-    // 1. First attempt: Send live text message (works instantly in active 24-hour service window)
-    const directPayload = {
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to: targetPhone,
-      type: "text",
-      text: {
-        preview_url: false,
-        body: messageContent,
-      },
-    };
+    const bName = (businessName || business.name || "OneAmple").trim();
+    const messageContent = (
+      offerText ||
+      `Live Test Message from OneAmple (${bName})! 🚀 Your WhatsApp Cloud API channel is active, verified, and transmitting successfully.`
+    ).trim();
 
     let metaUrl = `https://graph.facebook.com/${apiVersion}/${phoneId}/messages`;
+    let payload: any;
+
+    if (templateName) {
+      // Send selected template directly
+      payload = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: targetPhone,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: languageCode || "en_US" },
+        },
+      };
+    } else {
+      // Direct text attempt (24h window)
+      payload = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: targetPhone,
+        type: "text",
+        text: {
+          preview_url: false,
+          body: messageContent,
+        },
+      };
+    }
+
+    console.log(`[Send Test] Transmitting to +${targetPhone} via Phone ID ${phoneId}...`);
     let res = await fetch(metaUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(directPayload),
+      body: JSON.stringify(payload),
     });
 
     let data = await res.json();
 
-    // 2. If 24-hr window is closed (Error 131047), fall back to official approved template "hello_world"
-    if (!res.ok && data?.error?.code === 131047) {
-      const templatePayload = {
+    // If direct text failed because 24-hr customer service window is closed (Error 131047), fallback to verified template "hello_world"
+    if (!res.ok && data?.error?.code === 131047 && !templateName) {
+      console.log("[Send Test] 24-hr window closed. Falling back to default approved template 'hello_world'...");
+      const fallbackPayload = {
         messaging_product: "whatsapp",
         recipient_type: "individual",
         to: targetPhone,
@@ -77,7 +107,7 @@ export async function POST(req: Request) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(templatePayload),
+        body: JSON.stringify(fallbackPayload),
       });
 
       data = await res.json();
@@ -95,16 +125,24 @@ export async function POST(req: Request) {
     } else {
       const errorDetail = data?.error?.message || data?.error?.error_user_msg || "Meta API error";
       const errorCode = data?.error?.code || res.status;
-      return NextResponse.json({
-        success: false,
-        error: `Meta Error (${errorCode}): ${errorDetail}`,
-        metaError: data?.error,
-      }, { status: 400 });
+      console.error("[Send Test Meta Error]", data);
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Meta Error (${errorCode}): ${errorDetail}`,
+          metaError: data?.error,
+        },
+        { status: 400 }
+      );
     }
   } catch (err: any) {
-    return NextResponse.json({
-      success: false,
-      error: err.message || "Internal server error while sending test",
-    }, { status: 500 });
+    console.error("[Send Test Error]", err);
+    return NextResponse.json(
+      {
+        success: false,
+        error: err.message || "Internal server error while sending test",
+      },
+      { status: 500 }
+    );
   }
 }
