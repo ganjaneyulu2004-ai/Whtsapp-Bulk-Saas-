@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { sendWhatsAppTemplateMessage, uploadMediaToMeta, formatDirectOfferMessage } from "./whatsapp";
 import { getOrCreateReusableTemplate } from "./template-service";
 import { decryptToken } from "./encryption";
+import { getMetaGraphVersion } from "./meta-config";
 
 const activeCampaignJobs = new Set<string>();
 
@@ -59,7 +60,7 @@ export async function processCampaignSending(campaignId: string) {
           {
             waToken: decryptToken(waConfig.waToken) || undefined,
             waPhoneNumberId: waConfig.waPhoneNumberId || undefined,
-            waApiVersion: process.env.WA_API_VERSION || waConfig.waApiVersion || "v26.0",
+            waApiVersion: getMetaGraphVersion(waConfig.waApiVersion),
           },
           campaign.template.headerMediaUrl
         );
@@ -160,7 +161,7 @@ export async function processCampaignSending(campaignId: string) {
         {
           waToken: decryptToken(waConfig.waToken) || undefined,
           waPhoneNumberId: waConfig.waPhoneNumberId || undefined,
-          waApiVersion: process.env.WA_API_VERSION || waConfig.waApiVersion || "v26.0",
+          waApiVersion: getMetaGraphVersion(waConfig.waApiVersion),
         },
         log.phone,
         recipientName,

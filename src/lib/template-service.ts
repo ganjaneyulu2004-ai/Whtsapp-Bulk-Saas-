@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { decryptToken } from "./encryption";
+import { getMetaGraphVersion } from "./meta-config";
 
 export const POSTER_TEMPLATE_NAME = "offer_poster_v1";
 export const TEXT_TEMPLATE_NAME = "offer_update_v1";
@@ -30,7 +31,7 @@ export async function getOrCreateReusableTemplate(businessId: string, templateNa
     try {
       const token = decryptToken(business.whatsappConfig?.waToken) || process.env.WA_TOKEN;
       const wabaId = business.whatsappConfig?.waBusinessAccountId || process.env.WA_BUSINESS_ACCOUNT_ID;
-      const version = process.env.WA_API_VERSION || business.whatsappConfig?.waApiVersion || "v26.0";
+      const version = getMetaGraphVersion(business.whatsappConfig?.waApiVersion);
 
       if (token && wabaId) {
         const res = await fetch(`https://graph.facebook.com/${version}/${wabaId}/message_templates?name=${targetName}`, {

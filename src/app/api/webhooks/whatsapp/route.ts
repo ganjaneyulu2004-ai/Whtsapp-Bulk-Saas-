@@ -89,9 +89,15 @@ async function processWebhookPayload(body: any) {
   const phoneId = value?.metadata?.phone_number_id;
 
   // Resolve which client business owns this incoming WhatsApp phone number or WABA
+  // Matches both official Embedded Signup clients AND existing manually-onboarded clients!
   let clientBusinessId: string | undefined = undefined;
-  if (phoneId || wabaId) {
-    try {
+  const displayPhone = value?.metadata?.display_phone_number
+    ? String(value.metadata.display_phone_number).replace(/[^0-9]/g, "")
+    : undefined;
+
+  try {
+    // Tier 1: Direct match by Meta Phone Number ID or WABA ID
+    if (phoneId || wabaId) {
       const config = await prisma.whatsAppConfig.findFirst({
         where: {
           OR: [
@@ -104,9 +110,37 @@ async function processWebhookPayload(body: any) {
       if (config?.businessId) {
         clientBusinessId = config.businessId;
       }
-    } catch (e) {
-      console.warn("Could not match incoming webhook to businessId:", e);
     }
+
+    // Tier 2: Match manually-onboarded clients by display phone number or business phone
+    if (!clientBusinessId && displayPhone && displayPhone.length >= 10) {
+      const last10 = displayPhone.slice(-10);
+      const manualMatch = await prisma.whatsAppConfig.findFirst({
+        where: {
+          OR: [
+            { displayPhoneNumber: { contains: last10 } },
+            { business: { phone: { contains: last10 } } },
+          ],
+        },
+        select: { businessId: true },
+      });
+      if (manualMatch?.businessId) {
+        clientBusinessId = manualMatch.businessId;
+      }
+    }
+
+    // Tier 3: Single-tenant fallback if only one active business exists in the SaaS
+    if (!clientBusinessId) {
+      const totalCount = await prisma.business.count();
+      if (totalCount === 1) {
+        const defaultBiz = await prisma.business.findFirst({ select: { id: true } });
+        if (defaultBiz?.id) {
+          clientBusinessId = defaultBiz.id;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Could not match incoming webhook to businessId:", e);
   }
 
   // Handle Meta Template Approval Events (message_template_status_update)

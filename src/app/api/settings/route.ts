@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { encryptToken, decryptToken, maskToken } from "@/lib/encryption";
+import { getMetaGraphVersion } from "@/lib/meta-config";
 
 export async function GET() {
   try {
@@ -20,9 +21,9 @@ export async function GET() {
 
     const safeConfig = config
       ? {
-          ...config,
-          waToken: maskToken(config.waToken),
-        }
+        ...config,
+        waToken: maskToken(config.waToken),
+      }
       : null;
 
     return NextResponse.json({
@@ -108,7 +109,7 @@ export async function PUT(req: Request) {
 
     if (effectivePlainToken && waPhoneNumberId && !effectivePlainToken.startsWith("EAAG...")) {
       try {
-        const version = waApiVersion || "v26.0";
+        const version = getMetaGraphVersion(waApiVersion);
         const metaRes = await fetch(`https://graph.facebook.com/${version}/${waPhoneNumberId}`, {
           headers: { Authorization: `Bearer ${effectivePlainToken}` },
         });
@@ -118,7 +119,7 @@ export async function PUT(req: Request) {
           verifiedName = metaData.verified_name || undefined;
           qualityRating = metaData.quality_rating || undefined;
         }
-      } catch {}
+      } catch { }
     }
 
     // Determine encrypted token to write:
@@ -139,7 +140,7 @@ export async function PUT(req: Request) {
         ...(tokenToWrite !== undefined ? { waToken: tokenToWrite } : {}),
         waPhoneNumberId: waPhoneNumberId !== undefined ? waPhoneNumberId : undefined,
         waBusinessAccountId: waBusinessAccountId !== undefined ? waBusinessAccountId : undefined,
-        waApiVersion: waApiVersion || "v26.0",
+        waApiVersion: getMetaGraphVersion(waApiVersion),
         metaAppId: metaAppId !== undefined ? metaAppId : undefined,
         displayPhoneNumber: displayPhoneNumber || undefined,
         verifiedName: verifiedName || undefined,
@@ -152,7 +153,7 @@ export async function PUT(req: Request) {
         waToken: tokenToWrite || null,
         waPhoneNumberId,
         waBusinessAccountId,
-        waApiVersion: waApiVersion || "v26.0",
+        waApiVersion: getMetaGraphVersion(waApiVersion),
         metaAppId,
         displayPhoneNumber,
         verifiedName,

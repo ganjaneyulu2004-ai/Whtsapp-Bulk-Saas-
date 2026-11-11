@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
 import { decryptToken } from "./encryption";
+import { getMetaGraphVersion } from "./meta-config";
 
 interface GenerateAiReplyParams {
   fromPhone: string;
@@ -226,7 +227,7 @@ Write your short, warm, human WhatsApp reply now:
       {
         waToken: decryptToken(config.waToken) || undefined,
         waPhoneNumberId: config.waPhoneNumberId || undefined,
-        waApiVersion: process.env.WA_API_VERSION || config.waApiVersion || "v26.0",
+        waApiVersion: getMetaGraphVersion(config.waApiVersion),
       },
       cleanPhone,
       customerName || "Customer",
@@ -246,7 +247,7 @@ Write your short, warm, human WhatsApp reply now:
         {
           waToken: decryptToken(config.waToken) || undefined,
           waPhoneNumberId: config.waPhoneNumberId || undefined,
-          waApiVersion: process.env.WA_API_VERSION || config.waApiVersion || "v26.0",
+          waApiVersion: getMetaGraphVersion(config.waApiVersion),
         },
         cleanPhone,
         customerName || "Customer",

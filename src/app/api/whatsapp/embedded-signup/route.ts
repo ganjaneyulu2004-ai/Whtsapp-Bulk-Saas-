@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness, getCurrentUserSession } from "@/lib/session";
 import { encryptToken, decryptToken, maskToken } from "@/lib/encryption";
+import { getMetaGraphVersion } from "@/lib/meta-config";
 
 export async function GET() {
   try {
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
     const metaAppId =
       process.env.META_APP_ID || process.env.NEXT_PUBLIC_META_APP_ID || "2068663130431385";
     const metaAppSecret = process.env.META_APP_SECRET;
-    const apiVersion = process.env.WA_API_VERSION || "v21.0";
+    const apiVersion = getMetaGraphVersion();
 
     if (!code) {
       return NextResponse.json(
@@ -309,7 +310,7 @@ export async function DELETE() {
     });
 
     if (config?.waToken && config.waBusinessAccountId) {
-      const apiVersion = config.waApiVersion || process.env.WA_API_VERSION || "v21.0";
+      const apiVersion = getMetaGraphVersion(config.waApiVersion);
       const token = decryptToken(config.waToken);
       if (token) {
         try {

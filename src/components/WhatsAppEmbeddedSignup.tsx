@@ -123,7 +123,7 @@ export default function WhatsAppEmbeddedSignup({
             appId: metaAppId,
             autoLogAppEvents: true,
             xfbml: true,
-            version: "v21.0",
+            version: process.env.NEXT_PUBLIC_META_GRAPH_VERSION || "v26.0",
           });
           setSdkReady(true);
         } catch (e) {
@@ -268,6 +268,7 @@ export default function WhatsAppEmbeddedSignup({
           override_default_response_type: true,
           extras: {
             setup: {},
+            version: "v4", // Explicitly required for Meta Embedded Signup v4
             sessionInfoVersion: "3", // Session Info Version 3 as required
           },
         }

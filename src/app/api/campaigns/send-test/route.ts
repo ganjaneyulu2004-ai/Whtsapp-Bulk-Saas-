@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { decryptToken } from "@/lib/encryption";
+import { getMetaGraphVersion } from "@/lib/meta-config";
 
 export async function POST(req: Request) {
   try {
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
     const config: any = business.whatsappConfig || {};
     const token = decryptToken(config.waToken) || process.env.WA_TOKEN;
     const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID;
-    const apiVersion = process.env.WA_API_VERSION || config.waApiVersion || "v21.0";
+    const apiVersion = getMetaGraphVersion(config.waApiVersion);
 
     if (!token || !phoneId) {
       return NextResponse.json(

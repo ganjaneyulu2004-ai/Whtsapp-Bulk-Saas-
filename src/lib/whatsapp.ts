@@ -1,4 +1,5 @@
 import { decryptToken } from "./encryption";
+import { getMetaGraphVersion } from "./meta-config";
 
 export interface MetaTemplatePayload {
   name: string;
@@ -50,7 +51,7 @@ export async function submitTemplateToMeta(
 ): Promise<{ success: boolean; metaTemplateId?: string; status: string; error?: string }> {
   const token = decryptToken(config.waToken) || process.env.WA_TOKEN;
   const wabaId = config.waBusinessAccountId || process.env.WA_BUSINESS_ACCOUNT_ID;
-  const version = config.waApiVersion || process.env.WA_API_VERSION || "v26.0";
+  const version = getMetaGraphVersion(config.waApiVersion);
 
   if (!token || !wabaId || token.startsWith("EAAG...") || wabaId.startsWith("104829375...")) {
     return {
@@ -108,7 +109,7 @@ export async function uploadMediaToMeta(
 ): Promise<{ success: boolean; mediaId?: string; error?: string }> {
   const token = decryptToken(config.waToken) || process.env.WA_TOKEN || FALLBACK_WA_TOKEN;
   const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID || FALLBACK_WA_PHONE_ID;
-  const version = process.env.WA_API_VERSION || config.waApiVersion || "v26.0";
+  const version = getMetaGraphVersion(config.waApiVersion);
 
   if (!token || !phoneId) {
     return { success: false, error: "Missing token or phoneId" };
@@ -258,7 +259,7 @@ export async function sendWhatsAppTemplateMessage(
 ): Promise<{ success: boolean; waMessageId?: string; errorCode?: string; errorMessage?: string }> {
   const token = decryptToken(config.waToken) || process.env.WA_TOKEN || FALLBACK_WA_TOKEN;
   const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID || FALLBACK_WA_PHONE_ID;
-  const version = process.env.WA_API_VERSION || config.waApiVersion || "v26.0";
+  const version = getMetaGraphVersion(config.waApiVersion);
 
   try {
     let cleanRecipient = String(recipientPhone || "").replace(/[^0-9]/g, "");
@@ -278,7 +279,7 @@ export async function sendWhatsAppTemplateMessage(
       let mediaId: string | null = params?.mediaId || null;
       const isDocument = params?.mediaType === "document" ||
         (mediaUrl && (mediaUrl.startsWith("data:application/") || Boolean(mediaUrl.match(/\.(pdf|docx?|xlsx?|csv|txt)/i))));
-      const isVideo = !isDocument && (params?.mediaType === "video" || 
+      const isVideo = !isDocument && (params?.mediaType === "video" ||
         (mediaUrl && (mediaUrl.startsWith("data:video/") || Boolean(mediaUrl.match(/\.(mp4|mov|webm|3gp)/i)))));
       const isImage = !isDocument && !isVideo && (params?.mediaType === "image" || Boolean(mediaUrl));
 
@@ -300,7 +301,7 @@ export async function sendWhatsAppTemplateMessage(
         }
       }
 
-      const directCaption = params?.freeFormText || 
+      const directCaption = params?.freeFormText ||
         (params?.offerText ? formatDirectOfferMessage(params.offerText, recipient, bName, bLink) : "");
 
       if (isDocument) {
@@ -591,7 +592,7 @@ export async function testWhatsAppConnection(config: {
   }
 
   try {
-    const version = config.waApiVersion || process.env.WA_API_VERSION || "v26.0";
+    const version = getMetaGraphVersion(config.waApiVersion);
     const url = `https://graph.facebook.com/${version}/${config.waPhoneNumberId}`;
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${rawToken}` },

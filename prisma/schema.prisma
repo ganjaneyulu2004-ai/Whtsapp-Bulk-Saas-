@@ -98,7 +98,7 @@ model WhatsAppConfig {
   waToken             String?
   waPhoneNumberId     String?
   waBusinessAccountId String?
-  waApiVersion        String    @default("v21.0")
+  waApiVersion        String    @default("v26.0")
   metaAppId           String?
   messagingLimitTier  String    @default("TIER_250")
   isConnected         Boolean   @default(false)

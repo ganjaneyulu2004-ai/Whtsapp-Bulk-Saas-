@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { submitTemplateToMeta } from "@/lib/whatsapp";
 import { decryptToken } from "@/lib/encryption";
+import { getMetaGraphVersion } from "@/lib/meta-config";
 
 export async function GET(req: Request) {
   try {
@@ -13,7 +14,7 @@ export async function GET(req: Request) {
     const config = business.whatsappConfig;
     const token = decryptToken(config?.waToken);
     const wabaId = config?.waBusinessAccountId;
-    const version = config?.waApiVersion || process.env.WA_API_VERSION || "v21.0";
+    const version = getMetaGraphVersion(config?.waApiVersion);
 
     // If client requested sync and has active Meta connection, sync template approval statuses live from Meta
     if (doSync && token && wabaId) {
