@@ -11,6 +11,7 @@ import {
   MessageSquare, 
   AlertCircle,
   Radio,
+  Trash2,
   X
 } from "lucide-react";
 
@@ -34,6 +35,7 @@ export default function TemplatesPage() {
   const [testPhone, setTestPhone] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const fetchTemplates = async (sync = false) => {
     if (sync) setSyncing(true);
@@ -99,6 +101,25 @@ export default function TemplatesPage() {
       setErrorMsg(err.message || "Network error submitting template");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRemoveTemplate = async (templateId: string) => {
+    setRemovingId(templateId);
+    try {
+      const res = await fetch(`/api/templates?id=${encodeURIComponent(templateId)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTemplates((prev) => prev.filter((item) => item.id !== templateId));
+      } else {
+        alert(data.error || "Failed to remove template.");
+      }
+    } catch (err: any) {
+      alert(err?.message || "Network error removing template.");
+    } finally {
+      setRemovingId(null);
     }
   };
 
@@ -235,22 +256,59 @@ export default function TemplatesPage() {
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0">
-                  {tpl.status === "APPROVED" ? (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      Approved
-                    </span>
-                  ) : tpl.status === "REJECTED" ? (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                      <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                      Rejected
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                      <Clock className="w-3.5 h-3.5 text-amber-600" />
-                      Pending Review
-                    </span>
-                  )}
+                  {(() => {
+                    const st = String(tpl.status || "").toUpperCase();
+                    if (st === "APPROVED") {
+                      return (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          Approved
+                        </span>
+                      );
+                    }
+                    if (st === "REJECTED" || st === "PAUSED" || st === "DISABLED") {
+                      const label =
+                        st === "PAUSED" ? "Paused" : st === "DISABLED" ? "Disabled" : "Rejected";
+                      return (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                          {label}
+                        </span>
+                      );
+                    }
+                    if (st === "PENDING" || st === "IN_APPEAL") {
+                      return (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          <Clock className="w-3.5 h-3.5 text-amber-600" />
+                          Pending Review
+                        </span>
+                      );
+                    }
+                    if (st === "NOT_IN_WABA") {
+                      return (
+                        <>
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            <AlertCircle className="w-3.5 h-3.5 text-slate-500" />
+                            Not found in Meta
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTemplate(tpl.id)}
+                            disabled={removingId === tpl.id}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>{removingId === tpl.id ? "Removing..." : "Remove"}</span>
+                          </button>
+                        </>
+                      );
+                    }
+                    return (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                        {tpl.status || "Unknown"}
+                      </span>
+                    );
+                  })()}
 
                   {tpl.status === "APPROVED" && (
                     <button

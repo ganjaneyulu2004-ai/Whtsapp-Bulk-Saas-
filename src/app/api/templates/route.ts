@@ -81,11 +81,11 @@ export async function POST(req: Request) {
         components: [
           ...(headerType === "IMAGE"
             ? [
-                {
-                  type: "HEADER" as const,
-                  format: "IMAGE" as const,
-                },
-              ]
+              {
+                type: "HEADER" as const,
+                format: "IMAGE" as const,
+              },
+            ]
             : []),
           {
             type: "BODY" as const,
@@ -93,24 +93,24 @@ export async function POST(req: Request) {
           },
           ...(footerText
             ? [
-                {
-                  type: "FOOTER" as const,
-                  text: footerText,
-                },
-              ]
+              {
+                type: "FOOTER" as const,
+                text: footerText,
+              },
+            ]
             : []),
           ...(buttons && buttons.length > 0
             ? [
-                {
-                  type: "BUTTONS" as const,
-                  buttons: buttons.map((b: any) => ({
-                    type: b.type,
-                    text: b.text,
-                    phone_number: b.type === "PHONE_NUMBER" ? b.value : undefined,
-                    url: b.type === "URL" ? b.value : undefined,
-                  })),
-                },
-              ]
+              {
+                type: "BUTTONS" as const,
+                buttons: buttons.map((b: any) => ({
+                  type: b.type,
+                  text: b.text,
+                  phone_number: b.type === "PHONE_NUMBER" ? b.value : undefined,
+                  url: b.type === "URL" ? b.value : undefined,
+                })),
+              },
+            ]
             : []),
         ],
       }
@@ -163,5 +163,70 @@ export async function POST(req: Request) {
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Failed to create template" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const session = await getCurrentUserSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const business = await getCurrentBusiness();
+    if (!business?.id) {
+      return NextResponse.json({ error: "Business account not found" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    let templateId = searchParams.get("id");
+    if (!templateId) {
+      const body = await req.json().catch(() => ({}));
+      templateId = body?.id ? String(body.id) : null;
+    }
+
+    if (!templateId) {
+      return NextResponse.json({ error: "Template ID is required." }, { status: 400 });
+    }
+
+    // Strictly scope lookup to this business's own row
+    const existing = await prisma.template.findFirst({
+      where: {
+        id: templateId,
+        businessId: business.id,
+      },
+      select: { id: true, name: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Template not found for your account." }, { status: 404 });
+    }
+
+    const usedInCampaigns = await prisma.campaign.count({
+      where: {
+        templateId: existing.id,
+        businessId: business.id,
+      },
+    });
+
+    if (usedInCampaigns > 0) {
+      return NextResponse.json(
+        {
+          error: `Cannot remove "${existing.name}" because it is referenced by ${usedInCampaigns} past campaign(s).`,
+        },
+        { status: 409 }
+      );
+    }
+
+    await prisma.template.deleteMany({
+      where: {
+        id: existing.id,
+        businessId: business.id,
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || "Failed to remove template" }, { status: 500 });
   }
 }
