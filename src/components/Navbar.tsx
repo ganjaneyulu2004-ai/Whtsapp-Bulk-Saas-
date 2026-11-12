@@ -175,7 +175,7 @@ export function Navbar() {
             ) : (
               <div className="hidden lg:flex items-center gap-2 text-xs font-heading font-medium text-slate-muted">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-light text-brand-purple border border-brand-soft">
-                  ⚡ Official Meta WhatsApp Cloud API
+                  ⚡ Built on the official WhatsApp Business Platform (Cloud API)
                 </span>
                 <span>•</span>
                 <span className="text-slate-muted">High-Speed Broadcast Platform</span>

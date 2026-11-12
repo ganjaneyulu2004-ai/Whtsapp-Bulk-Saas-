@@ -401,7 +401,7 @@ function LoginForm() {
                 <div>
                   <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#0066FD]/20 text-[#60A5FA] border border-[#0066FD]/40">
                     <span className="w-2 h-2 rounded-full bg-[#0066FD] animate-pulse" />
-                    Official Meta Verified Partner
+                    Built on the official WhatsApp Business Platform (Cloud API)
                   </span>
                 </div>
 
@@ -429,7 +429,7 @@ function LoginForm() {
 
                 {/* Clean Subtitle */}
                 <p className="text-sm text-white/85 leading-relaxed font-normal">
-                  Official Meta Verified WhatsApp Cloud Marketing, 24/7 Smart AI Auto-Bookings & Intelligent Lead CRM.
+                  OneAmple WhatsApp Marketing Platform, 24/7 Smart AI Auto-Bookings & Intelligent Lead CRM.
                 </p>
 
                 {/* 3 Simple, Clean Highlights */}
@@ -438,7 +438,7 @@ function LoginForm() {
                     <div className="w-8 h-8 rounded-xl bg-[#0066FD]/20 flex items-center justify-center shrink-0 text-[#60A5FA]">
                       <Zap className="w-4 h-4" />
                     </div>
-                    <span className="font-medium">Official Meta Cloud API • 100% Ban-Free</span>
+                    <span className="font-medium">Built on the official WhatsApp Business Platform (Cloud API)</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm text-white/90">
@@ -462,7 +462,7 @@ function LoginForm() {
                 <span>© 2026 OneAmple by iBrainLabs</span>
                 <span className="flex items-center gap-1.5 text-blue-300 font-medium">
                   <ShieldCheck className="w-4 h-4" />
-                  Meta Verified
+                  Sent via WhatsApp Cloud API
                 </span>
               </div>
             </div>
@@ -661,7 +661,7 @@ function LoginForm() {
                 <Zap className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-heading font-bold text-[#2B2350] mb-2">
-                Official Meta Cloud API
+                WhatsApp Business Platform (Cloud API)
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                 Connect directly to Meta servers. Broadcast official pre-approved templates with zero number bans, high throughput, and green-tick eligibility.
@@ -919,7 +919,7 @@ function LoginForm() {
             Experience OneAmple Live on Your Own Phone
           </h2>
           <p className="text-slate-600 text-sm max-w-xl mx-auto mt-2">
-            Enter your mobile number below. You will receive an official Meta WhatsApp broadcast message in less than 1 second!
+            Enter your mobile number below. You will receive a WhatsApp Cloud API message in less than 1 second!
           </p>
 
           {/* Test Form */}
@@ -1029,7 +1029,7 @@ function LoginForm() {
                 Why does OneAmple have zero number ban risk?
               </h4>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                OneAmple uses the official Meta WhatsApp Cloud API directly from Meta (Facebook). Unlike unofficial QR-code scrapers that get your phone number banned, official Cloud API is 100% compliant with WhatsApp's business guidelines.
+                OneAmple is built on the official WhatsApp Business Platform (Cloud API). Unlike unofficial QR-code scrapers that get your phone number banned, Cloud API is 100% compliant with WhatsApp&apos;s business guidelines.
               </p>
             </div>
 
@@ -1091,6 +1091,8 @@ function LoginForm() {
               <Link href="/register" className="hover:text-white transition-colors">Create Account</Link>
               <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
               <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+              <Link href="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link>
+              <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
               <Link href="/data-deletion" className="hover:text-white transition-colors">Data Deletion</Link>
             </div>
 

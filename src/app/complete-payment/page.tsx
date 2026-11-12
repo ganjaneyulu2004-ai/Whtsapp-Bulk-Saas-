@@ -316,7 +316,7 @@ function CompletePaymentContent() {
           Complete Your OneAmple Subscription
         </h1>
         <p className="text-slate-500 text-xs sm:text-sm mt-1.5">
-          Official Meta WhatsApp Cloud API marketing platform. Choose your monthly plan and activate instantly via Razorpay.
+          OneAmple WhatsApp Marketing Platform. Choose your monthly plan and activate instantly via Razorpay.
         </p>
       </div>
 

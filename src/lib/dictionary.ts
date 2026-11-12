@@ -50,7 +50,7 @@ export const dictionary = {
     },
     embeddedSignup: {
       channelTitle: "WhatsApp Cloud API Channel",
-      channelSubtitle: "Official Meta Embedded Signup v4 • Instant Automated Setup • High Speed Cloud Delivery",
+      channelSubtitle: "Built on the official WhatsApp Business Platform (Cloud API) • Instant Automated Setup",
       connectedBadge: "CONNECTED",
       notConnectedBadge: "NOT CONNECTED",
       connecting: "Connecting…",

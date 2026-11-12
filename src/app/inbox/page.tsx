@@ -1131,7 +1131,7 @@ export default function InboxPage() {
               <div className="max-w-md mx-auto p-2 rounded-xl bg-[#ffeecd] text-[11px] text-[#54656f] text-center flex items-center justify-center gap-1.5 shadow-2xs">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#008069] shrink-0" />
                 <span>
-                  Official Meta Cloud API transmission. End-to-end verified.
+                  Sent via WhatsApp Cloud API
                 </span>
               </div>
 
@@ -1769,7 +1769,7 @@ export default function InboxPage() {
             </button>
             <div className="pt-8 text-[11px] text-[#8696a0] flex items-center gap-1.5 font-medium">
               <ShieldCheck className="w-4 h-4 text-[#00a884]" />
-              <span>Connected to Official Meta WhatsApp Cloud API</span>
+              <span>Built on the official WhatsApp Business Platform (Cloud API)</span>
             </div>
           </div>
         )}

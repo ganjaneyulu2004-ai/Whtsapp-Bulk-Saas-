@@ -290,7 +290,18 @@ async function processWebhookPayload(body: any) {
   // 2. Process Incoming Customer Messages & Opt-Out Keywords ("STOP", "UNSUBSCRIBE", "ఆపు")
   if (value.messages && Array.isArray(value.messages)) {
     for (const msg of value.messages) {
+      // Ignore Meta system / error messages or echoes from our own display phone number
+      if (msg.type === "system" || msg.errors) {
+        continue;
+      }
+
       const fromPhone = (msg.from || "").replace(/[^0-9]/g, "");
+      if (!fromPhone) continue;
+      if (displayPhone && displayPhone.length >= 10 && fromPhone.slice(-10) === displayPhone.slice(-10)) {
+        console.log(`⏩ [Echo Guard] Ignoring outgoing echo from own number +${fromPhone}.`);
+        continue;
+      }
+
       const customerName = contactsMap.get(msg.from) || "Customer";
       const textBody = (
         msg.text?.body ||
@@ -299,16 +310,16 @@ async function processWebhookPayload(body: any) {
         msg.interactive?.list_reply?.title ||
         ""
       ).trim();
-      const waMsgId = msg.id;
+      const waMsgId = msg.id ? String(msg.id).trim() : undefined;
       const msgTimestamp = msg.timestamp
         ? new Date(parseInt(msg.timestamp, 10) * 1000)
         : new Date();
 
-      // Deduplication check 1: in-memory ID cache
+      // Deduplication check 1: atomic in-memory ID cache set BEFORE any await
       if (waMsgId) {
         const lastSeen = recentProcessedIds.get(waMsgId);
-        if (lastSeen && Date.now() - lastSeen < 120000) {
-          console.log(`⏩ [DEDUP] Duplicate message ID ${waMsgId} received within 2m. Skipping second reply.`);
+        if (lastSeen && Date.now() - lastSeen < 300000) {
+          console.log(`⏩ [DEDUP] Duplicate message ID ${waMsgId} received within 5m. Skipping.`);
           continue;
         }
         recentProcessedIds.set(waMsgId, Date.now());
@@ -320,11 +331,11 @@ async function processWebhookPayload(body: any) {
         }
       }
 
-      // Deduplication check 2: in-memory Content cache (prevents duplicate delivery within 8s)
-      const contentDedupKey = `${fromPhone}_${textBody}`;
+      // Deduplication check 2: content cache scoped by business/phoneId + sender + body
+      const contentDedupKey = `${phoneId || clientBusinessId || "unknown"}_${fromPhone}_${textBody}`;
       const lastContentSeen = recentProcessedContent.get(contentDedupKey);
       if (lastContentSeen && Date.now() - lastContentSeen < 8000) {
-        console.log(`⏩ [DEDUP] Duplicate content from ${fromPhone} within 8s. Skipping second processing.`);
+        console.log(`⏩ [DEDUP] Duplicate content from +${fromPhone} within 8s. Skipping.`);
         continue;
       }
       recentProcessedContent.set(contentDedupKey, Date.now());
@@ -333,22 +344,6 @@ async function processWebhookPayload(body: any) {
         for (const [key, ts] of recentProcessedContent.entries()) {
           if (ts < threshold) recentProcessedContent.delete(key);
         }
-      }
-
-      // Deduplication check 3: DB check
-      let isAlreadyInDb = false;
-      if (waMsgId) {
-        const existing = await prisma.incomingMessage.findUnique({
-          where: { waMessageId: waMsgId },
-        });
-        if (existing) {
-          isAlreadyInDb = true;
-        }
-      }
-
-      if (isAlreadyInDb) {
-        console.log(`⏩ [DEDUP] Message ${waMsgId} already exists in DB. Skipping duplicate AI reply.`);
-        continue;
       }
 
       // Multi-tenant safety guard: log unmatched details for debugging instead of storing businessId=NULL
@@ -368,6 +363,18 @@ async function processWebhookPayload(body: any) {
         continue;
       }
 
+      // Deduplication check 3: DB check
+      if (waMsgId) {
+        const existing = await prisma.incomingMessage.findUnique({
+          where: { waMessageId: waMsgId },
+        });
+        if (existing) {
+          console.log(`⏩ [DEDUP] Message ${waMsgId} already exists in DB. Skipping duplicate AI reply.`);
+          continue;
+        }
+      }
+
+      // Atomic insert: if concurrent duplicate hits unique constraint on waMessageId, abort without triggering AI
       try {
         await prisma.incomingMessage.create({
           data: {
@@ -379,7 +386,11 @@ async function processWebhookPayload(body: any) {
             timestamp: msgTimestamp,
           },
         });
-      } catch (e) {
+      } catch (e: any) {
+        if (e?.code === "P2002") {
+          console.log(`⏩ [DEDUP] Concurrent DB unique conflict for ${waMsgId}. Skipping duplicate reply.`);
+          continue;
+        }
         console.error("Failed to save incoming message:", e);
       }
 
@@ -397,13 +408,14 @@ async function processWebhookPayload(body: any) {
 
         console.log(`🚫 Opted-out contact for phone +${fromPhone} (Business: ${clientBusinessId})`);
       } else if (textBody.length > 0) {
-        // Trigger human-like WhatsApp AI auto-reply scoped to the exact client's business
+        // Trigger human-like WhatsApp AI auto-reply strictly scoped to this business + messageId
         handleIncomingAiReply({
           fromPhone,
           customerName,
           incomingText: textBody,
           waPhoneNumberId: phoneId,
           businessId: clientBusinessId,
+          incomingWaMessageId: waMsgId,
         }).catch((err) => {
           console.error("AI Auto-reply background error:", err);
         });

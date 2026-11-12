@@ -210,7 +210,7 @@ export default function FreeTrialScannerSection({
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-purple/40 text-brand-200 border border-brand-purple/50 text-xs font-heading font-bold uppercase tracking-wider">
             <ShieldCheck className="w-4 h-4 text-brand-300" />
-            100% Anti-Ban Guarantee • Official Meta Cloud API
+            Built on the official WhatsApp Business Platform (Cloud API)
           </span>
           <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
             isLimitReached 
@@ -274,7 +274,7 @@ export default function FreeTrialScannerSection({
               </span>
               <span className="text-[11px] text-emerald-300 font-semibold bg-emerald-950/70 border border-emerald-500/30 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                 <Check className="w-3 h-3 text-emerald-400" />
-                Official Meta Verified
+                Sent via WhatsApp Cloud API
               </span>
             </div>
 

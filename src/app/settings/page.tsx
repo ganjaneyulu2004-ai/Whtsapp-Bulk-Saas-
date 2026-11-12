@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageContext";
 import { 
   Store, 
@@ -18,12 +18,15 @@ import {
   FileText,
   Trash2,
   AlertTriangle,
-  X
+  X,
+  KeyRound
 } from "lucide-react";
 import WhatsAppEmbeddedSignup from "@/components/WhatsAppEmbeddedSignup";
 
 export default function SettingsPage() {
   const { t } = useLanguage();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -56,6 +59,26 @@ export default function SettingsPage() {
   const [waBusinessAccountId, setWaBusinessAccountId] = useState("");
   const [waApiVersion, setWaApiVersion] = useState("v26.0");
   const [metaAppId, setMetaAppId] = useState("");
+
+  // ADMIN-only System User Access Token form state (supports choosing ANY business)
+  const [adminBusinesses, setAdminBusinesses] = useState<Array<{
+    id: string;
+    name: string;
+    username: string;
+    role: string;
+    waPhoneNumberId: string;
+    waBusinessAccountId: string;
+    isConnected: boolean;
+    displayPhoneNumber: string;
+    hasToken: boolean;
+    tokenLast4: string;
+  }>>([]);
+  const [selectedSysBusinessId, setSelectedSysBusinessId] = useState("");
+  const [sysTokenInput, setSysTokenInput] = useState("");
+  const [sysPhoneId, setSysPhoneId] = useState("");
+  const [sysWabaId, setSysWabaId] = useState("");
+  const [savingSysToken, setSavingSysToken] = useState(false);
+  const [sysTokenStatus, setSysTokenStatus] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Account Deletion State (Meta Access Verification)
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -128,6 +151,8 @@ export default function SettingsPage() {
           setWaBusinessAccountId(c.waBusinessAccountId || "");
           setWaApiVersion(c.waApiVersion || "v26.0");
           setMetaAppId(c.metaAppId || "");
+          if (c.waPhoneNumberId) setSysPhoneId(c.waPhoneNumberId);
+          if (c.waBusinessAccountId) setSysWabaId(c.waBusinessAccountId);
         }
         setLoading(false);
       })
@@ -140,6 +165,84 @@ export default function SettingsPage() {
   useEffect(() => {
     loadSettings();
   }, []);
+
+  const loadAdminBusinesses = (preferredBizId?: string) => {
+    if (!isAdmin) return;
+    fetch("/api/admin/system-token")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && Array.isArray(data.businesses)) {
+          setAdminBusinesses(data.businesses);
+          const chosen =
+            data.businesses.find((b: any) => b.id === (preferredBizId || selectedSysBusinessId)) ||
+            data.businesses[0];
+          if (chosen) {
+            setSelectedSysBusinessId(chosen.id);
+            setSysPhoneId(chosen.waPhoneNumberId || "");
+            setSysWabaId(chosen.waBusinessAccountId || "");
+          }
+        }
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadAdminBusinesses();
+    }
+  }, [isAdmin]);
+
+  const handleSelectSysBusiness = (bizId: string) => {
+    setSelectedSysBusinessId(bizId);
+    setSysTokenStatus(null);
+    const chosen = adminBusinesses.find((b) => b.id === bizId);
+    if (chosen) {
+      setSysPhoneId(chosen.waPhoneNumberId || "");
+      setSysWabaId(chosen.waBusinessAccountId || "");
+    }
+  };
+
+  const selectedSysBusiness = adminBusinesses.find((b) => b.id === selectedSysBusinessId);
+
+  const handleSaveSystemToken = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSysBusinessId) {
+      setSysTokenStatus({ ok: false, message: "Please select a Business first." });
+      return;
+    }
+    if (!sysTokenInput.trim()) {
+      setSysTokenStatus({ ok: false, message: "Please paste a valid System User Access Token." });
+      return;
+    }
+
+    setSavingSysToken(true);
+    setSysTokenStatus(null);
+    try {
+      const res = await fetch("/api/admin/system-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessId: selectedSysBusinessId,
+          waToken: sysTokenInput.trim(),
+          phoneNumberId: sysPhoneId.trim(),
+          wabaId: sysWabaId.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSysTokenInput("");
+        setSysTokenStatus({ ok: true, message: data.message });
+        loadAdminBusinesses(selectedSysBusinessId);
+        loadSettings();
+      } else {
+        setSysTokenStatus({ ok: false, message: data.error || "Verification or save failed." });
+      }
+    } catch (err: any) {
+      setSysTokenStatus({ ok: false, message: err?.message || "Network error saving token." });
+    } finally {
+      setSavingSysToken(false);
+    }
+  };
 
   const handleToggleAi = async (enabled: boolean) => {
     setAiBotEnabled(enabled);
@@ -251,13 +354,135 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* 1. Official Meta WhatsApp Embedded Signup Channel */}
+      {/* 1. WhatsApp Cloud API Connection */}
       <WhatsAppEmbeddedSignup
         initialConfig={waConfig}
         metaAppId={process.env.NEXT_PUBLIC_META_APP_ID || "2068663130431385"}
         metaConfigId={process.env.NEXT_PUBLIC_META_CONFIG_ID || "1620839459718786"}
         onConfigUpdated={loadSettings}
       />
+
+      {/* 1B. ADMIN-ONLY: Save System User Access Token */}
+      {isAdmin && (
+        <div className="bg-white rounded-3xl p-5 sm:p-7 border border-indigo-200 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-heading font-extrabold text-slate-900">
+                  Save System User Access Token (Admin Only)
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Verifies against Meta Graph API (GET /&#123;phone_number_id&#125;) and stores AES-256 encrypted in your database using the existing ENCRYPTION_KEY.
+                </p>
+              </div>
+            </div>
+
+            <div className="text-xs font-mono bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-slate-700 shrink-0">
+              Stored Token:{" "}
+              {selectedSysBusiness?.hasToken && selectedSysBusiness?.tokenLast4
+                ? `••••••••${selectedSysBusiness.tokenLast4}`
+                : "Not saved"}
+            </div>
+          </div>
+
+          <form onSubmit={handleSaveSystemToken} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-heading font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Business
+                </label>
+                <select
+                  value={selectedSysBusinessId}
+                  onChange={(e) => handleSelectSysBusiness(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  required
+                >
+                  <option value="">-- Select Business --</option>
+                  {adminBusinesses.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.username}) — {b.isConnected ? "Connected" : "Not Connected"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-heading font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Phone Number ID
+                </label>
+                <input
+                  type="text"
+                  value={sysPhoneId}
+                  onChange={(e) => setSysPhoneId(e.target.value)}
+                  placeholder="e.g. 1443849605471143"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-heading font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  WABA ID
+                </label>
+                <input
+                  type="text"
+                  value={sysWabaId}
+                  onChange={(e) => setSysWabaId(e.target.value)}
+                  placeholder="e.g. 2367270804076581"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-heading font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Permanent System User Access Token
+              </label>
+              <input
+                type="password"
+                value={sysTokenInput}
+                onChange={(e) => setSysTokenInput(e.target.value)}
+                placeholder="Paste EAAB... System User token (never shown back in UI)"
+                autoComplete="off"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                required
+              />
+            </div>
+
+            {sysTokenStatus && (
+              <div
+                className={`p-3 rounded-xl text-xs font-medium flex items-center gap-2 ${
+                  sysTokenStatus.ok
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    : "bg-rose-50 text-rose-800 border border-rose-200"
+                }`}
+              >
+                {sysTokenStatus.ok ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                )}
+                <span>{sysTokenStatus.message}</span>
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={savingSysToken}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-heading font-bold shadow-sm transition cursor-pointer disabled:opacity-50"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>{savingSysToken ? "Verifying & Saving..." : "Save System User Access Token"}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* 2. REAL HUMAN AI WHATSAPP CHATBOT SETTINGS */}
       <div className="bg-gradient-to-br from-white to-[#f0fdf4] rounded-3xl p-5 sm:p-8 border border-emerald-200 shadow-sm space-y-6">

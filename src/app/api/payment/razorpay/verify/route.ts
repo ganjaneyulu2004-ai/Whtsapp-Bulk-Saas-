@@ -48,6 +48,12 @@ export async function POST(req: Request) {
 
     // 2. Identify Monthly Subscription Plan
     const plan = SUBSCRIPTION_PLANS.find((p) => p.id === itemId);
+    if (plan?.isTest && session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Test plan is restricted to administrators only." },
+        { status: 403 }
+      );
+    }
     const planName = plan ? plan.name : "Growth";
     const planAmount = plan ? plan.price : 2499;
 

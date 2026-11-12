@@ -15,10 +15,10 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://oneample.com"),
   title: {
-    default: "OneAmple — Official Meta WhatsApp Cloud API Marketing Engine & AI CRM | by iBrainLabs",
-    template: "%s | OneAmple",
+    default: "OneAmple — WhatsApp Marketing & CRM by iBrainLabs",
+    template: "%s | OneAmple — WhatsApp Marketing & CRM by iBrainLabs",
   },
-  description: "OneAmple — Business, Made Intelligent. Official Meta WhatsApp Cloud API Marketing Engine, 24/7 Smart AI Auto-Bookings, Bulk WhatsApp Campaigns & Lead CRM for Modern Businesses in India.",
+  description: "OneAmple WhatsApp Marketing Platform — Built on the official WhatsApp Business Platform (Cloud API) for Bulk Campaigns, 24/7 AI Auto-Bookings & Lead CRM by iBrainLabs.",
   keywords: [
     "OneAmple",
     "One Ample",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     "Automated WhatsApp Campaigns",
     "WhatsApp Lead Management CRM",
     "AI Appointment Booking WhatsApp",
-    "Official Meta Partner WhatsApp API",
+    "WhatsApp Business Platform (Cloud API)",
   ],
   authors: [{ name: "iBrainLabs", url: "https://oneample.com" }],
   creator: "iBrainLabs",
@@ -47,8 +47,8 @@ export const metadata: Metadata = {
     apple: "/favicon.png",
   },
   openGraph: {
-    title: "OneAmple — Business, Made Intelligent. | Official Meta WhatsApp SaaS",
-    description: "Meta Verified WhatsApp Cloud API Bulk Marketing Engine, AI Auto-Bookings & Lead CRM for Modern Businesses.",
+    title: "OneAmple — WhatsApp Marketing & CRM by iBrainLabs",
+    description: "OneAmple WhatsApp Marketing Platform built on the official WhatsApp Business Platform (Cloud API) — Bulk Campaigns, AI Auto-Bookings & Lead CRM.",
     url: "https://oneample.com",
     siteName: "OneAmple",
     images: [
@@ -64,8 +64,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "OneAmple — Official Meta WhatsApp Cloud API Engine | by iBrainLabs",
-    description: "Scale your business with Official Meta WhatsApp Cloud API campaigns, 24/7 AI lead qualification, and appointment automation.",
+    title: "OneAmple — WhatsApp Marketing & CRM by iBrainLabs",
+    description: "Scale your business with OneAmple WhatsApp Marketing Platform, built on the official WhatsApp Business Platform (Cloud API).",
     images: ["/brand/oneample-logo-horizontal.png"],
   },
   robots: {

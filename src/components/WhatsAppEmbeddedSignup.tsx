@@ -513,8 +513,8 @@ export default function WhatsAppEmbeddedSignup({
           <div className="bg-white/10 backdrop-blur-md border border-white/20 px-3.5 py-2 rounded-xl flex items-center gap-2.5 shrink-0">
             <ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" />
             <div className="text-xs">
-              <span className="text-white font-semibold block">Official Tech Provider</span>
-              <span className="text-brand-soft text-[10px]">Meta Verified Integration</span>
+              <span className="text-white font-semibold block">WhatsApp Business Platform</span>
+              <span className="text-brand-soft text-[10px]">Built on the official WhatsApp Business Platform (Cloud API)</span>
             </div>
           </div>
         </div>
@@ -655,7 +655,7 @@ export default function WhatsAppEmbeddedSignup({
               {activeTab === "send_test" && (
                 <div className="space-y-4">
                   <p className="text-xs text-slate-600">
-                    Verify live transmission by sending an official Meta Cloud API test message directly to your phone.
+                    Verify live transmission by sending a WhatsApp Cloud API test message directly to your phone.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -994,7 +994,7 @@ export default function WhatsAppEmbeddedSignup({
               <div className="p-3.5 rounded-2xl bg-brand-light/50 border border-brand-soft space-y-1">
                 <span className="text-xs font-bold text-slate-heading flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-purple-500" />
-                  Meta Verified
+                  Built on the official WhatsApp Business Platform (Cloud API)
                 </span>
                 <p className="text-[11px] text-slate-500">
                   Your credentials are AES-256 encrypted and stored safely.

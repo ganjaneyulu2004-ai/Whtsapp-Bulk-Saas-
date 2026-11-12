@@ -30,7 +30,7 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-xl font-bold text-white mb-3">2. How We Use Your Information</h2>
             <p>We use the data collected exclusively to:</p>
             <ul className="list-disc pl-6 mt-2 space-y-1 text-slate-300">
-              <li>Facilitate WhatsApp message transmission through official Meta Cloud API.</li>
+              <li>Facilitate WhatsApp message transmission via the official WhatsApp Business Platform (Cloud API).</li>
               <li>Provide real-time message delivery and read receipts via Webhooks.</li>
               <li>Authenticate and secure your business dashboard.</li>
               <li>Comply with applicable Meta Platform Terms and Developer Policies.</li>
@@ -75,9 +75,11 @@ export default function PrivacyPolicyPage() {
 
         <div className="mt-10 pt-6 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
           <p>&copy; {new Date().getFullYear()} OneAmple &bull; iBrain Labs. All rights reserved.</p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <Link href="/privacy" className="text-emerald-400 hover:underline font-semibold">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
+            <Link href="/refund-policy" className="hover:text-slate-300 transition-colors">Refund Policy</Link>
+            <Link href="/contact" className="hover:text-slate-300 transition-colors">Contact</Link>
             <Link href="/data-deletion" className="hover:text-slate-300 transition-colors">Data Deletion</Link>
           </div>
         </div>

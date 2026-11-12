@@ -21,6 +21,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid subscription plan selected." }, { status: 400 });
     }
 
+    if (plan.isTest && session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Test plan is restricted to administrators only." },
+        { status: 403 }
+      );
+    }
+
     // Razorpay amount is in paise (1 INR = 100 paise)
     const options = {
       amount: Math.round(plan.price * 100),

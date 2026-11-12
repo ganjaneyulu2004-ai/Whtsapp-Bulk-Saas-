@@ -166,9 +166,11 @@ export default function DataDeletionPage() {
         {/* Footer links */}
         <div className="mt-10 pt-6 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
           <p>&copy; {new Date().getFullYear()} OneAmple &bull; iBrain Labs. All rights reserved.</p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <Link href="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
+            <Link href="/refund-policy" className="hover:text-slate-300 transition-colors">Refund Policy</Link>
+            <Link href="/contact" className="hover:text-slate-300 transition-colors">Contact</Link>
             <Link href="/data-deletion" className="text-emerald-400 hover:underline font-semibold">Data Deletion</Link>
           </div>
         </div>

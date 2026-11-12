@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import { SUBSCRIPTION_PLANS, META_NOTE } from "@/config/plans";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const showTest = process.env.SHOW_TEST_PLAN === "true";
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === "ADMIN";
+  const showTest = process.env.SHOW_TEST_PLAN === "true" && isAdmin;
   const plans = SUBSCRIPTION_PLANS.filter((p) => !p.isTest || showTest);
 
   return NextResponse.json({

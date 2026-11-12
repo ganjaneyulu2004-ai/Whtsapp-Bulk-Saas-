@@ -1,12 +1,20 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === "/login" || pathname === "/register";
+  const isAuthPage =
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/privacy" ||
+    pathname === "/terms" ||
+    pathname === "/refund-policy" ||
+    pathname === "/contact" ||
+    pathname === "/data-deletion";
 
   const isInboxPage = pathname === "/inbox";
 
@@ -39,14 +47,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
         <footer className="mt-auto border-t border-slate-200/80 bg-white/60 backdrop-blur-md py-4 text-center text-xs text-slate-500 font-medium">
-          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p>Meta Business Suite Marketing Engine © 2026</p>
-            <div className="flex items-center gap-3 text-slate-500 text-[11px]">
-              <span>⚡ High-Speed Engine</span>
+          <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <p>OneAmple WhatsApp Marketing Platform © {new Date().getFullYear()} iBrainLabs</p>
+              <span className="hidden sm:inline">•</span>
+              <span className="text-[11px] text-slate-500">
+                🔒 Built on the official WhatsApp Business Platform (Cloud API)
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 text-slate-500 text-[11px]">
+              <Link href="/privacy" className="hover:text-slate-900 transition-colors">Privacy</Link>
               <span>•</span>
-              <span>🔒 Official Meta Cloud API</span>
+              <Link href="/terms" className="hover:text-slate-900 transition-colors">Terms</Link>
               <span>•</span>
-              <span>📊 Real-Time Analytics</span>
+              <Link href="/refund-policy" className="hover:text-slate-900 transition-colors">Refund Policy</Link>
+              <span>•</span>
+              <Link href="/contact" className="hover:text-slate-900 transition-colors">Contact</Link>
+              <span>•</span>
+              <Link href="/data-deletion" className="hover:text-slate-900 transition-colors">Data Deletion</Link>
             </div>
           </div>
         </footer>
