@@ -24,7 +24,9 @@ import {
   Bot,
   ShieldCheck,
   Zap,
-  Clock
+  Clock,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 export default function CreateCampaignPage() {
@@ -69,6 +71,7 @@ export default function CreateCampaignPage() {
     Record<number, { aiFilled?: boolean; manualEdited?: boolean; missingFromPoster?: boolean }>
   >({});
   const [regeneratingVar, setRegeneratingVar] = useState<number | null>(null);
+  const [showEditMessage, setShowEditMessage] = useState(false);
   const varMetaRef = React.useRef(varMeta);
   varMetaRef.current = varMeta;
   const lastAnalyzedSourceRef = React.useRef<string | null>(null);
@@ -143,8 +146,11 @@ export default function CreateCampaignPage() {
           });
           setApprovedTemplates(valid);
           if (valid.length > 0) {
+            const approvedImageTemplates = valid.filter((t: any) => t.headerType === "IMAGE");
+            const preferredTpl =
+              approvedImageTemplates.length === 1 ? approvedImageTemplates[0] : valid[0];
             setSelectedTemplateId((prev) =>
-              prev && valid.some((t: any) => t.id === prev) ? prev : valid[0].id
+              prev && valid.some((t: any) => t.id === prev) ? prev : preferredTpl.id
             );
           } else {
             setSelectedTemplateId("");
@@ -264,7 +270,7 @@ export default function CreateCampaignPage() {
         body: JSON.stringify({
           base64Image: base64Img || undefined,
           mimeType: type || mimeType,
-          targetLang: lang || offerLanguage,
+          targetLang: lang || "auto",
           note: shortNote,
           bookingLink: bookingLink.trim(),
           templateId: activeTemplate?.id,
@@ -427,10 +433,199 @@ export default function CreateCampaignPage() {
       return;
     }
     lastAnalyzedSourceRef.current = sourceKey;
-    analyzeWithGemini(posterImage || undefined, mimeType, offerLanguage, {
+    analyzeWithGemini(posterImage || undefined, mimeType, "auto", {
       respectManual: true,
     });
   }, [step, isImageHeader, activeTemplate?.id, posterImage, defaultTemplateImageUrl, effectivePreviewImage]);
+
+  const describeNeededVariable = (bodyText: string | null | undefined, varNum: number): string => {
+    if (!bodyText) return `variable {{${varNum}}}`;
+    const token = `{{${varNum}}}`;
+    const pos = bodyText.indexOf(token);
+    const before = pos >= 0 ? bodyText.slice(Math.max(0, pos - 65), pos).toLowerCase() : "";
+    const after = pos >= 0 ? bodyText.slice(pos + token.length, Math.min(bodyText.length, pos + token.length + 45)).toLowerCase() : "";
+    const ctx = `${before} ${after}`;
+
+    if (/\b(valid|till|until|expir|last date|ends on|end date|validity|date)\b/.test(ctx)) {
+      return "valid-till date";
+    }
+    if (/\b(link|url|website|book here|order here|visit us at|click)\b/.test(ctx)) {
+      return "booking link";
+    }
+    if (/\b(phone|call|mobile|whatsapp|helpline|contact us at|dial)\b/.test(ctx)) {
+      return "phone number";
+    }
+    if (/\b(price|cost|fee|rate|mrp|rs\.?|inr|₹|starting at|only at)\b/.test(ctx)) {
+      return "price";
+    }
+    if (/\b(discount|off|save|cashback)\b/.test(ctx) && !/\boffer\b/.test(ctx)) {
+      return "discount";
+    }
+    if (/\b(product|service|package|item|course|treatment|plan)\b/.test(ctx) && !/\boffer\b/.test(ctx)) {
+      return "product or service";
+    }
+    if (/\b(shopping with|welcome to|team|brand|shop name|store name|company)\b/.test(ctx)) {
+      return "business name";
+    }
+    if (/\b(location|address|venue|branch|city)\b/.test(ctx)) {
+      return "location";
+    }
+    if (/\b(offer|deal|promo|announce|special)\b/.test(ctx)) {
+      return "offer text";
+    }
+    return `value for {{${varNum}}}`;
+  };
+
+  const missingBodyVars = bodyVariables.filter((v) => {
+    if (v === 1 && var1UseContactName) return false;
+    return !(templateVarValues[v] || "").trim();
+  });
+
+  const hasMissingStep2Fields =
+    !activeTemplate ||
+    !isApproved ||
+    (isImageHeader && !effectivePreviewImage) ||
+    missingBodyVars.length > 0;
+
+  const renderVariableCard = (varNum: number) => {
+    const currentVal = templateVarValues[varNum] || "";
+    const isFirst = varNum === 1;
+    const meta = varMeta[varNum];
+    const showTextBox = !(isFirst && var1UseContactName);
+    const isMissingNow = showTextBox && !currentVal.trim();
+    const rawExample = templateBodyExamples[varNum - 1] || "";
+    const neededLabel = describeNeededVariable(activeTemplate?.bodyText, varNum);
+    const inputPlaceholder = rawExample
+      ? `Example: ${rawExample}`
+      : `Enter ${neededLabel}`;
+    const isRegeneratingThis = regeneratingVar === varNum;
+    const canRegenerate = Boolean(
+      isImageHeader && (effectivePreviewImage || extractedDetails)
+    );
+
+    return (
+      <div
+        key={varNum}
+        className={`p-4 rounded-2xl border space-y-2.5 transition-all ${
+          isMissingNow
+            ? "border-rose-400 bg-rose-50/70 ring-2 ring-rose-200"
+            : "border-slate-200 bg-slate-50/50"
+        }`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-xs font-heading font-bold text-slate-heading">
+              Variable <span className={`font-mono ${isMissingNow ? "text-rose-700" : "text-emerald-700"}`}>{`{{${varNum}}}`}</span>
+            </label>
+            {showTextBox && meta?.aiFilled && currentVal.trim() && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                <Sparkles className="w-2.5 h-2.5" />
+                AI filled
+              </span>
+            )}
+            {isMissingNow && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                <AlertTriangle className="w-2.5 h-2.5 text-rose-600" />
+                Please type {neededLabel}
+              </span>
+            )}
+          </div>
+
+          {showTextBox && (
+            <div className="flex items-center gap-2">
+              {canRegenerate && (
+                <button
+                  type="button"
+                  disabled={isRegeneratingThis || analyzing}
+                  onClick={() =>
+                    analyzeWithGemini(
+                      posterImage || undefined,
+                      mimeType,
+                      "auto",
+                      { targetVar: varNum, respectManual: false }
+                    )
+                  }
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-700 text-[10px] font-heading font-bold transition-all disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isRegeneratingThis ? "animate-spin" : ""}`} />
+                  <span>{isRegeneratingThis ? "Generating..." : "Regenerate"}</span>
+                </button>
+              )}
+              {currentVal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTemplateVarValues((prev) => ({ ...prev, [varNum]: "" }));
+                    if (varNum === 2) setOfferText("");
+                    setVarMeta((prev) => ({
+                      ...prev,
+                      [varNum]: {
+                        aiFilled: false,
+                        manualEdited: false,
+                        missingFromPoster: true,
+                      },
+                    }));
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 text-slate-600 hover:text-rose-700 text-[10px] font-heading font-bold transition-all"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Clear</span>
+                </button>
+              )}
+              <span className={`text-[10px] font-mono ${currentVal.length > 300 ? "text-rose-600 font-bold" : "text-slate-muted"}`}>
+                {currentVal.length} / 300
+              </span>
+            </div>
+          )}
+        </div>
+
+        {isFirst && (
+          <select
+            value={var1UseContactName ? "contact_name" : "custom_text"}
+            onChange={(e) => setVar1UseContactName(e.target.value === "contact_name")}
+            className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+          >
+            <option value="contact_name">
+              Contact Name (dynamic per recipient, e.g. &quot;{firstContactName}&quot;)
+            </option>
+            <option value="custom_text">
+              Custom Text (same value for all recipients)
+            </option>
+          </select>
+        )}
+
+        {showTextBox && (
+          <textarea
+            rows={2}
+            maxLength={300}
+            value={currentVal}
+            onChange={(e) => {
+              const cleaned = e.target.value.replace(/[\r\n\t]/g, " ").replace(/ {5,}/g, "    ");
+              const nextVal = cleaned.substring(0, 300);
+              setTemplateVarValues((prev) => ({ ...prev, [varNum]: nextVal }));
+              setVarMeta((prev) => ({
+                ...prev,
+                [varNum]: {
+                  aiFilled: false,
+                  manualEdited: nextVal.trim().length > 0,
+                  missingFromPoster: nextVal.trim().length === 0,
+                },
+              }));
+              if (varNum === 2) {
+                setOfferText(nextVal);
+              }
+            }}
+            placeholder={inputPlaceholder}
+            className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-xs font-body focus:ring-2 ${
+              isMissingNow
+                ? "border-rose-300 focus:ring-rose-400"
+                : "border-slate-200 focus:ring-emerald-500"
+            }`}
+          />
+        )}
+      </div>
+    );
+  };
 
   const resolvePreviewVarValue = (varNum: number): string => {
     if (varNum === 1 && var1UseContactName) {
@@ -877,13 +1072,15 @@ export default function CreateCampaignPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-7 space-y-6">
             
-            {/* Approved Client WABA Template Picker */}
-            <div className="bg-emerald-50/80 rounded-2xl p-5 border border-emerald-200 space-y-3 text-xs">
+            {/* Approved Client WABA Template Picker (auto-selected when single approved IMAGE template) */}
+            <div className="bg-emerald-50/80 rounded-2xl p-4 border border-emerald-200 space-y-2.5 text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
                   <span className="font-heading font-bold text-slate-heading text-sm">
-                    Select Approved WhatsApp Template
+                    {approvedTemplates.length === 1 && isApproved
+                      ? `Template: ${activeTemplate?.name}`
+                      : "Approved WhatsApp Template"}
                   </span>
                 </div>
                 {loadingTemplates ? (
@@ -905,41 +1102,29 @@ export default function CreateCampaignPage() {
                 <div className="px-3.5 py-2.5 rounded-xl border border-emerald-200 bg-white text-xs text-slate-500">
                   Loading APPROVED templates from your WhatsApp Business Account...
                 </div>
-              ) : approvedTemplates.length > 0 ? (
-                <>
-                  <select
-                    value={selectedTemplateId || activeTemplate?.id || ""}
-                    onChange={(e) => {
-                      setSelectedTemplateId(e.target.value);
-                      setPosterImage(null);
-                      setVar1UseContactName(true);
-                      setTemplateVarValues({});
-                      setVarMeta({});
-                      setExtractedDetails(null);
-                      setGeneratedOptions(null);
-                      lastAnalyzedSourceRef.current = null;
-                    }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                  >
-                    {approvedTemplates.map((tpl) => (
-                      <option key={tpl.id} value={tpl.id}>
-                        {tpl.name} · {tpl.category} ({tpl.language}) — {tpl.headerType === "IMAGE" ? "Image Header" : "Text Only"}
-                      </option>
-                    ))}
-                  </select>
-
-                  {activeTemplate?.bodyText && (
-                    <div className="bg-white/90 rounded-xl border border-emerald-100 p-3 space-y-1">
-                      <span className="text-[10px] font-heading font-bold uppercase tracking-wider text-slate-400">
-                        Template Message Pattern
-                      </span>
-                      <p className="text-[11px] text-slate-700 whitespace-pre-wrap font-mono leading-relaxed">
-                        {activeTemplate.bodyText}
-                      </p>
-                    </div>
-                  )}
-                </>
-              ) : (
+              ) : approvedTemplates.length > 1 ? (
+                <select
+                  value={selectedTemplateId || activeTemplate?.id || ""}
+                  onChange={(e) => {
+                    setSelectedTemplateId(e.target.value);
+                    setPosterImage(null);
+                    setVar1UseContactName(true);
+                    setTemplateVarValues({});
+                    setVarMeta({});
+                    setExtractedDetails(null);
+                    setGeneratedOptions(null);
+                    setShowEditMessage(false);
+                    lastAnalyzedSourceRef.current = null;
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                >
+                  {approvedTemplates.map((tpl) => (
+                    <option key={tpl.id} value={tpl.id}>
+                      {tpl.name} · {tpl.category} ({tpl.language}) — {tpl.headerType === "IMAGE" ? "Image Header" : "Text Only"}
+                    </option>
+                  ))}
+                </select>
+              ) : approvedTemplates.length === 0 ? (
                 <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 space-y-1">
                   <p className="font-heading font-bold">No APPROVED templates available</p>
                   <p className="text-[11px]">
@@ -950,7 +1135,7 @@ export default function CreateCampaignPage() {
                     first.
                   </p>
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Header Image Upload (ONLY shown when chosen template has IMAGE header) */}
@@ -959,20 +1144,38 @@ export default function CreateCampaignPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-base font-heading font-bold text-slate-heading flex items-center gap-2">
                     <Upload className="w-5 h-5 text-emerald-600" />
-                    <span>Template Header Image (Keep Default or Replace)</span>
+                    <span>Upload Campaign Poster</span>
                   </h2>
-                  {posterImage && defaultTemplateImageUrl && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        lastAnalyzedSourceRef.current = null;
-                        setPosterImage(null);
-                      }}
-                      className="text-[11px] font-bold text-brand-purple hover:underline cursor-pointer"
-                    >
-                      Use Default Template Image
-                    </button>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {effectivePreviewImage && (
+                      <button
+                        type="button"
+                        disabled={analyzing}
+                        onClick={() => {
+                          lastAnalyzedSourceRef.current = null;
+                          analyzeWithGemini(posterImage || undefined, mimeType, "auto", {
+                            respectManual: true,
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-heading font-bold transition-all disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${analyzing ? "animate-spin" : ""}`} />
+                        <span>{analyzing ? "Reading poster..." : "Regenerate"}</span>
+                      </button>
+                    )}
+                    {posterImage && defaultTemplateImageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          lastAnalyzedSourceRef.current = null;
+                          setPosterImage(null);
+                        }}
+                        className="text-[11px] font-bold text-brand-purple hover:underline cursor-pointer"
+                      >
+                        Use Default Image
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <label className="relative border-2 border-dashed border-emerald-200 hover:border-emerald-400 bg-pastel-mint/20 hover:bg-pastel-mint/40 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all text-center min-h-[160px]">
@@ -987,8 +1190,8 @@ export default function CreateCampaignPage() {
                       <img src={effectivePreviewImage} alt="Header image preview" className="h-36 object-contain rounded-xl shadow-md" />
                       <span className="text-xs text-emerald-700 font-medium">
                         {posterImage
-                          ? "Custom campaign image selected — click to replace"
-                          : "Template default header image — click to upload another JPG/PNG"}
+                          ? "Poster uploaded — click to replace"
+                          : "Template default image — click to upload another JPG/PNG"}
                       </span>
                     </div>
                   ) : (
@@ -1000,7 +1203,7 @@ export default function CreateCampaignPage() {
                         {t("createCampaign.dragDropPoster")}
                       </p>
                       <p className="text-[11px] text-slate-muted">
-                        JPG or PNG (max 5 MB) required for IMAGE header
+                        Upload JPG or PNG (max 5 MB) — AI fills the message automatically
                       </p>
                     </div>
                   )}
@@ -1009,7 +1212,7 @@ export default function CreateCampaignPage() {
                 {analyzing && (
                   <div className="flex items-center justify-center gap-3 p-4 bg-emerald-50 rounded-2xl text-emerald-800 text-xs font-heading font-semibold animate-pulse">
                     <Sparkles className="w-5 h-5 text-emerald-600 animate-spin" />
-                    <span>Reading poster text with Gemini AI Vision...</span>
+                    <span>Reading poster with Gemini Vision &amp; filling message...</span>
                   </div>
                 )}
 
@@ -1024,7 +1227,7 @@ export default function CreateCampaignPage() {
                         type="button"
                         onClick={() => {
                           if (effectivePreviewImage) {
-                            analyzeWithGemini(posterImage || undefined, mimeType, offerLanguage, {
+                            analyzeWithGemini(posterImage || undefined, mimeType, "auto", {
                               respectManual: true,
                             });
                           }
@@ -1041,447 +1244,173 @@ export default function CreateCampaignPage() {
               </div>
             )}
 
-            {/* Editable "Poster Details" Card (only when IMAGE header active) */}
-            {isImageHeader && extractedDetails && (
-              <div className="bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-white rounded-3xl p-6 border border-emerald-200/80 shadow-card space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-emerald-800 font-heading font-bold text-sm">
-                    <Bot className="w-5 h-5 text-emerald-600" />
-                    <span>✨ Editable Poster Details (Vision Extracted)</span>
+            {/* Expanded red inputs ONLY for variables missing after poster analysis (or non-image templates) */}
+            {!showEditMessage &&
+              !analyzing &&
+              bodyVariables.length > 0 &&
+              (!isImageHeader || Boolean(effectivePreviewImage)) &&
+              missingBodyVars.length > 0 && (
+                <div className="bg-rose-50/70 rounded-3xl p-5 border-2 border-rose-300 shadow-card space-y-3">
+                  <div className="flex items-center gap-2 text-rose-900 font-heading font-bold text-xs">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>
+                      {isImageHeader
+                        ? "Not found in poster — please type the missing details to continue:"
+                        : "Please fill in the required template fields:"}
+                    </span>
                   </div>
-                  <button
-                    onClick={() => handleRegenerateOptions()}
-                    className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-xs px-3 py-1.5 rounded-xl shadow-xs transition-all"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Regenerate Options</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-muted uppercase">Business Name</label>
-                    <input
-                      type="text"
-                      value={extractedDetails.business_name || ""}
-                      onChange={(e) => {
-                        const updated = { ...extractedDetails, business_name: e.target.value || null };
-                        setExtractedDetails(updated);
-                      }}
-                      placeholder="e.g. Jungle Tiger Resort (or empty)"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-heading"
-                    />
+                  <div className="space-y-3">
+                    {missingBodyVars.map((varNum) => renderVariableCard(varNum))}
                   </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-muted uppercase">Business Type</label>
-                    <input
-                      type="text"
-                      value={extractedDetails.business_type || ""}
-                      onChange={(e) => {
-                        const updated = { ...extractedDetails, business_type: e.target.value || null };
-                        setExtractedDetails(updated);
-                      }}
-                      placeholder="e.g. Resort & Safari, Restaurant, Shop..."
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-muted uppercase">Offer Title / Headline</label>
-                    <input
-                      type="text"
-                      value={extractedDetails.offer_title || ""}
-                      onChange={(e) => {
-                        const updated = { ...extractedDetails, offer_title: e.target.value || null };
-                        setExtractedDetails(updated);
-                      }}
-                      placeholder="e.g. Wildlife Safari Package"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-muted uppercase">Discount / Offer</label>
-                    <input
-                      type="text"
-                      value={extractedDetails.discount || ""}
-                      onChange={(e) => {
-                        const updated = { ...extractedDetails, discount: e.target.value || null };
-                        setExtractedDetails(updated);
-                      }}
-                      placeholder="e.g. 20% OFF (or empty if no discount)"
-                      className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-white text-xs font-semibold text-emerald-800"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-muted uppercase">Price</label>
-                    <input
-                      type="text"
-                      value={extractedDetails.price || ""}
-                      onChange={(e) => {
-                        const updated = { ...extractedDetails, price: e.target.value || null };
-                        setExtractedDetails(updated);
-                      }}
-                      placeholder="e.g. ₹1,499 (or empty if not visible)"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-heading"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-muted uppercase">Products / Services</label>
-                    <input
-                      type="text"
-                      value={extractedDetails.products_or_services || ""}
-                      onChange={(e) => {
-                        const updated = { ...extractedDetails, products_or_services: e.target.value || null };
-                        setExtractedDetails(updated);
-                      }}
-                      placeholder="e.g. Safari Stay, Rooms & Guided Tours"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-heading"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-muted uppercase">Occasion / Festival</label>
-                    <input
-                      type="text"
-                      value={extractedDetails.occasion || ""}
-                      onChange={(e) => {
-                        const updated = { ...extractedDetails, occasion: e.target.value || null };
-                        setExtractedDetails(updated);
-                      }}
-                      placeholder="e.g. Monsoon Special"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-muted uppercase">Valid Till Date</label>
-                    <input
-                      type="text"
-                      value={extractedDetails.valid_till || ""}
-                      onChange={(e) => {
-                        const updated = { ...extractedDetails, valid_till: e.target.value || null };
-                        setExtractedDetails(updated);
-                      }}
-                      placeholder="e.g. Valid till Oct 31"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-muted uppercase">Location / Address</label>
-                    <input
-                      type="text"
-                      value={extractedDetails.location || ""}
-                      onChange={(e) => {
-                        const updated = { ...extractedDetails, location: e.target.value || null };
-                        setExtractedDetails(updated);
-                      }}
-                      placeholder="e.g. Nagarhole National Park"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-muted uppercase">Phone Number</label>
-                    <input
-                      type="text"
-                      value={extractedDetails.phone || ""}
-                      onChange={(e) => {
-                        const updated = { ...extractedDetails, phone: e.target.value || null };
-                        setExtractedDetails(updated);
-                      }}
-                      placeholder="e.g. +91 93904 84762"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-muted uppercase">Website / Social</label>
-                    <input
-                      type="text"
-                      value={extractedDetails.website || extractedDetails.social_handle || ""}
-                      onChange={(e) => {
-                        const updated = { ...extractedDetails, website: e.target.value || null };
-                        setExtractedDetails(updated);
-                      }}
-                      placeholder="e.g. www.resort.com"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Language Selector & 3 Generated Options Picker */}
-            {isImageHeader && generatedOptions && (
-              <div className="bg-white rounded-3xl p-6 border border-emerald-100 shadow-card space-y-5">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                  <div>
-                    <h3 className="text-sm font-heading font-bold text-slate-heading flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-emerald-600" />
-                      Select Generated Offer Text Option
-                    </h3>
-                    <p className="text-[11px] text-slate-muted mt-0.5">
-                      Choose one of 3 generated options for variable {"{{2}}"} of our template
-                    </p>
-                  </div>
-
-                  {/* Language Selector */}
-                  <div className="flex items-center bg-slate-100 p-1 rounded-xl gap-1">
-                    {(["English", "Telugu", "Hindi"] as const).map((lang) => (
-                      <button
-                        key={lang}
-                        onClick={() => {
-                          setOfferLanguage(lang);
-                          handleRegenerateOptions(extractedDetails, lang);
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold transition-all ${
-                          offerLanguage === lang
-                            ? "bg-white text-emerald-800 shadow-xs border border-emerald-200"
-                            : "text-slate-500 hover:text-slate-800"
-                        }`}
-                      >
-                        {lang === "English" ? "🇬🇧 English" : lang === "Telugu" ? "🇮🇳 Telugu" : "🇮🇳 Hindi"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 3 Generated Options */}
-                <div className="grid grid-cols-1 gap-3">
-                  {[
-                    { key: "short", label: "⚡ Short", text: generatedOptions.short },
-                    { key: "detailed", label: "📋 Standard", text: (generatedOptions as any).standard || generatedOptions.detailed },
-                    { key: "festive", label: "🌸 Festive", text: generatedOptions.festive },
-                  ].map((option) => {
-                    const isSelected = selectedOptionType === option.key;
-                    return (
-                      <div
-                        key={option.key}
-                        onClick={() => {
-                          setSelectedOptionType(option.key as any);
-                          setOfferText(option.text);
-                          setTemplateVarValues((prev) => ({ ...prev, 2: option.text }));
-                          setVarMeta((prev) => ({
-                            ...prev,
-                            2: { aiFilled: true, manualEdited: false, missingFromPoster: false },
-                          }));
-                        }}
-                        className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-1.5 ${
-                          isSelected
-                            ? "bg-emerald-50/90 border-emerald-500 shadow-md ring-2 ring-emerald-400/20"
-                            : "bg-white border-slate-200 hover:border-emerald-300 hover:bg-slate-50/50"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className={`text-xs font-heading font-bold ${isSelected ? "text-emerald-900" : "text-slate-heading"}`}>
-                            {option.label}
-                          </span>
-                          {isSelected && (
-                            <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">
-                              Selected ✓
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs font-body text-slate-700 leading-relaxed font-mono">
-                          {option.text}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Dynamic Template Body Variables */}
-            <div className="bg-white rounded-3xl p-6 border border-emerald-100 shadow-card space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-heading font-bold text-slate-heading">
-                    Template Body Variables
-                  </h3>
-                  <p className="text-[11px] text-slate-muted mt-0.5">
-                    {bodyVariables.length > 0
-                      ? `Fill values for all ${bodyVariables.length} variable(s) used by ${selectedTemplateName}.`
-                      : "This template has no dynamic body variables."}
-                  </p>
-                </div>
-                <span className="text-[11px] font-mono text-slate-500">
-                  {bodyVariables.length} var{bodyVariables.length === 1 ? "" : "s"}
-                </span>
-              </div>
-
-              {bodyVariables.length === 0 ? (
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
-                  No variable inputs needed — the approved template text will be sent cleanly to every recipient.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {bodyVariables.map((varNum) => {
-                    const currentVal = templateVarValues[varNum] || "";
-                    const isFirst = varNum === 1;
-                    const meta = varMeta[varNum];
-                    const showTextBox = !(isFirst && var1UseContactName);
-                    const rawExample = templateBodyExamples[varNum - 1] || "";
-                    const inputPlaceholder = rawExample
-                      ? `Example: ${rawExample}`
-                      : `Enter value for {{${varNum}}}`;
-                    const isRegeneratingThis = regeneratingVar === varNum;
-                    const canRegenerate = Boolean(
-                      isImageHeader && (effectivePreviewImage || extractedDetails)
-                    );
-
-                    return (
-                      <div key={varNum} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2.5">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <label className="text-xs font-heading font-bold text-slate-heading">
-                              Variable <span className="font-mono text-emerald-700">{`{{${varNum}}}`}</span>
-                            </label>
-                            {showTextBox && meta?.aiFilled && currentVal.trim() && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                <Sparkles className="w-2.5 h-2.5" />
-                                AI filled
-                              </span>
-                            )}
-                            {showTextBox && !meta?.aiFilled && meta?.missingFromPoster && !currentVal.trim() && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                                Please type this
-                              </span>
-                            )}
-                          </div>
-
-                          {showTextBox && (
-                            <div className="flex items-center gap-2">
-                              {canRegenerate && (
-                                <button
-                                  type="button"
-                                  disabled={isRegeneratingThis || analyzing}
-                                  onClick={() =>
-                                    analyzeWithGemini(
-                                      posterImage || undefined,
-                                      mimeType,
-                                      offerLanguage,
-                                      { targetVar: varNum, respectManual: false }
-                                    )
-                                  }
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-700 text-[10px] font-heading font-bold transition-all disabled:opacity-50"
-                                >
-                                  <RefreshCw className={`w-3 h-3 ${isRegeneratingThis ? "animate-spin" : ""}`} />
-                                  <span>{isRegeneratingThis ? "Generating..." : "Regenerate"}</span>
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setTemplateVarValues((prev) => ({ ...prev, [varNum]: "" }));
-                                  if (varNum === 2) setOfferText("");
-                                  setVarMeta((prev) => ({
-                                    ...prev,
-                                    [varNum]: {
-                                      aiFilled: false,
-                                      manualEdited: false,
-                                      missingFromPoster: false,
-                                    },
-                                  }));
-                                }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 text-slate-600 hover:text-rose-700 text-[10px] font-heading font-bold transition-all"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                                <span>Clear</span>
-                              </button>
-                              <span className={`text-[10px] font-mono ${currentVal.length > 300 ? "text-rose-600 font-bold" : "text-slate-muted"}`}>
-                                {currentVal.length} / 300
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {isFirst && (
-                          <select
-                            value={var1UseContactName ? "contact_name" : "custom_text"}
-                            onChange={(e) => setVar1UseContactName(e.target.value === "contact_name")}
-                            className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                          >
-                            <option value="contact_name">
-                              Contact Name (dynamic per recipient, e.g. &quot;{firstContactName}&quot;)
-                            </option>
-                            <option value="custom_text">
-                              Custom Text (same value for all recipients)
-                            </option>
-                          </select>
-                        )}
-
-                        {showTextBox && (
-                          <textarea
-                            rows={2}
-                            maxLength={300}
-                            value={currentVal}
-                            onChange={(e) => {
-                              const cleaned = e.target.value.replace(/[\r\n\t]/g, " ").replace(/ {5,}/g, "    ");
-                              const nextVal = cleaned.substring(0, 300);
-                              setTemplateVarValues((prev) => ({ ...prev, [varNum]: nextVal }));
-                              setVarMeta((prev) => ({
-                                ...prev,
-                                [varNum]: {
-                                  aiFilled: false,
-                                  manualEdited: nextVal.trim().length > 0,
-                                  missingFromPoster: false,
-                                },
-                              }));
-                              if (varNum === 2) {
-                                setOfferText(nextVal);
-                              }
-                            }}
-                            placeholder={inputPlaceholder}
-                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-body focus:ring-2 focus:ring-emerald-500"
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
                 </div>
               )}
 
-              <p className="text-[11px] text-slate-400 leading-tight">
-                ⚠️ Meta Variable Rule: Max 300 chars per variable, single line only (no newlines, tabs, or 5+ consecutive spaces).
-              </p>
-            </div>
+            {/* Collapsed "Edit message (optional)" section for reviewing/editing filled variables */}
+            {isApproved && (
+              <div className="bg-white rounded-3xl border border-emerald-100 shadow-card overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowEditMessage((prev) => !prev)}
+                  className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-50/70 transition-colors"
+                >
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <span className="text-sm font-heading font-bold text-slate-heading">
+                      Edit message (optional)
+                    </span>
+                    {!analyzing && missingBodyVars.length === 0 && (!isImageHeader || Boolean(effectivePreviewImage)) && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        Ready for preview
+                      </span>
+                    )}
+                  </div>
+                  {showEditMessage ? (
+                    <ChevronUp className="w-4 h-4 text-slate-500 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
+                  )}
+                </button>
 
-            <div className="flex justify-between pt-4">
+                {showEditMessage && (
+                  <div className="px-6 pb-6 pt-2 space-y-5 border-t border-slate-100">
+                    {bodyVariables.length === 0 ? (
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
+                        This template has no editable body variables — your exact approved message will be sent cleanly.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {bodyVariables.map((varNum) => renderVariableCard(varNum))}
+                      </div>
+                    )}
+
+                    {/* Optional Alternative Generated Offer Options */}
+                    {isImageHeader && generatedOptions && bodyVariables.some((v) => v > 1) && (
+                      <div className="pt-3 border-t border-slate-100 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-xs font-heading font-bold text-slate-heading flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                            Alternative AI Styles (tap to apply to {"{{2}}"})
+                          </span>
+                          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg gap-1">
+                            {(["English", "Telugu", "Hindi"] as const).map((lang) => (
+                              <button
+                                key={lang}
+                                type="button"
+                                onClick={() => {
+                                  setOfferLanguage(lang);
+                                  handleRegenerateOptions(extractedDetails, lang);
+                                }}
+                                className={`px-2.5 py-1 rounded-md text-[11px] font-heading font-bold transition-all ${
+                                  offerLanguage === lang
+                                    ? "bg-white text-emerald-800 shadow-xs"
+                                    : "text-slate-500 hover:text-slate-800"
+                                }`}
+                              >
+                                {lang}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2">
+                          {[
+                            { key: "short", label: "⚡ Short", text: generatedOptions.short },
+                            { key: "detailed", label: "📋 Standard", text: (generatedOptions as any).standard || generatedOptions.detailed },
+                            { key: "festive", label: "🌸 Festive", text: generatedOptions.festive },
+                          ]
+                            .filter((o) => o.text)
+                            .map((option) => {
+                              const isSelected = selectedOptionType === option.key;
+                              return (
+                                <button
+                                  key={option.key}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedOptionType(option.key as any);
+                                    setOfferText(option.text);
+                                    setTemplateVarValues((prev) => ({ ...prev, 2: option.text }));
+                                    setVarMeta((prev) => ({
+                                      ...prev,
+                                      2: { aiFilled: true, manualEdited: false, missingFromPoster: false },
+                                    }));
+                                  }}
+                                  className={`p-3 rounded-xl border text-left transition-all space-y-1 ${
+                                    isSelected
+                                      ? "bg-emerald-50/90 border-emerald-400"
+                                      : "bg-slate-50/50 border-slate-200 hover:border-emerald-300"
+                                  }`}
+                                >
+                                  <div className="text-[11px] font-heading font-bold text-slate-heading">
+                                    {option.label}
+                                  </div>
+                                  <p className="text-[11px] text-slate-700 font-mono leading-relaxed">
+                                    {option.text}
+                                  </p>
+                                </button>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-[11px] text-slate-400 leading-tight">
+                      ⚠️ Meta Rule: Single line only, max 300 chars per variable, max 2 emojis.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-between pt-2">
               <button
+                type="button"
                 onClick={() => setStep(1)}
                 className="flex items-center gap-2 text-slate-muted hover:text-slate-heading font-heading font-semibold text-sm px-4 py-2.5"
               >
                 <span>{t("createCampaign.prevStep")}</span>
               </button>
               <button
+                type="button"
                 onClick={() => {
                   if (!activeTemplate || !isApproved) {
                     alert("Please select an APPROVED WhatsApp template from your connected account before proceeding.");
                     return;
                   }
-                  for (const v of bodyVariables) {
-                    if (v === 1 && var1UseContactName) continue;
-                    if (!(templateVarValues[v] || "").trim()) {
-                      alert(`Please fill in template variable {{${v}}} before continuing.`);
-                      return;
-                    }
-                  }
                   if (isImageHeader && !effectivePreviewImage) {
-                    alert("This template has an IMAGE header. Please upload a JPG or PNG image before continuing.");
+                    alert("Please upload a JPG or PNG campaign poster image before continuing.");
+                    return;
+                  }
+                  if (missingBodyVars.length > 0) {
+                    const firstNeeded = describeNeededVariable(activeTemplate?.bodyText, missingBodyVars[0]);
+                    alert(`Please type ${firstNeeded} before continuing.`);
                     return;
                   }
                   setStep(3);
                 }}
-                disabled={!isApproved || loadingTemplates}
+                disabled={analyzing || hasMissingStep2Fields || loadingTemplates}
                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-bold text-sm px-6 py-3.5 rounded-2xl shadow-md transition-all"
               >
-                <span>{t("createCampaign.nextStep")}</span>
+                <span>{analyzing ? "Reading poster..." : t("createCampaign.nextStep")}</span>
               </button>
             </div>
           </div>
