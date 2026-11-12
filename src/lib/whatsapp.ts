@@ -95,6 +95,90 @@ export async function submitTemplateToMeta(
   }
 }
 
+/**
+ * Uploads an image buffer to Meta's Resumable Upload API (`POST /{app_id}/uploads`,
+ * then binary upload to `/{upload_session_id}`) using the client's own access token
+ * and returns `header_handle` for IMAGE-header template creation.
+ */
+export async function uploadMediaToMetaResumable(
+  config: {
+    waToken: string;
+    metaAppId?: string;
+    waApiVersion?: string;
+  },
+  fileBuffer: Buffer,
+  fileName: string,
+  mimeType: string
+): Promise<{ success: boolean; headerHandle?: string; error?: string }> {
+  const token = decryptToken(config.waToken) || config.waToken;
+  const appId =
+    config.metaAppId?.trim() ||
+    process.env.META_APP_ID ||
+    process.env.NEXT_PUBLIC_META_APP_ID ||
+    "2068663130431385";
+  const version = getMetaGraphVersion(config.waApiVersion);
+
+  if (!token) {
+    return { success: false, error: "Client WhatsApp access token is missing." };
+  }
+
+  try {
+    // Step 1: Create Resumable Upload Session
+    const initUrl =
+      `https://graph.facebook.com/${version}/${appId}/uploads` +
+      `?file_name=${encodeURIComponent(fileName)}` +
+      `&file_length=${fileBuffer.length}` +
+      `&file_type=${encodeURIComponent(mimeType)}`;
+
+    const initRes = await fetch(initUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const initData = await initRes.json();
+
+    if (!initRes.ok || !initData?.id) {
+      return {
+        success: false,
+        error: initData?.error?.message || `Failed to create Meta upload session (${initRes.status})`,
+      };
+    }
+
+    const uploadSessionId = String(initData.id).trim();
+
+    // Step 2: Upload binary file bytes to upload session
+    const uploadUrl = `https://graph.facebook.com/${version}/${uploadSessionId}`;
+    const uploadRes = await fetch(uploadUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `OAuth ${token}`,
+        file_offset: "0",
+        "Content-Type": mimeType,
+      },
+      body: new Uint8Array(fileBuffer),
+    });
+    const uploadData = await uploadRes.json();
+
+    if (!uploadRes.ok || !uploadData?.h) {
+      return {
+        success: false,
+        error: uploadData?.error?.message || `Meta Resumable Upload failed (${uploadRes.status})`,
+      };
+    }
+
+    return {
+      success: true,
+      headerHandle: String(uploadData.h),
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Network error during Meta Resumable Upload",
+    };
+  }
+}
+
 const FALLBACK_WA_TOKEN = process.env.WA_TOKEN || "";
 const FALLBACK_WA_PHONE_ID = process.env.WA_PHONE_NUMBER_ID || "";
 
@@ -485,26 +569,13 @@ export async function sendWhatsAppTemplateMessage(
       // Header component
       if (templateName === "offer_poster_v1" || params?.headerType === "IMAGE") {
         let posterMediaId = params?.mediaId;
-        if (!posterMediaId && mediaUrl) {
-          if (mediaUrl.startsWith("data:image/") || mediaUrl.length > 500) {
-            const uploadRes = await uploadMediaToMeta(config, mediaUrl);
-            if (uploadRes.success && uploadRes.mediaId) {
-              posterMediaId = uploadRes.mediaId;
-            }
-          }
-        }
+        const isPublicHttpUrl =
+          Boolean(mediaUrl) &&
+          (mediaUrl!.startsWith("https://") || mediaUrl!.startsWith("http://")) &&
+          !mediaUrl!.includes("localhost") &&
+          !mediaUrl!.includes("127.0.0.1");
 
-        if (posterMediaId) {
-          components.unshift({
-            type: "header",
-            parameters: [
-              {
-                type: "image",
-                image: { id: posterMediaId },
-              },
-            ],
-          });
-        } else if (mediaUrl && (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) && !mediaUrl.includes("localhost")) {
+        if (isPublicHttpUrl && !posterMediaId) {
           components.unshift({
             type: "header",
             parameters: [
@@ -514,6 +585,31 @@ export async function sendWhatsAppTemplateMessage(
               },
             ],
           });
+        } else {
+          if (!posterMediaId && mediaUrl && (mediaUrl.startsWith("data:image/") || mediaUrl.length > 500)) {
+            const uploadRes = await uploadMediaToMeta(config, mediaUrl);
+            if (uploadRes.success && uploadRes.mediaId) {
+              posterMediaId = uploadRes.mediaId;
+            }
+          }
+
+          if (posterMediaId) {
+            components.unshift({
+              type: "header",
+              parameters: [
+                {
+                  type: "image",
+                  image: { id: posterMediaId },
+                },
+              ],
+            });
+          } else {
+            return {
+              success: false,
+              errorCode: "MISSING_HEADER_IMAGE",
+              errorMessage: "This IMAGE-header template requires a valid public image URL or uploaded image.",
+            };
+          }
         }
       } else if (templateName === "offer_update_v1") {
         components.unshift({

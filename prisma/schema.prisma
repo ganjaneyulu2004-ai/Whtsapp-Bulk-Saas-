@@ -114,6 +114,7 @@ model Template {
   category        String     @default("MARKETING")
   language        String     @default("en")
   headerType      String     @default("IMAGE")
+  headerImageUrl  String?
   headerMediaUrl  String?
   headerHandle    String?
   bodyText        String
@@ -170,6 +171,7 @@ model Campaign {
   businessName      String?
   bookingLink       String?
   alwaysUseTemplate Boolean      @default(true)
+  headerImageUrl    String?
   templateId        String
   template          Template     @relation(fields: [templateId], references: [id])
   contactListId     String?

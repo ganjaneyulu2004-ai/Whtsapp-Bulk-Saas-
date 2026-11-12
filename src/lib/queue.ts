@@ -52,9 +52,27 @@ export async function processCampaignSending(campaignId: string) {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const isApproved = campaign.template.status === "APPROVED";
 
-    // Upload poster once per campaign, reuse the same mediaId for all contacts
-    let campaignMediaId: string | undefined = campaign.template.headerHandle || undefined;
-    if (!campaignMediaId && campaign.template.headerMediaUrl) {
+    // Resolve effective header image: campaign override first, then template's default headerImageUrl/headerMediaUrl
+    const effectiveHeaderImageUrl =
+      campaign.headerImageUrl ||
+      campaign.template.headerImageUrl ||
+      campaign.template.headerMediaUrl ||
+      undefined;
+
+    // Only reuse numeric WhatsApp Media ID if no public link is available and handle is a numeric Media ID
+    const isNumericMediaId = Boolean(
+      campaign.template.headerHandle && /^\d+$/.test(campaign.template.headerHandle.trim())
+    );
+    let campaignMediaId: string | undefined =
+      !campaign.headerImageUrl && isNumericMediaId
+        ? campaign.template.headerHandle || undefined
+        : undefined;
+
+    if (
+      !campaignMediaId &&
+      effectiveHeaderImageUrl &&
+      effectiveHeaderImageUrl.startsWith("data:image/")
+    ) {
       try {
         const uploadRes = await uploadMediaToMeta(
           {
@@ -62,14 +80,10 @@ export async function processCampaignSending(campaignId: string) {
             waPhoneNumberId: waConfig.waPhoneNumberId || undefined,
             waApiVersion: getMetaGraphVersion(waConfig.waApiVersion),
           },
-          campaign.template.headerMediaUrl
+          effectiveHeaderImageUrl
         );
         if (uploadRes.success && uploadRes.mediaId) {
           campaignMediaId = uploadRes.mediaId;
-          await prisma.template.update({
-            where: { id: campaign.template.id },
-            data: { headerHandle: campaignMediaId },
-          });
         } else {
           console.error("Failed to upload campaign poster to Meta:", uploadRes.error);
         }
@@ -168,7 +182,7 @@ export async function processCampaignSending(campaignId: string) {
         recipientName,
         targetTemplateName,
         targetLanguage,
-        campaign.template.headerMediaUrl || undefined,
+        effectiveHeaderImageUrl,
         {
           offerText: baseOffer,
           businessName: bName,

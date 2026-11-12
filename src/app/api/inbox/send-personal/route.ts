@@ -134,6 +134,12 @@ export async function POST(req: Request) {
         chosenTpl = approvedTemplates[0];
       }
 
+      const headerImage =
+        attachedMediaUrl ||
+        (chosenTpl.headerType === "IMAGE"
+          ? chosenTpl.headerImageUrl || chosenTpl.headerMediaUrl || undefined
+          : undefined);
+
       const bodyVarCount = countTemplateBodyVariables(chosenTpl.bodyText);
       return sendWhatsAppTemplateMessage(
         waConfig,
@@ -141,7 +147,7 @@ export async function POST(req: Request) {
         finalRecipientName,
         chosenTpl.name,
         chosenTpl.language,
-        attachedMediaUrl,
+        headerImage,
         {
           offerText: cleanMessage || chosenTpl.bodyText,
           businessName: business.name || "OneAmple",

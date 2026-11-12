@@ -23,6 +23,7 @@ export async function middleware(req: NextRequest) {
   // 2. Completely public APIs
   if (
     pathname.startsWith("/api/webhooks") ||
+    pathname.startsWith("/api/templates/media") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/register") ||
     pathname.startsWith("/api/cron") ||

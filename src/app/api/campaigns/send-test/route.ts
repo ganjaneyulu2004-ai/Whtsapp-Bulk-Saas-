@@ -4,6 +4,7 @@ import { decryptToken } from "@/lib/encryption";
 import { getMetaGraphVersion } from "@/lib/meta-config";
 import { sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
 import { countTemplateBodyVariables, getClientTemplates } from "@/lib/template-service";
+import { saveBase64TemplateImage } from "@/lib/media-storage";
 
 export async function POST(req: Request) {
   try {
@@ -17,6 +18,8 @@ export async function POST(req: Request) {
       businessName,
       templateName,
       languageCode,
+      headerImageUrl,
+      posterImage,
     } = body;
 
     let rawPhone = String(recipientPhone || phone || "").replace(/[^0-9]/g, "");
@@ -156,6 +159,34 @@ export async function POST(req: Request) {
         );
       }
 
+      let effectiveHeaderImage: string | undefined = undefined;
+      if (matched.headerType === "IMAGE") {
+        if (posterImage && String(posterImage).startsWith("data:image/")) {
+          const saved = await saveBase64TemplateImage(
+            String(posterImage),
+            business.id,
+            new URL(req.url).origin
+          );
+          effectiveHeaderImage = saved.publicUrl;
+        } else {
+          effectiveHeaderImage =
+            (headerImageUrl && String(headerImageUrl).trim()) ||
+            matched.headerImageUrl ||
+            matched.headerMediaUrl ||
+            undefined;
+        }
+
+        if (!effectiveHeaderImage) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Template "${matched.name}" requires an IMAGE header, but no image URL is attached yet.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
       const bodyVarCount = countTemplateBodyVariables(matched.bodyText);
       const sendRes = await sendWhatsAppTemplateMessage(
         {
@@ -167,7 +198,7 @@ export async function POST(req: Request) {
         recipientName || "Customer",
         matched.name,
         matched.language,
-        undefined,
+        effectiveHeaderImage,
         {
           offerText: messageContent,
           businessName: bName,

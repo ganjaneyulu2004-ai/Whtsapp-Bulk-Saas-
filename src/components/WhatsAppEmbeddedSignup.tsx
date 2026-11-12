@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useLanguage } from "./LanguageContext";
-import { 
-  CheckCircle2, 
-  AlertCircle, 
-  RefreshCw, 
-  ShieldCheck, 
-  PhoneCall, 
-  Building2, 
+import {
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  ShieldCheck,
+  PhoneCall,
+  Building2,
   Trash2,
   Send,
   Check,
@@ -98,8 +98,9 @@ export default function WhatsAppEmbeddedSignup({
       const res = await fetch(url);
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
-        setTemplates(data);
-        const approved = data.filter((t: any) => t.status === "APPROVED");
+        const filtered = data.filter((t: any) => t.name !== "hello_world");
+        setTemplates(filtered);
+        const approved = filtered.filter((t: any) => t.status === "APPROVED");
         setSelectedTemplate((prev) => {
           if (prev === "direct_text") return prev;
           if (approved.some((t: any) => t.name === prev)) return prev;
@@ -194,7 +195,7 @@ export default function WhatsAppEmbeddedSignup({
               phoneNumberId ? String(phoneNumberId) : undefined
             );
           }
-        } 
+        }
         // Case 2: Client cancelled or exited flow
         else if (data.event === "CANCEL") {
           setConnecting(false);
@@ -204,7 +205,7 @@ export default function WhatsAppEmbeddedSignup({
               ? `WhatsApp setup was cancelled at step: ${step.replace(/_/g, " ")}. Click "Connect WhatsApp" to try again.`
               : "WhatsApp setup was cancelled. Click 'Connect WhatsApp' whenever you're ready."
           );
-        } 
+        }
         // Case 3: Error inside Meta Embedded Signup popup
         else if (data.event === "ERROR") {
           setConnecting(false);
@@ -214,7 +215,7 @@ export default function WhatsAppEmbeddedSignup({
             JSON.stringify(data.data || "Unknown error");
           setErrorMsg(`Meta connection error: ${detail}. Please try again.`);
         }
-      } 
+      }
       // Fallback: If received from /api/whatsapp/embedded-signup/callback
       else if (data && data.type === "WA_EMBEDDED_OAUTH_CODE") {
         if (data.code && !isSubmittingRef.current) {
@@ -629,22 +630,20 @@ export default function WhatsAppEmbeddedSignup({
                   <button
                     type="button"
                     onClick={() => setActiveTab("send_test")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                      activeTab === "send_test"
-                        ? "bg-brand-purple text-white shadow-xs"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${activeTab === "send_test"
+                      ? "bg-brand-purple text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                      }`}
                   >
                     (c) Send Test Message
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveTab("templates")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                      activeTab === "templates"
-                        ? "bg-brand-purple text-white shadow-xs"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${activeTab === "templates"
+                      ? "bg-brand-purple text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                      }`}
                   >
                     (a & b) Templates & Status ({templates.length})
                   </button>
@@ -741,11 +740,10 @@ export default function WhatsAppEmbeddedSignup({
                   {/* Test Result Display */}
                   {testResult && (
                     <div
-                      className={`p-3.5 rounded-xl text-xs space-y-1 animate-in fade-in ${
-                        testResult.ok
-                          ? "bg-emerald-50 text-emerald-900 border border-emerald-200"
-                          : "bg-rose-50 text-rose-900 border border-rose-200"
-                      }`}
+                      className={`p-3.5 rounded-xl text-xs space-y-1 animate-in fade-in ${testResult.ok
+                        ? "bg-emerald-50 text-emerald-900 border border-emerald-200"
+                        : "bg-rose-50 text-rose-900 border border-rose-200"
+                        }`}
                     >
                       <div className="flex items-center gap-2 font-bold">
                         {testResult.ok ? (
@@ -826,11 +824,10 @@ export default function WhatsAppEmbeddedSignup({
 
                       {templateActionMsg && (
                         <div
-                          className={`p-2.5 rounded-xl text-xs flex items-center gap-2 ${
-                            templateActionMsg.ok
-                              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                              : "bg-rose-50 text-rose-800 border border-rose-200"
-                          }`}
+                          className={`p-2.5 rounded-xl text-xs flex items-center gap-2 ${templateActionMsg.ok
+                            ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                            : "bg-rose-50 text-rose-800 border border-rose-200"
+                            }`}
                         >
                           {templateActionMsg.ok ? (
                             <Check className="w-3.5 h-3.5 text-emerald-600" />

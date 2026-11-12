@@ -73,6 +73,7 @@ export async function POST(req: Request) {
       note,
       templateId,
       posterImage,
+      headerImageUrl,
       contactListId,
       scheduledAt,
       contactsData,
@@ -95,6 +96,7 @@ export async function POST(req: Request) {
       );
     }
 
+    let selectedTemplate: any = null;
     let finalTemplateId = templateId;
     if (finalTemplateId) {
       const ownedTemplate = await prisma.template.findFirst({
@@ -102,6 +104,7 @@ export async function POST(req: Request) {
           id: finalTemplateId,
           businessId: business.id,
           wabaId: clientWabaId,
+          name: { not: "hello_world" },
         },
       });
       if (!ownedTemplate) {
@@ -110,12 +113,7 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
-      if (posterImage && ownedTemplate.headerMediaUrl !== posterImage) {
-        await prisma.template.update({
-          where: { id: ownedTemplate.id },
-          data: { headerMediaUrl: posterImage },
-        });
-      }
+      selectedTemplate = ownedTemplate;
     } else if (posterImage) {
       const { getClientTemplates } = await import("@/lib/template-service");
       const approved = await getClientTemplates(business.id, { syncFromMeta: true, approvedOnly: true });
@@ -126,10 +124,7 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
-      await prisma.template.update({
-        where: { id: posterTpl.id },
-        data: { headerMediaUrl: posterImage },
-      });
+      selectedTemplate = posterTpl;
       finalTemplateId = posterTpl.id;
     } else {
       const { getClientTemplates } = await import("@/lib/template-service");
@@ -141,7 +136,27 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
+      selectedTemplate = textTpl;
       finalTemplateId = textTpl.id;
+    }
+
+    // Per-campaign IMAGE header URL (supports replacement upload without altering the template's default image)
+    let campaignHeaderImageUrl: string | null = null;
+    if (selectedTemplate?.headerType === "IMAGE") {
+      if (posterImage && String(posterImage).startsWith("data:image/")) {
+        const { saveBase64TemplateImage } = await import("@/lib/media-storage");
+        const stored = await saveBase64TemplateImage(
+          String(posterImage),
+          business.id,
+          new URL(req.url).origin
+        );
+        campaignHeaderImageUrl = stored.publicUrl;
+      } else if (headerImageUrl && String(headerImageUrl).trim() !== "") {
+        campaignHeaderImageUrl = String(headerImageUrl).trim();
+      } else {
+        campaignHeaderImageUrl =
+          selectedTemplate.headerImageUrl || selectedTemplate.headerMediaUrl || null;
+      }
     }
 
     let targetContactListId = contactListId;
@@ -190,6 +205,7 @@ export async function POST(req: Request) {
         type: type || "OFFER",
         customType,
         note,
+        headerImageUrl: campaignHeaderImageUrl,
         templateId: finalTemplateId,
         contactListId: targetContactListId,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,

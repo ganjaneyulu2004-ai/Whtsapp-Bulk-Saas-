@@ -12,6 +12,8 @@ import {
   AlertCircle,
   Radio,
   Trash2,
+  Image as ImageIcon,
+  Upload,
   X
 } from "lucide-react";
 
@@ -25,6 +27,9 @@ export default function TemplatesPage() {
   const [templateName, setTemplateName] = useState("");
   const [category, setCategory] = useState("MARKETING");
   const [language, setLanguage] = useState("en_US");
+  const [headerType, setHeaderType] = useState<"NONE" | "IMAGE">("NONE");
+  const [headerImageFile, setHeaderImageFile] = useState<File | null>(null);
+  const [headerImagePreview, setHeaderImagePreview] = useState<string | null>(null);
   const [bodyText, setBodyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -46,7 +51,7 @@ export default function TemplatesPage() {
       const res = await fetch(url);
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
-        setTemplates(data);
+        setTemplates(data.filter((tpl: any) => tpl.name !== "hello_world"));
       }
     } catch (e) {
       console.warn("Error fetching templates:", e);
@@ -60,10 +65,39 @@ export default function TemplatesPage() {
     fetchTemplates(false);
   }, []);
 
+  const handleHeaderImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const mime = file.type.toLowerCase();
+    if (!["image/jpeg", "image/jpg", "image/png"].includes(mime)) {
+      setErrorMsg("Only JPG and PNG images are allowed for template headers.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg("Header image must be 5 MB or smaller.");
+      e.target.value = "";
+      return;
+    }
+
+    setErrorMsg(null);
+    setHeaderImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setHeaderImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!templateName.trim() || !bodyText.trim()) {
       setErrorMsg("Please enter Template Name and Body Text");
+      return;
+    }
+
+    if (headerType === "IMAGE" && !headerImageFile) {
+      setErrorMsg("Please upload a JPG or PNG image (max 5 MB) for the Image Header.");
       return;
     }
 
@@ -73,25 +107,45 @@ export default function TemplatesPage() {
 
     try {
       const cleanName = templateName.toLowerCase().replace(/[^a-z0-9_]/g, "_");
-      const res = await fetch("/api/templates", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: cleanName,
-          category: category,
-          language: language,
-          bodyText: bodyText.trim(),
-          headerType: "NONE",
-        }),
-      });
+      let res: Response;
+
+      if (headerType === "IMAGE" && headerImageFile) {
+        const formData = new FormData();
+        formData.append("name", cleanName);
+        formData.append("category", category);
+        formData.append("language", language);
+        formData.append("headerType", "IMAGE");
+        formData.append("bodyText", bodyText.trim());
+        formData.append("headerImage", headerImageFile);
+
+        res = await fetch("/api/templates", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        res = await fetch("/api/templates", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: cleanName,
+            category: category,
+            language: language,
+            bodyText: bodyText.trim(),
+            headerType: "NONE",
+          }),
+        });
+      }
 
       const data = await res.json();
       if (res.ok && data.template) {
         setSuccessMsg(`Template "${cleanName}" submitted successfully! Status: ${data.template.status}`);
         setTemplateName("");
         setBodyText("");
+        setHeaderType("NONE");
+        setHeaderImageFile(null);
+        setHeaderImagePreview(null);
         fetchTemplates(true);
         setTimeout(() => setShowModal(false), 1800);
       } else {
@@ -237,14 +291,29 @@ export default function TemplatesPage() {
                 key={tpl.id}
                 className="p-6 hover:bg-slate-50/60 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
-                <div className="space-y-1.5 max-w-2xl">
-                  <div className="flex items-center gap-3">
+                <div className="space-y-2 max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <span className="font-mono font-bold text-sm text-slate-900">{tpl.name}</span>
                     <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 uppercase">
                       {tpl.category}
                     </span>
                     <span className="text-xs text-slate-400 font-mono">{tpl.language}</span>
+                    {tpl.headerType === "IMAGE" && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        <ImageIcon className="w-3 h-3" />
+                        IMAGE HEADER
+                      </span>
+                    )}
                   </div>
+                  {tpl.headerType === "IMAGE" && (tpl.headerImageUrl || tpl.headerMediaUrl) && (
+                    <div className="flex items-center gap-3 pt-1">
+                      <img
+                        src={tpl.headerImageUrl || tpl.headerMediaUrl}
+                        alt={`${tpl.name} header`}
+                        className="w-24 h-24 object-cover rounded-xl border border-slate-200 shadow-2xs bg-slate-100"
+                      />
+                    </div>
+                  )}
                   <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
                     {tpl.bodyText || tpl.body}
                   </p>
@@ -403,6 +472,74 @@ export default function TemplatesPage() {
                   </select>
                 </div>
               </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Header</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHeaderType("NONE");
+                      setHeaderImageFile(null);
+                      setHeaderImagePreview(null);
+                    }}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                      headerType === "NONE"
+                        ? "bg-brand-purple text-white border-brand-purple"
+                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    None
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHeaderType("IMAGE")}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      headerType === "IMAGE"
+                        ? "bg-brand-purple text-white border-brand-purple"
+                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>Image (JPG/PNG)</span>
+                  </button>
+                </div>
+              </div>
+
+              {headerType === "IMAGE" && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Upload Header Image (JPG or PNG, max 5 MB)
+                  </label>
+                  <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-purple-200 hover:border-brand-purple rounded-xl p-4 bg-purple-50/30 cursor-pointer transition text-center">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,.jpg,.jpeg,.png"
+                      onChange={handleHeaderImageChange}
+                      className="hidden"
+                    />
+                    {headerImagePreview ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <img
+                          src={headerImagePreview}
+                          alt="Header preview"
+                          className="max-h-28 rounded-lg border border-slate-200 object-contain"
+                        />
+                        <span className="text-[11px] font-semibold text-brand-purple">
+                          {headerImageFile?.name} (Click to change)
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-5 h-5 text-brand-purple" />
+                        <span className="text-xs font-semibold text-slate-700">
+                          Click to upload JPG/PNG (max 5 MB)
+                        </span>
+                      </>
+                    )}
+                  </label>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">

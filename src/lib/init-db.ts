@@ -172,9 +172,11 @@ export async function initializeDatabase() {
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
     );`,
 
-    // Ensure multi-tenant WABA scoping on Template and ContactTag
+    // Ensure multi-tenant WABA scoping & IMAGE header fields on Template, Campaign, and ContactTag
     `ALTER TABLE "Template" ADD COLUMN IF NOT EXISTS "wabaId" TEXT;`,
+    `ALTER TABLE "Template" ADD COLUMN IF NOT EXISTS "headerImageUrl" TEXT;`,
     `CREATE INDEX IF NOT EXISTS "Template_businessId_wabaId_idx" ON "Template"("businessId", "wabaId");`,
+    `ALTER TABLE "Campaign" ADD COLUMN IF NOT EXISTS "headerImageUrl" TEXT;`,
     `ALTER TABLE "ContactTag" ADD COLUMN IF NOT EXISTS "businessId" TEXT;`,
     `ALTER TABLE "ContactTag" DROP CONSTRAINT IF EXISTS "ContactTag_phone_key";`,
     `DROP INDEX IF EXISTS "ContactTag_phone_key";`,

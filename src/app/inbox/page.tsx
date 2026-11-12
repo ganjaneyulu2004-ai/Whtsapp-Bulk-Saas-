@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useLanguage } from "@/components/LanguageContext";
 import { fireBrandConfetti } from "@/lib/confetti";
 import { playClickSound, playCelebrationSound } from "@/lib/sounds";
-import { 
+import {
   Search,
   Send,
   MessageCircle,
@@ -231,7 +231,9 @@ export default function InboxPage() {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          const approved = data.filter((tpl: any) => tpl.status === "APPROVED");
+          const approved = data.filter(
+            (tpl: any) => tpl.status === "APPROVED" && tpl.name !== "hello_world"
+          );
           setClientApprovedTemplates(approved);
           setSelectedInboxTemplateKey((prev) => {
             if (prev && approved.some((t: any) => `${t.name}::${t.language}` === prev)) return prev;
@@ -434,7 +436,7 @@ export default function InboxPage() {
       const q = searchQuery.toLowerCase();
       const matchName = (c.customerName || "").toLowerCase().includes(q);
       const matchPhone = (c.cleanPhone || "").includes(q) || (c.phone || "").includes(q);
-      const matchText = c.messages.some((m) => 
+      const matchText = c.messages.some((m) =>
         (m.text || "").toLowerCase().includes(q) || (m.fileName || "").toLowerCase().includes(q)
       );
       return matchName || matchPhone || matchText;
@@ -472,8 +474,8 @@ export default function InboxPage() {
       ) {
         type = "document";
       } else if (
-        file.type.startsWith("video/") || 
-        preferredType === "video" || 
+        file.type.startsWith("video/") ||
+        preferredType === "video" ||
         Boolean(lowerName.match(/\.(mp4|mov|webm|3gp)$/))
       ) {
         type = "video";
@@ -539,7 +541,7 @@ export default function InboxPage() {
 
     const chosenApprovedTpl = !activeConversation.isWindowActive
       ? clientApprovedTemplates.find((tpl) => `${tpl.name}::${tpl.language}` === selectedInboxTemplateKey) ||
-        clientApprovedTemplates[0]
+      clientApprovedTemplates[0]
       : null;
 
     if (!activeConversation.isWindowActive && !chosenApprovedTpl) {
@@ -757,14 +759,13 @@ export default function InboxPage() {
     <div className="w-full h-full flex flex-col flex-1 min-h-0">
       {/* REAL WHATSAPP WEB APPLICATION SHELL */}
       <div className="bg-white rounded-2xl border border-slate-300 shadow-xl overflow-hidden flex flex-1 h-full min-h-0 transition-all">
-        
+
         {/* ========================================================================= */}
         {/* LEFT COLUMN: CHAT LIST & SEARCH (Real WhatsApp Web Sidebar) */}
         {/* ========================================================================= */}
-        <div className={`w-full md:w-[350px] lg:w-[390px] border-r border-slate-200 flex flex-col bg-white shrink-0 ${
-          selectedPhone ? "hidden md:flex" : "flex"
-        }`}>
-          
+        <div className={`w-full md:w-[350px] lg:w-[390px] border-r border-slate-200 flex flex-col bg-white shrink-0 ${selectedPhone ? "hidden md:flex" : "flex"
+          }`}>
+
           {/* WhatsApp Web Left Top Header */}
           <div className="h-16 px-4 bg-[#f0f2f5] border-b border-slate-200 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
@@ -828,32 +829,29 @@ export default function InboxPage() {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setFilterTab("all")}
-                className={`px-3 py-1 rounded-full text-[11px] font-heading font-bold transition cursor-pointer ${
-                  filterTab === "all"
-                    ? "bg-[#e7fce3] text-[#008069] border border-[#00a884]/30"
-                    : "bg-[#f0f2f5] text-[#54656f] hover:bg-slate-200"
-                }`}
+                className={`px-3 py-1 rounded-full text-[11px] font-heading font-bold transition cursor-pointer ${filterTab === "all"
+                  ? "bg-[#e7fce3] text-[#008069] border border-[#00a884]/30"
+                  : "bg-[#f0f2f5] text-[#54656f] hover:bg-slate-200"
+                  }`}
               >
                 All ({conversations.length})
               </button>
               <button
                 onClick={() => setFilterTab("active")}
-                className={`px-3 py-1 rounded-full text-[11px] font-heading font-bold transition flex items-center gap-1 cursor-pointer ${
-                  filterTab === "active"
-                    ? "bg-[#00a884] text-white shadow-xs"
-                    : "bg-[#f0f2f5] text-[#54656f] hover:bg-slate-200"
-                }`}
+                className={`px-3 py-1 rounded-full text-[11px] font-heading font-bold transition flex items-center gap-1 cursor-pointer ${filterTab === "active"
+                  ? "bg-[#00a884] text-white shadow-xs"
+                  : "bg-[#f0f2f5] text-[#54656f] hover:bg-slate-200"
+                  }`}
               >
                 <Zap className="w-3 h-3 fill-current" />
                 <span>24h Active ({activeWindowCount})</span>
               </button>
               <button
                 onClick={() => setFilterTab("expired")}
-                className={`px-3 py-1 rounded-full text-[11px] font-heading font-bold transition flex items-center gap-1 cursor-pointer ${
-                  filterTab === "expired"
-                    ? "bg-slate-800 text-white shadow-xs"
-                    : "bg-[#f0f2f5] text-[#54656f] hover:bg-slate-200"
-                }`}
+                className={`px-3 py-1 rounded-full text-[11px] font-heading font-bold transition flex items-center gap-1 cursor-pointer ${filterTab === "expired"
+                  ? "bg-slate-800 text-white shadow-xs"
+                  : "bg-[#f0f2f5] text-[#54656f] hover:bg-slate-200"
+                  }`}
               >
                 <Clock className="w-3 h-3" />
                 <span>Expired</span>
@@ -875,11 +873,10 @@ export default function InboxPage() {
                       playClickSound();
                       setSelectedTagFilter(k);
                     }}
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-heading font-extrabold shrink-0 transition flex items-center gap-1 cursor-pointer border ${
-                      isSelected
-                        ? `${t.badgeClass} ring-2 ring-offset-1 ring-[#00a884]/40 shadow-xs`
-                        : "bg-[#f8fafc] text-slate-600 border-slate-200 hover:bg-slate-100"
-                    }`}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-heading font-extrabold shrink-0 transition flex items-center gap-1 cursor-pointer border ${isSelected
+                      ? `${t.badgeClass} ring-2 ring-offset-1 ring-[#00a884]/40 shadow-xs`
+                      : "bg-[#f8fafc] text-slate-600 border-slate-200 hover:bg-slate-100"
+                      }`}
                   >
                     <span>{t.emoji}</span>
                     <span>{t.label}</span>
@@ -925,19 +922,17 @@ export default function InboxPage() {
                       playClickSound();
                       setSelectedPhone(c.cleanPhone);
                     }}
-                    className={`px-3.5 py-3 transition-all flex items-center gap-3 cursor-pointer select-none border-l-4 ${
-                      isSelected
-                        ? "bg-[#f0f2f5] border-[#00a884]"
-                        : "hover:bg-slate-50/90 border-transparent"
-                    }`}
+                    className={`px-3.5 py-3 transition-all flex items-center gap-3 cursor-pointer select-none border-l-4 ${isSelected
+                      ? "bg-[#f0f2f5] border-[#00a884]"
+                      : "hover:bg-slate-50/90 border-transparent"
+                      }`}
                   >
                     {/* Contact Avatar */}
                     <div className="relative shrink-0">
-                      <div className={`w-12 h-12 rounded-full font-bold text-sm flex items-center justify-center text-white shadow-xs ${
-                        c.isWindowActive
-                          ? "bg-gradient-to-tr from-[#00a884] to-[#128c7e]"
-                          : "bg-slate-400"
-                      }`}>
+                      <div className={`w-12 h-12 rounded-full font-bold text-sm flex items-center justify-center text-white shadow-xs ${c.isWindowActive
+                        ? "bg-gradient-to-tr from-[#00a884] to-[#128c7e]"
+                        : "bg-slate-400"
+                        }`}>
                         {c.customerName ? c.customerName[0].toUpperCase() : <User className="w-6 h-6" />}
                       </div>
 
@@ -996,7 +991,7 @@ export default function InboxPage() {
         {/* ========================================================================= */}
         {activeConversation ? (
           <div className="flex-1 flex flex-col bg-[#efeae2] relative overflow-hidden">
-            
+
             {/* 1. WhatsApp Chat Sticky Top Header */}
             <div className="h-16 px-4 bg-[#f0f2f5] border-b border-slate-200 flex items-center justify-between shrink-0 shadow-2xs z-20">
               <div className="flex items-center gap-3 min-w-0">
@@ -1009,11 +1004,10 @@ export default function InboxPage() {
                 </button>
 
                 {/* Avatar */}
-                <div className={`w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center text-white shrink-0 shadow-xs ${
-                  activeConversation.isWindowActive
-                    ? "bg-[#00a884]"
-                    : "bg-slate-400"
-                }`}>
+                <div className={`w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center text-white shrink-0 shadow-xs ${activeConversation.isWindowActive
+                  ? "bg-[#00a884]"
+                  : "bg-slate-400"
+                  }`}>
                   {activeConversation.customerName ? activeConversation.customerName[0].toUpperCase() : <User className="w-5 h-5" />}
                 </div>
 
@@ -1073,11 +1067,10 @@ export default function InboxPage() {
                               <button
                                 key={k}
                                 onClick={() => handleUpdateContactTag(activeConversation.cleanPhone, k)}
-                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-heading font-bold transition text-left cursor-pointer ${
-                                  currentTag === k
-                                    ? `${t.badgeClass} ring-1 ring-inset ring-current`
-                                    : "hover:bg-slate-50 text-slate-700"
-                                }`}
+                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-heading font-bold transition text-left cursor-pointer ${currentTag === k
+                                  ? `${t.badgeClass} ring-1 ring-inset ring-current`
+                                  : "hover:bg-slate-50 text-slate-700"
+                                  }`}
                               >
                                 <div className="flex items-center gap-1.5">
                                   <span>{t.emoji}</span>
@@ -1111,7 +1104,7 @@ export default function InboxPage() {
             </div>
 
             {/* 2. Chat Messages Area (Authentic WhatsApp Wallpaper) */}
-            <div 
+            <div
               ref={chatContainerRef}
               className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 custom-scrollbar"
               style={{
@@ -1138,7 +1131,7 @@ export default function InboxPage() {
               {/* Message Bubbles */}
               {activeConversation.messages.map((msg, index) => {
                 const isIncoming = msg.sender === "customer";
-                const isVideo = msg.mediaType === "video" || 
+                const isVideo = msg.mediaType === "video" ||
                   (msg.mediaUrl && (msg.mediaUrl.startsWith("data:video/") || Boolean(msg.mediaUrl.match(/\.(mp4|mov|webm|3gp)/i))));
 
                 return (
@@ -1147,11 +1140,10 @@ export default function InboxPage() {
                     className={`flex flex-col ${isIncoming ? "items-start" : "items-end"}`}
                   >
                     <div
-                      className={`relative px-3.5 py-2.5 rounded-2xl max-w-[85%] sm:max-w-[70%] shadow-xs text-xs font-body leading-relaxed ${
-                        isIncoming
-                          ? "bg-white text-[#111b21] rounded-tl-xs border border-slate-200/50"
-                          : "bg-[#d9fdd3] text-[#111b21] rounded-tr-xs border border-[#bbf7d0]/60 ml-auto"
-                      }`}
+                      className={`relative px-3.5 py-2.5 rounded-2xl max-w-[85%] sm:max-w-[70%] shadow-xs text-xs font-body leading-relaxed ${isIncoming
+                        ? "bg-white text-[#111b21] rounded-tl-xs border border-slate-200/50"
+                        : "bg-[#d9fdd3] text-[#111b21] rounded-tr-xs border border-[#bbf7d0]/60 ml-auto"
+                        }`}
                     >
                       {/* Customer Name Label in Emerald Green */}
                       {isIncoming && (
@@ -1390,7 +1382,7 @@ export default function InboxPage() {
 
             {/* 4. WhatsApp Style Typing Composer */}
             <div className="p-3 bg-[#f0f2f5] border-t border-slate-200/80 shrink-0 relative">
-              
+
               {/* Media Attachment Dropdown Popover */}
               {showMediaMenu && (
                 <div className="absolute bottom-16 left-4 z-40 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 space-y-1 w-56 animate-in zoom-in-95 duration-150">
@@ -1514,11 +1506,10 @@ export default function InboxPage() {
                     playClickSound();
                     setShowMediaMenu((prev) => !prev);
                   }}
-                  className={`p-2 rounded-full transition cursor-pointer ${
-                    showMediaMenu || attachedMediaList.length > 0
-                      ? "bg-[#00a884] text-white"
-                      : "text-[#54656f] hover:text-[#111b21] hover:bg-white"
-                  }`}
+                  className={`p-2 rounded-full transition cursor-pointer ${showMediaMenu || attachedMediaList.length > 0
+                    ? "bg-[#00a884] text-white"
+                    : "text-[#54656f] hover:text-[#111b21] hover:bg-white"
+                    }`}
                   title="Attach Photos, Videos, or Documents"
                 >
                   <Paperclip className="w-5 h-5" />
@@ -1559,11 +1550,10 @@ export default function InboxPage() {
                       playClickSound();
                       setShowButtonMenu((prev) => !prev);
                     }}
-                    className={`px-2.5 py-1.5 rounded-xl text-xs font-heading font-extrabold border transition shadow-2xs shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                      attachedButtons.length > 0 || showButtonMenu
-                        ? "bg-[#e7fce3] text-[#008069] border-[#00a884]"
-                        : "bg-white text-[#54656f] hover:text-[#008069] hover:bg-[#e7fce3] border-slate-200/90"
-                    }`}
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-heading font-extrabold border transition shadow-2xs shrink-0 cursor-pointer flex items-center gap-1.5 ${attachedButtons.length > 0 || showButtonMenu
+                      ? "bg-[#e7fce3] text-[#008069] border-[#00a884]"
+                      : "bg-white text-[#54656f] hover:text-[#008069] hover:bg-[#e7fce3] border-slate-200/90"
+                      }`}
                     title="Attach WhatsApp Interactive Buttons"
                   >
                     <MousePointerClick className="w-3.5 h-3.5" />
@@ -1604,11 +1594,10 @@ export default function InboxPage() {
                                   alert("Meta WhatsApp allows a maximum of 3 buttons per message.");
                                 }
                               }}
-                              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-heading font-bold transition text-left cursor-pointer ${
-                                isAttached
-                                  ? "bg-[#e7fce3] text-[#008069] border border-[#00a884]/40"
-                                  : "bg-slate-50 hover:bg-slate-100 text-slate-700"
-                              }`}
+                              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-heading font-bold transition text-left cursor-pointer ${isAttached
+                                ? "bg-[#e7fce3] text-[#008069] border border-[#00a884]/40"
+                                : "bg-slate-50 hover:bg-slate-100 text-slate-700"
+                                }`}
                             >
                               <span>{btn.title}</span>
                               {isAttached ? <Check className="w-3.5 h-3.5 text-[#008069]" /> : <Plus className="w-3.5 h-3.5 text-slate-400" />}
@@ -1779,7 +1768,7 @@ export default function InboxPage() {
       {/* NEW CHAT MODAL */}
       {isNewChatOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div 
+          <div
             className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full border border-slate-200 shadow-2xl relative animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1867,11 +1856,10 @@ export default function InboxPage() {
                   <button
                     type="button"
                     onClick={() => setNewChatMediaType("image")}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
-                      newChatMediaType === "image"
-                        ? "bg-[#00a884] text-white shadow-xs"
-                        : "bg-white text-slate-600 border border-slate-200"
-                    }`}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${newChatMediaType === "image"
+                      ? "bg-[#00a884] text-white shadow-xs"
+                      : "bg-white text-slate-600 border border-slate-200"
+                      }`}
                   >
                     <ImageIcon className="w-3.5 h-3.5" />
                     <span>Photo</span>
@@ -1879,11 +1867,10 @@ export default function InboxPage() {
                   <button
                     type="button"
                     onClick={() => setNewChatMediaType("video")}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
-                      newChatMediaType === "video"
-                        ? "bg-purple-600 text-white shadow-xs"
-                        : "bg-white text-slate-600 border border-slate-200"
-                    }`}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${newChatMediaType === "video"
+                      ? "bg-purple-600 text-white shadow-xs"
+                      : "bg-white text-slate-600 border border-slate-200"
+                      }`}
                   >
                     <Video className="w-3.5 h-3.5" />
                     <span>Video</span>
@@ -1891,11 +1878,10 @@ export default function InboxPage() {
                   <button
                     type="button"
                     onClick={() => setNewChatMediaType("document")}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
-                      newChatMediaType === "document"
-                        ? "bg-rose-600 text-white shadow-xs"
-                        : "bg-white text-slate-600 border border-slate-200"
-                    }`}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${newChatMediaType === "document"
+                      ? "bg-rose-600 text-white shadow-xs"
+                      : "bg-white text-slate-600 border border-slate-200"
+                      }`}
                   >
                     <FileText className="w-3.5 h-3.5" />
                     <span>Document</span>
@@ -1909,8 +1895,8 @@ export default function InboxPage() {
                     newChatMediaType === "document"
                       ? "https://example.com/brochure.pdf"
                       : newChatMediaType === "video"
-                      ? "https://example.com/demo.mp4"
-                      : "https://example.com/poster.jpg"
+                        ? "https://example.com/demo.mp4"
+                        : "https://example.com/poster.jpg"
                   }
                   className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-[#111b21] focus:outline-none focus:border-[#00a884]"
                 />
@@ -1950,7 +1936,7 @@ export default function InboxPage() {
       {/* MEDIA URL MODAL */}
       {isMediaUrlModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div 
+          <div
             className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full border border-slate-200 shadow-2xl relative animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1984,11 +1970,10 @@ export default function InboxPage() {
                   <button
                     type="button"
                     onClick={() => setInputMediaType("image")}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                      inputMediaType === "image"
-                        ? "bg-[#e7fce3] text-[#008069] border-[#00a884] shadow-xs"
-                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                    }`}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${inputMediaType === "image"
+                      ? "bg-[#e7fce3] text-[#008069] border-[#00a884] shadow-xs"
+                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                      }`}
                   >
                     <ImageIcon className="w-4 h-4" />
                     <span>Photo</span>
@@ -1996,11 +1981,10 @@ export default function InboxPage() {
                   <button
                     type="button"
                     onClick={() => setInputMediaType("video")}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                      inputMediaType === "video"
-                        ? "bg-purple-100 text-purple-700 border-purple-400 shadow-xs"
-                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                    }`}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${inputMediaType === "video"
+                      ? "bg-purple-100 text-purple-700 border-purple-400 shadow-xs"
+                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                      }`}
                   >
                     <Video className="w-4 h-4" />
                     <span>Video</span>
@@ -2008,11 +1992,10 @@ export default function InboxPage() {
                   <button
                     type="button"
                     onClick={() => setInputMediaType("document")}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                      inputMediaType === "document"
-                        ? "bg-rose-100 text-rose-700 border-rose-400 shadow-xs"
-                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                    }`}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${inputMediaType === "document"
+                      ? "bg-rose-100 text-rose-700 border-rose-400 shadow-xs"
+                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                      }`}
                   >
                     <FileText className="w-4 h-4" />
                     <span>Document</span>

@@ -59,7 +59,9 @@ export default function CreateCampaignPage() {
   const [selectedOptionType, setSelectedOptionType] = useState<"short" | "detailed" | "festive">("short");
   const [previewTab, setPreviewTab] = useState<"template" | "direct">("template");
 
-  // Reusable Template State
+  // Reusable / Client WABA Approved Templates State
+  const [approvedTemplates, setApprovedTemplates] = useState<any[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [reusableTemplate, setReusableTemplate] = useState<any>(null);
   const [posterTemplate, setPosterTemplate] = useState<any>(null);
   const [textTemplate, setTextTemplate] = useState<any>(null);
@@ -119,13 +121,20 @@ export default function CreateCampaignPage() {
       })
       .catch((e) => console.error("Error loading business profile:", e));
 
-    fetch("/api/templates/reusable")
+    fetch("/api/templates?sync=true&approvedOnly=true")
       .then((res) => res.json())
-      .then((data) => {
-        if (data) {
-          if (data.posterTemplate) setPosterTemplate(data.posterTemplate);
-          if (data.textTemplate) setTextTemplate(data.textTemplate);
-          setReusableTemplate(data);
+      .then((list) => {
+        if (Array.isArray(list)) {
+          const valid = list.filter((tpl: any) => tpl.status === "APPROVED" && tpl.name !== "hello_world");
+          setApprovedTemplates(valid);
+          const poster = valid.find((tpl: any) => tpl.headerType === "IMAGE" || tpl.name === "offer_poster_v1");
+          const text = valid.find((tpl: any) => tpl.name === "offer_update_v1") || valid[0];
+          if (poster) setPosterTemplate(poster);
+          if (text) setTextTemplate(text);
+          if (valid[0]) {
+            setReusableTemplate(valid[0]);
+            setSelectedTemplateId((prev) => prev || text?.id || valid[0].id);
+          }
         }
       })
       .catch((e) => console.error(e));
@@ -267,9 +276,18 @@ export default function CreateCampaignPage() {
     a.click();
   };
 
+  const manuallyPickedTpl = approvedTemplates.find((tpl) => tpl.id === selectedTemplateId) || null;
   const hasPoster = !!posterImage;
-  const activeTemplate = hasPoster ? (posterTemplate || reusableTemplate) : (textTemplate || reusableTemplate);
-  const selectedTemplateName = hasPoster ? "offer_poster_v1" : "offer_update_v1";
+  const activeTemplate =
+    manuallyPickedTpl ||
+    (hasPoster ? posterTemplate || approvedTemplates[0] || reusableTemplate : textTemplate || approvedTemplates[0] || reusableTemplate);
+  const selectedTemplateName = activeTemplate?.name || (hasPoster ? "offer_poster_v1" : "offer_update_v1");
+  const selectedTemplateLang = activeTemplate?.language || "en_US";
+  const defaultTemplateImageUrl =
+    activeTemplate?.headerType === "IMAGE"
+      ? activeTemplate?.headerImageUrl || activeTemplate?.headerMediaUrl || null
+      : null;
+  const effectivePreviewImage = posterImage || defaultTemplateImageUrl;
   const isApproved = (activeTemplate?.status || "APPROVED") === "APPROVED";
   const has24hContacts = (windowAnalysis?.windowCount || 0) > 0;
   const canLaunchNow = isApproved || has24hContacts;
@@ -337,7 +355,9 @@ export default function CreateCampaignPage() {
           businessName: businessName.trim() || "OneAmple",
           bookingLink: bookingLink.trim() || undefined,
           posterImage,
+          headerImageUrl: effectivePreviewImage || undefined,
           templateName: selectedTemplateName,
+          languageCode: selectedTemplateLang,
           offerText: offerText || shortNote,
           forceTemplate: true,
         }),
@@ -384,6 +404,7 @@ export default function CreateCampaignPage() {
         note: offerText || shortNote,
         templateId: activeTemplate?.id,
         posterImage,
+        headerImageUrl: effectivePreviewImage || undefined,
         scheduledAt: sendOption === "SCHEDULE" ? scheduledDateTime : null,
         contactsData: validContacts,
         status: !isApproved && !has24hContacts ? "WAITING_APPROVAL" : "SENDING",
@@ -637,35 +658,66 @@ export default function CreateCampaignPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-7 space-y-6">
             
-            {reusableTemplate && (
-              <div className="bg-emerald-50/80 rounded-2xl p-4 border border-emerald-200 flex items-center justify-between gap-3 text-xs">
+            {/* Approved Client WABA Template Picker */}
+            <div className="bg-emerald-50/80 rounded-2xl p-4 border border-emerald-200 space-y-2.5 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-                  <div>
-                    <span className="font-heading font-bold text-slate-heading">
-                      Reusable Meta Template: <code className="text-emerald-800 font-mono">offer_update_v1</code>
-                    </span>
-                    <span className="block text-[11px] text-slate-muted">
-                      {isApproved
-                        ? "Approved by Meta! Zero waiting time for campaigns."
-                        : "Meta review in progress. Contacts in 24h window can receive direct image messages now!"}
-                    </span>
-                  </div>
+                  <span className="font-heading font-bold text-slate-heading">
+                    Select Approved WhatsApp Template
+                  </span>
                 </div>
-                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 ${
-                  isApproved ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
-                }`}>
-                  {reusableTemplate.status}
-                </span>
+                {approvedTemplates.length > 0 ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                    APPROVED ({selectedTemplateLang})
+                  </span>
+                ) : (
+                  <Link href="/templates" className="text-[11px] font-bold text-brand-purple hover:underline">
+                    Create Template →
+                  </Link>
+                )}
               </div>
-            )}
 
-            {/* Upload Poster Image */}
+              {approvedTemplates.length > 0 ? (
+                <select
+                  value={selectedTemplateId || activeTemplate?.id || ""}
+                  onChange={(e) => setSelectedTemplateId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                >
+                  {approvedTemplates.map((tpl) => (
+                    <option key={tpl.id} value={tpl.id}>
+                      {tpl.name} ({tpl.language}) — {tpl.headerType === "IMAGE" ? "Image Header" : "Text Only"}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-[11px] text-amber-800">
+                  No APPROVED templates found in your connected WABA yet. Create &amp; get one approved in Templates first.
+                </p>
+              )}
+            </div>
+
+            {/* Upload Poster / Replacement Header Image */}
             <div className="bg-white rounded-3xl p-6 border border-emerald-100 shadow-card space-y-4">
-              <h2 className="text-base font-heading font-bold text-slate-heading flex items-center gap-2">
-                <Upload className="w-5 h-5 text-emerald-600" />
-                <span>Upload Campaign Poster (Header Image)</span>
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-base font-heading font-bold text-slate-heading flex items-center gap-2">
+                  <Upload className="w-5 h-5 text-emerald-600" />
+                  <span>
+                    {activeTemplate?.headerType === "IMAGE"
+                      ? "Template Header Image (Keep Default or Replace for Campaign)"
+                      : "Upload Campaign Poster (Header Image)"}
+                  </span>
+                </h2>
+                {posterImage && defaultTemplateImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setPosterImage(null)}
+                    className="text-[11px] font-bold text-brand-purple hover:underline cursor-pointer"
+                  >
+                    Use Default Template Image
+                  </button>
+                )}
+              </div>
 
               <label className="relative border-2 border-dashed border-emerald-200 hover:border-emerald-400 bg-pastel-mint/20 hover:bg-pastel-mint/40 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all text-center min-h-[160px]">
                 <input
@@ -674,10 +726,14 @@ export default function CreateCampaignPage() {
                   className="hidden"
                   onChange={(e) => e.target.files?.[0] && handlePosterUpload(e.target.files[0])}
                 />
-                {posterImage ? (
+                {effectivePreviewImage ? (
                   <div className="flex flex-col items-center gap-2">
-                    <img src={posterImage} alt="Poster preview" className="h-36 object-contain rounded-xl shadow-md" />
-                    <span className="text-xs text-emerald-700 font-medium">Click to replace poster image</span>
+                    <img src={effectivePreviewImage} alt="Header image preview" className="h-36 object-contain rounded-xl shadow-md" />
+                    <span className="text-xs text-emerald-700 font-medium">
+                      {posterImage
+                        ? "Custom campaign image selected — click to replace"
+                        : "Template default header image — click to upload another image for this campaign"}
+                    </span>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1026,8 +1082,8 @@ export default function CreateCampaignPage() {
 
                 <div className="p-3 flex-1 space-y-3 overflow-y-auto font-body text-xs">
                   <div className="bg-white rounded-2xl rounded-tl-none p-3 shadow-md border border-slate-200/50 space-y-2 max-w-[90%]">
-                    {posterImage ? (
-                      <img src={posterImage} alt="Header poster" className="w-full h-36 object-cover rounded-xl" />
+                    {effectivePreviewImage ? (
+                      <img src={effectivePreviewImage} alt="Header poster" className="w-full h-36 object-cover rounded-xl" />
                     ) : (
                       <div className="font-heading font-bold text-slate-800 text-xs border-b border-slate-100 pb-1 text-emerald-800">
                         Exclusive Offer for <span className="text-emerald-700">{firstContactName}</span>
@@ -1300,7 +1356,7 @@ export default function CreateCampaignPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-muted font-heading font-bold">Language:</span>
-                  <span className="font-semibold text-slate-heading">en_US</span>
+                  <span className="font-semibold text-slate-heading">{selectedTemplateLang}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-muted font-heading font-bold">Recipients:</span>
@@ -1458,8 +1514,8 @@ export default function CreateCampaignPage() {
 
                 <div className="bg-white rounded-xl rounded-tl-none p-3.5 shadow-md border border-slate-200/60 space-y-2.5 text-xs text-slate-800 max-w-[95%]">
                   {/* Poster Header */}
-                  {posterImage ? (
-                    <img src={posterImage} alt="Poster" className="h-40 w-full object-cover rounded-lg shadow-xs" />
+                  {effectivePreviewImage ? (
+                    <img src={effectivePreviewImage} alt="Poster" className="h-40 w-full object-cover rounded-lg shadow-xs" />
                   ) : previewTab === "template" ? (
                     <div className="font-heading font-bold text-slate-800 text-xs border-b border-slate-100 pb-1 text-emerald-800">
                       Exclusive Offer for <span className="text-emerald-700">{firstContactName}</span>

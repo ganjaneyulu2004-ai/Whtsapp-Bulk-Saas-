@@ -104,6 +104,7 @@ export async function syncClientTemplatesFromMeta(businessId: string): Promise<{
       });
 
       if (existing) {
+        const preservedImageUrl = existing.headerImageUrl || existing.headerMediaUrl || null;
         await prisma.template.update({
           where: { id: existing.id },
           data: {
@@ -111,6 +112,7 @@ export async function syncClientTemplatesFromMeta(businessId: string): Promise<{
             category: m.category || existing.category,
             language: tplLang,
             headerType,
+            headerImageUrl: preservedImageUrl,
             bodyText,
             footerText,
             status: metaStatus,
@@ -191,6 +193,7 @@ export async function getClientTemplates(
     where: {
       businessId,
       wabaId,
+      name: { not: "hello_world" },
       ...(options?.approvedOnly ? { status: "APPROVED" } : {}),
     },
     orderBy: { createdAt: "desc" },
