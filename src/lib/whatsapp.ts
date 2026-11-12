@@ -49,15 +49,15 @@ export async function submitTemplateToMeta(
   },
   payload: MetaTemplatePayload
 ): Promise<{ success: boolean; metaTemplateId?: string; status: string; error?: string }> {
-  const token = decryptToken(config.waToken) || process.env.WA_TOKEN;
-  const wabaId = config.waBusinessAccountId || process.env.WA_BUSINESS_ACCOUNT_ID;
+  const token = decryptToken(config.waToken);
+  const wabaId = config.waBusinessAccountId?.trim();
   const version = getMetaGraphVersion(config.waApiVersion);
 
   if (!token || !wabaId || token.startsWith("EAAG...") || wabaId.startsWith("104829375...")) {
     return {
-      success: true,
-      metaTemplateId: `meta_tpl_${Date.now()}`,
-      status: "APPROVED",
+      success: false,
+      status: "REJECTED",
+      error: "No connected WhatsApp Business Account (WABA ID / Token) found for your account. Connect WhatsApp first.",
     };
   }
 
@@ -255,11 +255,26 @@ export async function sendWhatsAppTemplateMessage(
     mediaType?: "image" | "video" | "document";
     fileName?: string;
     buttons?: Array<{ id: string; title: string }>;
+    bodyVarCount?: number;
+    headerType?: string;
+    allowPlatformFallback?: boolean;
   }
 ): Promise<{ success: boolean; waMessageId?: string; errorCode?: string; errorMessage?: string }> {
-  const token = decryptToken(config.waToken) || process.env.WA_TOKEN || FALLBACK_WA_TOKEN;
-  const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID || FALLBACK_WA_PHONE_ID;
+  const token =
+    decryptToken(config.waToken) ||
+    (params?.allowPlatformFallback ? process.env.WA_TOKEN || FALLBACK_WA_TOKEN : undefined);
+  const phoneId =
+    config.waPhoneNumberId ||
+    (params?.allowPlatformFallback ? process.env.WA_PHONE_NUMBER_ID || FALLBACK_WA_PHONE_ID : undefined);
   const version = getMetaGraphVersion(config.waApiVersion);
+
+  if (!token || !phoneId) {
+    return {
+      success: false,
+      errorCode: "NOT_CONNECTED",
+      errorMessage: "No connected WhatsApp number or token found for this account.",
+    };
+  }
 
   try {
     let cleanRecipient = String(recipientPhone || "").replace(/[^0-9]/g, "");
@@ -446,22 +461,29 @@ export async function sendWhatsAppTemplateMessage(
         .trim()
         .substring(0, 300);
 
-      // Body parameters in order: {{1}} = contact name, {{2}} = offer text, {{3}} = business name
-      const bodyParameters: any[] = [
+      const allBodyParameters: any[] = [
         { type: "text", text: recipient },
         { type: "text", text: cleanOffer },
         { type: "text", text: bName },
       ];
 
-      const components: any[] = [
-        {
+      const varCount =
+        typeof params?.bodyVarCount === "number"
+          ? Math.max(0, Math.min(allBodyParameters.length, params.bodyVarCount))
+          : templateName === "offer_poster_v1" || templateName === "offer_update_v1"
+          ? 3
+          : 0;
+
+      const components: any[] = [];
+      if (varCount > 0) {
+        components.push({
           type: "body",
-          parameters: bodyParameters,
-        },
-      ];
+          parameters: allBodyParameters.slice(0, varCount),
+        });
+      }
 
       // Header component
-      if (templateName === "offer_poster_v1") {
+      if (templateName === "offer_poster_v1" || params?.headerType === "IMAGE") {
         let posterMediaId = params?.mediaId;
         if (!posterMediaId && mediaUrl) {
           if (mediaUrl.startsWith("data:image/") || mediaUrl.length > 500) {
@@ -503,44 +525,19 @@ export async function sendWhatsAppTemplateMessage(
             },
           ],
         });
-      } else if (templateName === "student_welcome") {
-        // student_welcome has NO header component in Meta Cloud API
-      } else if (mediaUrl) {
-        components.unshift({
-          type: "header",
-          parameters: [
-            {
-              type: "image",
-              image: { link: mediaUrl },
-            },
-          ],
-        });
       }
 
-      if (templateName === "hello_world") {
-        payload = {
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: cleanRecipient,
-          type: "template",
-          template: {
-            name: "hello_world",
-            language: { code: "en_US" },
-          },
-        };
-      } else {
-        payload = {
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: cleanRecipient,
-          type: "template",
-          template: {
-            name: templateName,
-            language: { code: templateLanguage || "en_US" },
-            components,
-          },
-        };
-      }
+      payload = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: cleanRecipient,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: templateLanguage || "en_US" },
+          ...(components.length > 0 ? { components } : {}),
+        },
+      };
     }
 
     const url = `https://graph.facebook.com/${version}/${phoneId}/messages`;

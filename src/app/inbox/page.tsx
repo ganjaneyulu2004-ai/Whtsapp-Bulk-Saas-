@@ -130,6 +130,11 @@ export default function InboxPage() {
   const [isSendingNew, setIsSendingNew] = useState(false);
   const [newChatError, setNewChatError] = useState<string | null>(null);
 
+  // Client's own APPROVED WABA templates for replies outside the 24h window
+  const [clientApprovedTemplates, setClientApprovedTemplates] = useState<any[]>([]);
+  const [loadingApprovedTemplates, setLoadingApprovedTemplates] = useState(true);
+  const [selectedInboxTemplateKey, setSelectedInboxTemplateKey] = useState("");
+
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<any>(null);
 
@@ -220,9 +225,28 @@ export default function InboxPage() {
     }
   };
 
+  const fetchApprovedTemplates = () => {
+    setLoadingApprovedTemplates(true);
+    fetch("/api/templates?sync=true&approvedOnly=true", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const approved = data.filter((tpl: any) => tpl.status === "APPROVED");
+          setClientApprovedTemplates(approved);
+          setSelectedInboxTemplateKey((prev) => {
+            if (prev && approved.some((t: any) => `${t.name}::${t.language}` === prev)) return prev;
+            return approved[0] ? `${approved[0].name}::${approved[0].language}` : "";
+          });
+        }
+        setLoadingApprovedTemplates(false);
+      })
+      .catch(() => setLoadingApprovedTemplates(false));
+  };
+
   useEffect(() => {
     fetchInbox();
     fetchTags();
+    fetchApprovedTemplates();
     const interval = setInterval(fetchInbox, 4000);
     return () => clearInterval(interval);
   }, []);
@@ -511,7 +535,21 @@ export default function InboxPage() {
       e.stopPropagation();
     }
     if (isSendingRef.current || isSending) return;
-    if (!activeConversation || (!replyText.trim() && attachedMediaList.length === 0)) return;
+    if (!activeConversation) return;
+
+    const chosenApprovedTpl = !activeConversation.isWindowActive
+      ? clientApprovedTemplates.find((tpl) => `${tpl.name}::${tpl.language}` === selectedInboxTemplateKey) ||
+        clientApprovedTemplates[0]
+      : null;
+
+    if (!activeConversation.isWindowActive && !chosenApprovedTpl) {
+      alert(
+        "The 24-hour reply window has expired and your connected WhatsApp Business Account has no APPROVED templates yet. Please create and get a template approved in the Templates page first."
+      );
+      return;
+    }
+
+    if (!replyText.trim() && attachedMediaList.length === 0 && activeConversation.isWindowActive) return;
 
     isSendingRef.current = true;
     setIsSending(true);
@@ -576,7 +614,9 @@ export default function InboxPage() {
         body: JSON.stringify({
           recipientPhone: targetPhone,
           recipientName: targetName,
-          messageText: textToSend,
+          messageText: textToSend || (chosenApprovedTpl ? chosenApprovedTpl.bodyText : ""),
+          templateName: !activeConversation.isWindowActive ? chosenApprovedTpl?.name : undefined,
+          templateLanguage: !activeConversation.isWindowActive ? chosenApprovedTpl?.language : undefined,
           buttons: buttonsToSend,
           mediaList: mediaToSend.map((m) => ({
             url: m.url,
@@ -634,6 +674,10 @@ export default function InboxPage() {
     const targetPhone = clean.length === 12 && clean.startsWith("91") ? clean.slice(2) : clean;
 
     try {
+      const chosenNewChatTpl =
+        clientApprovedTemplates.find((tpl) => `${tpl.name}::${tpl.language}` === selectedInboxTemplateKey) ||
+        clientApprovedTemplates[0];
+
       const res = await fetch("/api/inbox/send-personal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -641,6 +685,8 @@ export default function InboxPage() {
           recipientPhone: targetPhone,
           recipientName: newChatName.trim() || "Customer",
           messageText: newChatMessage.trim(),
+          templateName: chosenNewChatTpl?.name,
+          templateLanguage: chosenNewChatTpl?.language,
           mediaUrl: newChatMediaUrl.trim() || undefined,
           mediaType: newChatMediaType,
           fileName: newChatMediaUrl.trim() ? newChatMediaUrl.split("/").pop() : undefined,
@@ -1641,7 +1687,11 @@ export default function InboxPage() {
                 {/* WhatsApp Vibrant Green Send Button */}
                 <button
                   type="submit"
-                  disabled={(!replyText.trim() && attachedMediaList.length === 0) || isSending}
+                  disabled={
+                    (!replyText.trim() && attachedMediaList.length === 0 && activeConversation.isWindowActive) ||
+                    (!activeConversation.isWindowActive && clientApprovedTemplates.length === 0) ||
+                    isSending
+                  }
                   className="w-11 h-11 rounded-full bg-[#25d366] hover:bg-[#20bd5a] disabled:opacity-40 text-white flex items-center justify-center shadow-md shadow-[#25d366]/30 transition shrink-0 cursor-pointer active:scale-95"
                   title="Send (Enter)"
                 >
@@ -1653,10 +1703,41 @@ export default function InboxPage() {
                 </button>
               </form>
 
-              {/* Status footer notice */}
+              {/* Status footer / 24h expired template selector */}
               {!activeConversation.isWindowActive && (
-                <div className="mt-1 text-[10px] text-[#8696a0] flex items-center gap-1 px-2">
-                  <span>💡 24h direct window expired. This message will be delivered via verified Meta utility template.</span>
+                <div className="mt-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  {loadingApprovedTemplates ? (
+                    <span>Checking approved templates in your connected WABA...</span>
+                  ) : clientApprovedTemplates.length === 0 ? (
+                    <>
+                      <span className="font-medium">
+                        ⚠️ 24h customer service window expired, and your connected WhatsApp Business Account has no APPROVED templates yet. Create a template in Templates to message outside 24 hours.
+                      </span>
+                      <Link
+                        href="/templates"
+                        className="shrink-0 inline-flex items-center px-3 py-1 rounded-lg bg-amber-600 text-white font-bold hover:bg-amber-700 transition"
+                      >
+                        Go to Templates →
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-medium">
+                        💡 24h window expired — reply using one of your APPROVED WABA templates:
+                      </span>
+                      <select
+                        value={selectedInboxTemplateKey}
+                        onChange={(e) => setSelectedInboxTemplateKey(e.target.value)}
+                        className="px-2.5 py-1 rounded-lg border border-amber-300 bg-white text-xs font-semibold text-slate-800 focus:outline-none"
+                      >
+                        {clientApprovedTemplates.map((tpl) => (
+                          <option key={tpl.id} value={`${tpl.name}::${tpl.language}`}>
+                            {tpl.name} ({tpl.language})
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  )}
                 </div>
               )}
             </div>

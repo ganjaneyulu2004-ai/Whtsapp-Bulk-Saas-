@@ -1,12 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentBusiness, getCurrentUserSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET() {
   try {
+    const session = await getCurrentUserSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const business = await getCurrentBusiness();
+    if (!business?.id) {
+      return NextResponse.json({ error: "Business account not found" }, { status: 403 });
+    }
+
+    // Strictly isolate to the logged-in user's businessId (never return null or other businesses)
     const messages = await prisma.incomingMessage.findMany({
+      where: {
+        businessId: business.id,
+      },
       orderBy: { timestamp: "desc" },
       take: 100,
     });

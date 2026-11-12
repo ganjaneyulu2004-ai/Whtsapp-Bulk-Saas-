@@ -228,30 +228,61 @@ export async function POST(req: Request) {
       }
 
       const cfg = business.whatsappConfig;
-      if (!cfg?.waPhoneNumberId) {
-        return NextResponse.json({ error: "This business does not have a Meta Phone Number ID set yet." }, { status: 400 });
+      if (!cfg?.waPhoneNumberId || !cfg?.waToken) {
+        return NextResponse.json({ error: "This business does not have a connected WhatsApp Token or Phone Number ID set yet." }, { status: 400 });
       }
 
-      const pingResult = await sendWhatsAppTemplateMessage(
-        {
-          waToken: decryptToken(cfg.waToken) || process.env.WA_TOKEN || "",
-          waPhoneNumberId: cfg.waPhoneNumberId,
-          waApiVersion: getMetaGraphVersion(cfg.waApiVersion),
-        },
-        targetPhone,
-        business.user.name || "Business Owner",
-        "hello_world",
-        "en_US",
-        undefined,
-        {
-          businessName: cfg.verifiedName || business.name,
-        }
-      );
+      const { countTemplateBodyVariables, getClientTemplates } = await import("@/lib/template-service");
+      const approvedTemplates = await getClientTemplates(business.id, {
+        syncFromMeta: true,
+        approvedOnly: true,
+      });
+      const firstApproved = approvedTemplates[0];
+
+      const pingResult = firstApproved
+        ? await sendWhatsAppTemplateMessage(
+            {
+              waToken: decryptToken(cfg.waToken) || undefined,
+              waPhoneNumberId: cfg.waPhoneNumberId,
+              waApiVersion: getMetaGraphVersion(cfg.waApiVersion),
+            },
+            targetPhone,
+            business.user.name || "Business Owner",
+            firstApproved.name,
+            firstApproved.language,
+            undefined,
+            {
+              businessName: cfg.verifiedName || business.name,
+              is24HourWindow: false,
+              bodyVarCount: countTemplateBodyVariables(firstApproved.bodyText),
+              headerType: firstApproved.headerType,
+            }
+          )
+        : await sendWhatsAppTemplateMessage(
+            {
+              waToken: decryptToken(cfg.waToken) || undefined,
+              waPhoneNumberId: cfg.waPhoneNumberId,
+              waApiVersion: getMetaGraphVersion(cfg.waApiVersion),
+            },
+            targetPhone,
+            business.user.name || "Business Owner",
+            "direct_message",
+            "en",
+            undefined,
+            {
+              is24HourWindow: true,
+              freeFormText: `Test verification ping from ${cfg.verifiedName || business.name} via OneAmple.`,
+              businessName: cfg.verifiedName || business.name,
+            }
+          );
 
       if (!pingResult.success) {
         return NextResponse.json({
           success: false,
-          error: pingResult.errorMessage || `Meta Error ${pingResult.errorCode}`,
+          error:
+            !firstApproved && pingResult.errorCode === "131047"
+              ? "This client has no APPROVED templates in their WABA yet and the recipient is outside the 24h window."
+              : pingResult.errorMessage || `Meta Error ${pingResult.errorCode}`,
         }, { status: 400 });
       }
 

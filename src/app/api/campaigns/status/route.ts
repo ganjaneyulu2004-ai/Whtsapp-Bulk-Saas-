@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getMessageDeliveryStatus } from "@/lib/webhook-state";
 import { prisma } from "@/lib/prisma";
+import { getCurrentBusiness, getCurrentUserSession } from "@/lib/session";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -10,7 +11,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "wamid query parameter is required" }, { status: 400 });
   }
 
-  // 1. Check in-memory fast webhook state
+  const session = await getCurrentUserSession();
+  const isAuthenticated = Boolean(session?.user?.id);
+  const isAdmin = session?.user?.role === "ADMIN";
+
+  // 1. Check in-memory fast webhook state (strip recipient PII unless authenticated)
   const memStatus = getMessageDeliveryStatus(wamid);
   if (memStatus) {
     return NextResponse.json({
@@ -19,14 +24,30 @@ export async function GET(req: Request) {
       status: memStatus.status,
       errorCode: memStatus.errorCode,
       errorMessage: memStatus.errorMessage,
-      recipientId: memStatus.recipientId,
+      ...(isAuthenticated ? { recipientId: memStatus.recipientId } : {}),
       timestamp: memStatus.timestamp,
     });
   }
 
-  // 2. Fallback to database MessageLog
-  const dbLog = await prisma.messageLog.findUnique({
-    where: { waMessageId: wamid },
+  // 2. Database MessageLog lookup strictly requires authenticated session scoped to own businessId
+  if (!isAuthenticated) {
+    return NextResponse.json({
+      found: false,
+      status: "pending_meta",
+      message: "Awaiting delivery confirmation from Meta WhatsApp network...",
+    });
+  }
+
+  const business = isAdmin ? null : await getCurrentBusiness().catch(() => null);
+  if (!isAdmin && !business?.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const dbLog = await prisma.messageLog.findFirst({
+    where: {
+      waMessageId: wamid,
+      ...(!isAdmin && business?.id ? { campaign: { businessId: business.id } } : {}),
+    },
     select: {
       status: true,
       errorCode: true,

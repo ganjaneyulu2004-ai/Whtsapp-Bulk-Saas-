@@ -172,6 +172,15 @@ export async function initializeDatabase() {
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
     );`,
 
+    // Ensure multi-tenant WABA scoping on Template and ContactTag
+    `ALTER TABLE "Template" ADD COLUMN IF NOT EXISTS "wabaId" TEXT;`,
+    `CREATE INDEX IF NOT EXISTS "Template_businessId_wabaId_idx" ON "Template"("businessId", "wabaId");`,
+    `ALTER TABLE "ContactTag" ADD COLUMN IF NOT EXISTS "businessId" TEXT;`,
+    `ALTER TABLE "ContactTag" DROP CONSTRAINT IF EXISTS "ContactTag_phone_key";`,
+    `DROP INDEX IF EXISTS "ContactTag_phone_key";`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "ContactTag_businessId_phone_key" ON "ContactTag"("businessId", "phone");`,
+    `CREATE INDEX IF NOT EXISTS "ContactTag_businessId_idx" ON "ContactTag"("businessId");`,
+
     // Clean up any legacy Meta API card billing columns (OneAmple never stores card data)
     `ALTER TABLE "Business" DROP COLUMN IF EXISTS "apiCardLinked";`,
     `ALTER TABLE "Business" DROP COLUMN IF EXISTS "apiCardLast4";`,

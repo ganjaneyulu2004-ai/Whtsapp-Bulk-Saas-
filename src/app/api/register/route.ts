@@ -76,15 +76,15 @@ export async function POST(req: Request) {
     await prisma.whatsAppConfig.create({
       data: {
         businessId: userBusiness.id,
-        waApiVersion: "v20.0",
+        waApiVersion: process.env.META_GRAPH_VERSION || "v26.0",
         messagingLimitTier: "TIER_250",
         isConnected: false,
         displayPhoneNumber: clientMobile,
         verifiedName: businessName?.trim() || `${name.trim()}'s Business`,
         qualityRating: "High (Green)",
         connectionMethod: "PENDING_ACTIVATION",
-        waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-        waToken: encryptToken(process.env.WA_TOKEN || null),
+        waBusinessAccountId: null,
+        waToken: null,
       },
     });
 

@@ -109,6 +109,7 @@ model Template {
   id              String     @id @default(uuid())
   businessId      String
   business        Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  wabaId          String?
   name            String // lowercase_with_underscores
   category        String     @default("MARKETING")
   language        String     @default("en")
@@ -124,6 +125,8 @@ model Template {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   campaigns       Campaign[]
+
+  @@index([businessId, wabaId])
 }
 
 model ContactList {
@@ -234,12 +237,16 @@ model Appointment {
 }
 
 model ContactTag {
-  id        String   @id @default(uuid())
-  phone     String   @unique
-  tag       String   @default("NEW_ENQUIRY") // "HOT_LEAD" | "WEDDING_ENQUIRY" | "ADVANCE_PAID" | "PENDING_FOLLOWUP" | "VIP_CLIENT" | "NEW_ENQUIRY"
-  notes     String?
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  businessId String?
+  phone      String
+  tag        String   @default("NEW_ENQUIRY") // "HOT_LEAD" | "WEDDING_ENQUIRY" | "ADVANCE_PAID" | "PENDING_FOLLOWUP" | "VIP_CLIENT" | "NEW_ENQUIRY"
+  notes      String?
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@unique([businessId, phone])
+  @@index([businessId])
 }
 
 model AccountDeletionAudit {

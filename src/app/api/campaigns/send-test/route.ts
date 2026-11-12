@@ -1,41 +1,108 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getCurrentBusiness } from "@/lib/session";
+import { getCurrentBusiness, getCurrentUserSession } from "@/lib/session";
 import { decryptToken } from "@/lib/encryption";
 import { getMetaGraphVersion } from "@/lib/meta-config";
+import { sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
+import { countTemplateBodyVariables, getClientTemplates } from "@/lib/template-service";
 
 export async function POST(req: Request) {
   try {
-    const business = await getCurrentBusiness();
+    const session = await getCurrentUserSession();
     const body = await req.json();
-    const { 
-      recipientPhone, 
+    const {
+      recipientPhone,
       phone,
-      recipientName, 
-      offerText, 
+      recipientName,
+      offerText,
       businessName,
       templateName,
       languageCode,
     } = body;
 
-    let rawPhone = String(recipientPhone || phone || business.phone || "919390487233").replace(/[^0-9]/g, "");
+    let rawPhone = String(recipientPhone || phone || "").replace(/[^0-9]/g, "");
     if (rawPhone.length === 10) {
       rawPhone = "91" + rawPhone;
     } else if (rawPhone.length === 11 && rawPhone.startsWith("0")) {
       rawPhone = "91" + rawPhone.slice(1);
     }
+
+    if (!rawPhone || rawPhone.length < 10) {
+      return NextResponse.json(
+        { success: false, error: "Valid recipient phone number is required." },
+        { status: 400 }
+      );
+    }
+
     const targetPhone = rawPhone;
 
-    const config: any = business.whatsappConfig || {};
-    const token = decryptToken(config.waToken) || process.env.WA_TOKEN;
-    const phoneId = config.waPhoneNumberId || process.env.WA_PHONE_NUMBER_ID;
-    const apiVersion = getMetaGraphVersion(config.waApiVersion);
+    // 1. Unauthenticated public landing demo: allow ONLY direct text demo ping without touching any client WABA
+    if (!session?.user?.id) {
+      if (templateName) {
+        return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      }
 
-    if (!token || !phoneId) {
+      const demoToken = process.env.WA_TOKEN;
+      const demoPhoneId = process.env.WA_PHONE_NUMBER_ID;
+      if (!demoToken || !demoPhoneId) {
+        return NextResponse.json(
+          { success: false, error: "Demo WhatsApp channel is currently unavailable. Please log in to send tests." },
+          { status: 400 }
+        );
+      }
+
+      const demoResult = await sendWhatsAppTemplateMessage(
+        {
+          waToken: demoToken,
+          waPhoneNumberId: demoPhoneId,
+          waApiVersion: getMetaGraphVersion(),
+        },
+        targetPhone,
+        recipientName || "Customer",
+        "direct_message",
+        "en",
+        undefined,
+        {
+          is24HourWindow: true,
+          offerText: offerText || "Hello from OneAmple! This is a live WhatsApp Cloud API demo test.",
+          businessName: businessName || "OneAmple",
+          allowPlatformFallback: false,
+        }
+      );
+
+      if (demoResult.success) {
+        return NextResponse.json({
+          success: true,
+          message: `Real Meta test message sent successfully to +${targetPhone}!`,
+          waMessageId: demoResult.waMessageId,
+          recipient: targetPhone,
+        });
+      }
+
       return NextResponse.json(
         {
           success: false,
-          error: "No WhatsApp number connected for your account. Please connect your number via Embedded Signup first.",
+          error:
+            demoResult.errorCode === "131047"
+              ? "24-hour window closed on demo number. Please log in with your own WhatsApp Business Account to test approved templates."
+              : `Meta Error (${demoResult.errorCode || "400"}): ${demoResult.errorMessage || "Failed"}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // 2. Authenticated client: strictly use ONLY this business's connected WhatsAppConfig & WABA templates
+    const business = await getCurrentBusiness();
+    const config: any = business.whatsappConfig || {};
+    const token = decryptToken(config.waToken);
+    const phoneId = config.waPhoneNumberId?.trim();
+    const wabaId = config.waBusinessAccountId?.trim();
+    const apiVersion = getMetaGraphVersion(config.waApiVersion);
+
+    if (!token || !phoneId || !wabaId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No WhatsApp Business number connected for your account. Please connect your number first.",
         },
         { status: 400 }
       );
@@ -44,98 +111,130 @@ export async function POST(req: Request) {
     const bName = (businessName || business.name || "OneAmple").trim();
     const messageContent = (
       offerText ||
-      `Live Test Message from OneAmple (${bName})! 🚀 Your WhatsApp Cloud API channel is active, verified, and transmitting successfully.`
+      `Live Test Message from ${bName} via OneAmple! Your WhatsApp Cloud API channel is active.`
     ).trim();
 
-    let metaUrl = `https://graph.facebook.com/${apiVersion}/${phoneId}/messages`;
-    let payload: any;
-
     if (templateName) {
-      // Send selected template directly
-      payload = {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: targetPhone,
-        type: "template",
-        template: {
-          name: templateName,
-          language: { code: languageCode || "en_US" },
-        },
-      };
-    } else {
-      // Direct text attempt (24h window)
-      payload = {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: targetPhone,
-        type: "text",
-        text: {
-          preview_url: false,
-          body: messageContent,
-        },
-      };
-    }
+      if (templateName === "hello_world") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "The sample 'hello_world' template is only supported on Meta public test numbers. Please select an APPROVED template from your own WhatsApp Business Account.",
+          },
+          { status: 400 }
+        );
+      }
 
-    console.log(`[Send Test] Transmitting to +${targetPhone} via Phone ID ${phoneId}...`);
-    let res = await fetch(metaUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    let data = await res.json();
-
-    // If direct text failed because 24-hr customer service window is closed (Error 131047), fallback to verified template "hello_world"
-    if (!res.ok && data?.error?.code === 131047 && !templateName) {
-      console.log("[Send Test] 24-hr window closed. Falling back to default approved template 'hello_world'...");
-      const fallbackPayload = {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: targetPhone,
-        type: "template",
-        template: {
-          name: "hello_world",
-          language: { code: "en_US" },
-        },
-      };
-
-      res = await fetch(metaUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(fallbackPayload),
+      // Always verify template exists and is APPROVED in THIS client's own WABA and use its exact language
+      const approvedTemplates = await getClientTemplates(business.id, {
+        syncFromMeta: true,
+        approvedOnly: true,
       });
 
-      data = await res.json();
-    }
+      if (approvedTemplates.length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Your connected WhatsApp Business Account has no APPROVED templates yet. Create a template in the Templates tab and wait for Meta approval, or use Custom Text within a 24-hour window.",
+          },
+          { status: 400 }
+        );
+      }
 
-    if (res.ok && data?.messages?.[0]?.id) {
-      const realWamid = data.messages[0].id;
-      return NextResponse.json({
-        success: true,
-        message: `Real Meta test message sent successfully to +${targetPhone}!`,
-        waMessageId: realWamid,
-        metaStatus: data.messages[0].message_status || "sent",
-        recipient: targetPhone,
-      });
-    } else {
-      const errorDetail = data?.error?.message || data?.error?.error_user_msg || "Meta API error";
-      const errorCode = data?.error?.code || res.status;
-      console.error("[Send Test Meta Error]", data);
+      const matched =
+        approvedTemplates.find(
+          (t) => t.name === templateName && (!languageCode || t.language === languageCode)
+        ) || approvedTemplates.find((t) => t.name === templateName);
+
+      if (!matched) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Template "${templateName}" was not found as APPROVED in your connected WABA (${wabaId}). Sync live templates and choose an APPROVED template belonging to your own account.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      const bodyVarCount = countTemplateBodyVariables(matched.bodyText);
+      const sendRes = await sendWhatsAppTemplateMessage(
+        {
+          waToken: token,
+          waPhoneNumberId: phoneId,
+          waApiVersion: apiVersion,
+        },
+        targetPhone,
+        recipientName || "Customer",
+        matched.name,
+        matched.language,
+        undefined,
+        {
+          offerText: messageContent,
+          businessName: bName,
+          is24HourWindow: false,
+          bodyVarCount,
+          headerType: matched.headerType,
+        }
+      );
+
+      if (sendRes.success) {
+        return NextResponse.json({
+          success: true,
+          message: `Test template "${matched.name}" (${matched.language}) sent successfully to +${targetPhone}!`,
+          waMessageId: sendRes.waMessageId,
+          metaStatus: "sent",
+          recipient: targetPhone,
+        });
+      }
+
       return NextResponse.json(
         {
           success: false,
-          error: `Meta Error (${errorCode}): ${errorDetail}`,
-          metaError: data?.error,
+          error: `Meta Error (${sendRes.errorCode || "400"}): ${sendRes.errorMessage || "Meta API error"}`,
         },
         { status: 400 }
       );
     }
+
+    // Direct 24-hour free-form text test message (NO hello_world fallback)
+    const directRes = await sendWhatsAppTemplateMessage(
+      {
+        waToken: token,
+        waPhoneNumberId: phoneId,
+        waApiVersion: apiVersion,
+      },
+      targetPhone,
+      recipientName || "Customer",
+      "direct_message",
+      "en",
+      undefined,
+      {
+        is24HourWindow: true,
+        freeFormText: messageContent,
+        businessName: bName,
+      }
+    );
+
+    if (directRes.success) {
+      return NextResponse.json({
+        success: true,
+        message: `Real Meta test message sent successfully to +${targetPhone}!`,
+        waMessageId: directRes.waMessageId,
+        metaStatus: "sent",
+        recipient: targetPhone,
+      });
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          directRes.errorCode === "131047"
+            ? "24-hour customer service window is closed for this recipient. Select one of your APPROVED templates from the dropdown to send a template test."
+            : `Meta Error (${directRes.errorCode || "400"}): ${directRes.errorMessage || "Meta API error"}`,
+      },
+      { status: 400 }
+    );
   } catch (err: any) {
     console.error("[Send Test Error]", err);
     return NextResponse.json(

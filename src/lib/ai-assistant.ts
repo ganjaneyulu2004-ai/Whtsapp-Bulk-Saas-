@@ -61,14 +61,7 @@ export async function handleIncomingAiReply({
     }
 
     if (!business) {
-      business = await prisma.business.findFirst({
-        include: { whatsappConfig: true },
-        orderBy: { updatedAt: "desc" },
-      });
-    }
-
-    if (!business) {
-      console.log("No business found for AI auto-reply.");
+      console.warn("[AI Assistant] Skipping reply: could not resolve target businessId.");
       return null;
     }
 
@@ -78,9 +71,10 @@ export async function handleIncomingAiReply({
       return null;
     }
 
-    // 2. Fetch last 5 messages for conversation context
+    // 2. Fetch last 5 messages for conversation context strictly scoped to this businessId
     const pastIncoming = await prisma.incomingMessage.findMany({
       where: {
+        businessId: business.id,
         fromPhone: { in: [cleanPhone, cleanPhone.slice(-10)] },
       },
       orderBy: { timestamp: "desc" },
@@ -242,7 +236,20 @@ Write your short, warm, human WhatsApp reply now:
     );
 
     if (!sendResult.success) {
-      console.log(`⚠️ Direct AI message failed (${sendResult.errorMessage}). Retrying via verified template...`);
+      console.log(`⚠️ Direct AI message failed (${sendResult.errorMessage}). Checking client's own approved templates...`);
+      const { countTemplateBodyVariables, getClientTemplates } = await import("./template-service");
+      const approvedList = await getClientTemplates(business.id, { syncFromMeta: false, approvedOnly: true });
+      const firstApproved = approvedList[0];
+
+      if (!firstApproved) {
+        console.warn(`⚠️ [AI Assistant] No APPROVED template found in WABA for business ${business.id}; skipping fallback.`);
+        return {
+          success: false,
+          replyText,
+          waMessageId: undefined,
+        };
+      }
+
       const fallbackRes = await sendWhatsAppTemplateMessage(
         {
           waToken: decryptToken(config.waToken) || undefined,
@@ -251,31 +258,34 @@ Write your short, warm, human WhatsApp reply now:
         },
         cleanPhone,
         customerName || "Customer",
-        "student_welcome",
-        "en",
+        firstApproved.name,
+        firstApproved.language,
         undefined,
         {
           offerText: replyText,
-          businessName: business.name || "iBrainLabs",
+          businessName: business.name || "OneAmple",
           is24HourWindow: false,
+          bodyVarCount: countTemplateBodyVariables(firstApproved.bodyText),
+          headerType: firstApproved.headerType,
         }
       );
       const finalWaMsgId = fallbackRes.waMessageId;
 
-      // Save AI reply into incomingMessage so it shows in /inbox chat interface
-      try {
-        await prisma.incomingMessage.create({
-          data: {
-            businessId: business.id,
-            fromPhone: cleanPhone,
-            customerName: "__BUSINESS_AI__",
-            messageText: replyText,
-            waMessageId: finalWaMsgId || `ai_${Date.now()}`,
-            timestamp: new Date(),
-          },
-        });
-      } catch (dbErr) {
-        console.error("Failed to save AI reply to incomingMessage:", dbErr);
+      if (fallbackRes.success) {
+        try {
+          await prisma.incomingMessage.create({
+            data: {
+              businessId: business.id,
+              fromPhone: cleanPhone,
+              customerName: "__BUSINESS_AI__",
+              messageText: replyText,
+              waMessageId: finalWaMsgId || `ai_${Date.now()}`,
+              timestamp: new Date(),
+            },
+          });
+        } catch (dbErr) {
+          console.error("Failed to save AI reply to incomingMessage:", dbErr);
+        }
       }
 
       return {

@@ -64,7 +64,7 @@ export default function WhatsAppEmbeddedSignup({
   // --- Test & Verify Section States ---
   const [activeTab, setActiveTab] = useState<"send_test" | "templates">("send_test");
   const [testNumber, setTestNumber] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState("hello_world");
+  const [selectedTemplate, setSelectedTemplate] = useState("");
   const [customTestText, setCustomTestText] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string; details?: any } | null>(null);
@@ -99,6 +99,12 @@ export default function WhatsAppEmbeddedSignup({
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
         setTemplates(data);
+        const approved = data.filter((t: any) => t.status === "APPROVED");
+        setSelectedTemplate((prev) => {
+          if (prev === "direct_text") return prev;
+          if (approved.some((t: any) => t.name === prev)) return prev;
+          return approved[0]?.name || "";
+        });
       }
     } catch (e) {
       console.warn("Could not fetch templates:", e);
@@ -110,7 +116,7 @@ export default function WhatsAppEmbeddedSignup({
 
   useEffect(() => {
     if (config?.isConnected) {
-      fetchTemplates(false);
+      fetchTemplates(true);
     }
   }, [config?.isConnected]);
 
@@ -365,6 +371,19 @@ export default function WhatsAppEmbeddedSignup({
       return;
     }
 
+    const chosenTpl = templates.find(
+      (t) => t.status === "APPROVED" && t.name === selectedTemplate
+    );
+
+    if (selectedTemplate !== "direct_text" && !chosenTpl) {
+      setTestResult({
+        ok: false,
+        message:
+          "No APPROVED template is selected from your connected WABA. Create & approve a template in tab (a & b), or select 'Custom Text (Direct within 24hr Window)'.",
+      });
+      return;
+    }
+
     setSendingTest(true);
     setTestResult(null);
 
@@ -374,7 +393,8 @@ export default function WhatsAppEmbeddedSignup({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recipientPhone: cleanNumber,
-          templateName: selectedTemplate !== "direct_text" ? selectedTemplate : undefined,
+          templateName: selectedTemplate !== "direct_text" ? chosenTpl.name : undefined,
+          languageCode: selectedTemplate !== "direct_text" ? chosenTpl.language : undefined,
           offerText: customTestText.trim() || undefined,
         }),
       });
@@ -667,16 +687,23 @@ export default function WhatsAppEmbeddedSignup({
                         onChange={(e) => setSelectedTemplate(e.target.value)}
                         className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-brand-soft focus:outline-none focus:ring-2 focus:ring-brand-purple/20 bg-white"
                       >
-                        <option value="hello_world">hello_world (Meta Pre-Approved Starter Template)</option>
+                        {templates.filter((t) => t.status === "APPROVED").length === 0 && (
+                          <option value="">-- No APPROVED templates in your WABA yet --</option>
+                        )}
                         {templates
                           .filter((t) => t.status === "APPROVED")
                           .map((t) => (
                             <option key={t.id} value={t.name}>
-                              {t.name} (Your Approved Template)
+                              {t.name} ({t.language}) — APPROVED
                             </option>
                           ))}
                         <option value="direct_text">Custom Text (Direct within 24hr Window)</option>
                       </select>
+                      {templates.filter((t) => t.status === "APPROVED").length === 0 && (
+                        <p className="text-[11px] text-amber-700">
+                          No APPROVED templates found in your connected WABA. Create a template in tab (a & b) and wait for Meta approval, or use Custom Text within a 24h window.
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -850,7 +877,7 @@ export default function WhatsAppEmbeddedSignup({
 
                     {templates.length === 0 ? (
                       <div className="text-center py-6 bg-white rounded-xl border border-slate-200 text-xs text-slate-500">
-                        {loadingTemplates ? "Loading templates..." : "No custom templates yet. Create your first template above or use 'hello_world' to test."}
+                        {loadingTemplates ? "Loading templates..." : "No templates yet in your connected WhatsApp Business Account. Create your first template above and sync status."}
                       </div>
                     ) : (
                       <div className="space-y-2">

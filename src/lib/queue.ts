@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { sendWhatsAppTemplateMessage, uploadMediaToMeta, formatDirectOfferMessage } from "./whatsapp";
+import { countTemplateBodyVariables } from "./template-service";
 import { decryptToken } from "./encryption";
 import { getMetaGraphVersion } from "./meta-config";
 
@@ -107,6 +108,7 @@ export async function processCampaignSending(campaignId: string) {
       const cleanDigits = log.phone.replace(/[^0-9]/g, "");
       const incomingMsg = await prisma.incomingMessage.findFirst({
         where: {
+          businessId: campaign.businessId,
           fromPhone: { contains: cleanDigits.slice(-10) },
           timestamp: { gte: twentyFourHoursAgo },
         },
@@ -174,6 +176,8 @@ export async function processCampaignSending(campaignId: string) {
           is24HourWindow: useDirect24h,
           mediaId: campaignMediaId,
           freeFormText: directCaption,
+          bodyVarCount: countTemplateBodyVariables(campaign.template.bodyText),
+          headerType: campaign.template.headerType,
         }
       );
 

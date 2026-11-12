@@ -87,44 +87,59 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Booking link must be a valid https:// URL" }, { status: 400 });
     }
 
+    const clientWabaId = business.whatsappConfig?.waBusinessAccountId?.trim() || null;
+    if (!clientWabaId || !business.whatsappConfig?.waToken) {
+      return NextResponse.json(
+        { error: "Please connect your WhatsApp Business Account before creating a campaign." },
+        { status: 400 }
+      );
+    }
+
     let finalTemplateId = templateId;
-    if (posterImage) {
-      // ALWAYS use offer_poster_v1 when a poster is uploaded
-      const posterTpl = await prisma.template.create({
-        data: {
+    if (finalTemplateId) {
+      const ownedTemplate = await prisma.template.findFirst({
+        where: {
+          id: finalTemplateId,
           businessId: business.id,
-          name: "offer_poster_v1",
-          category: "MARKETING",
-          language: "en_US",
-          headerType: "IMAGE",
-          headerMediaUrl: posterImage,
-          bodyText: "Dear {{1}},\n\nWe have an offer for you: {{2}}\n\nThank you for shopping with {{3}}. Have a great day!",
-          footerText: "Reply STOP to unsubscribe",
-          metaTemplateId: "1475745637707104",
-          status: "APPROVED",
+          wabaId: clientWabaId,
         },
       });
-      finalTemplateId = posterTpl.id;
-    } else if (!finalTemplateId) {
-      // Use offer_update_v1 when no poster is uploaded
-      let textTpl = await prisma.template.findFirst({
-        where: { businessId: business.id, name: "offer_update_v1" },
-        orderBy: { createdAt: "desc" },
-      });
-      if (!textTpl) {
-        textTpl = await prisma.template.create({
-          data: {
-            businessId: business.id,
-            name: "offer_update_v1",
-            category: "MARKETING",
-            language: "en_US",
-            headerType: "TEXT",
-            bodyText: "Dear {{1}},\n\nWe have an offer for you: {{2}}\n\nThank you for shopping with {{3}}. Have a great day!",
-            footerText: "Reply STOP to unsubscribe",
-            metaTemplateId: "1075830035046444",
-            status: "APPROVED",
-          },
+      if (!ownedTemplate) {
+        return NextResponse.json(
+          { error: "Selected template does not belong to your connected WhatsApp Business Account." },
+          { status: 400 }
+        );
+      }
+      if (posterImage && ownedTemplate.headerMediaUrl !== posterImage) {
+        await prisma.template.update({
+          where: { id: ownedTemplate.id },
+          data: { headerMediaUrl: posterImage },
         });
+      }
+    } else if (posterImage) {
+      const { getClientTemplates } = await import("@/lib/template-service");
+      const approved = await getClientTemplates(business.id, { syncFromMeta: true, approvedOnly: true });
+      const posterTpl = approved.find((t) => t.name === "offer_poster_v1") || approved.find((t) => t.headerType === "IMAGE");
+      if (!posterTpl) {
+        return NextResponse.json(
+          { error: "No APPROVED image-header template found in your connected WhatsApp Business Account. Please create and get one approved in Templates first." },
+          { status: 400 }
+        );
+      }
+      await prisma.template.update({
+        where: { id: posterTpl.id },
+        data: { headerMediaUrl: posterImage },
+      });
+      finalTemplateId = posterTpl.id;
+    } else {
+      const { getClientTemplates } = await import("@/lib/template-service");
+      const approved = await getClientTemplates(business.id, { syncFromMeta: true, approvedOnly: true });
+      const textTpl = approved.find((t) => t.name === "offer_update_v1") || approved[0];
+      if (!textTpl) {
+        return NextResponse.json(
+          { error: "No APPROVED template found in your connected WhatsApp Business Account. Please create and get a template approved in Templates first." },
+          { status: 400 }
+        );
       }
       finalTemplateId = textTpl.id;
     }

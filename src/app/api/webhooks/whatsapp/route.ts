@@ -86,7 +86,9 @@ async function processWebhookPayload(body: any) {
   const value = changes?.value;
   const field = changes?.field;
 
-  const phoneId = value?.metadata?.phone_number_id;
+  const rawPhoneId = value?.metadata?.phone_number_id;
+  const phoneId = rawPhoneId ? String(rawPhoneId).trim() : undefined;
+  const cleanWabaId = wabaId ? String(wabaId).trim() : undefined;
 
   // Resolve which client business owns this incoming WhatsApp phone number or WABA
   // Matches both official Embedded Signup clients AND existing manually-onboarded clients!
@@ -101,6 +103,7 @@ async function processWebhookPayload(body: any) {
     if (phoneId) {
       const byPhoneId = await prisma.whatsAppConfig.findFirst({
         where: { waPhoneNumberId: phoneId },
+        orderBy: [{ isConnected: "desc" }, { updatedAt: "desc" }],
         select: { businessId: true },
       });
       if (byPhoneId?.businessId) {
@@ -108,10 +111,10 @@ async function processWebhookPayload(body: any) {
       }
     }
 
-    // Tier 2: Match manually-onboarded clients by display phone number or business phone
+    // Tier 2: Fallback ONLY by unambiguous display phone number (in case phone_number_id wasn't saved yet)
     if (!clientBusinessId && displayPhone && displayPhone.length >= 10) {
       const last10 = displayPhone.slice(-10);
-      const manualMatch = await prisma.whatsAppConfig.findFirst({
+      const manualMatches = await prisma.whatsAppConfig.findMany({
         where: {
           OR: [
             { displayPhoneNumber: { contains: last10 } },
@@ -119,32 +122,23 @@ async function processWebhookPayload(body: any) {
           ],
         },
         select: { businessId: true },
+        take: 2,
       });
-      if (manualMatch?.businessId) {
-        clientBusinessId = manualMatch.businessId;
+      if (manualMatches.length === 1 && manualMatches[0]?.businessId) {
+        clientBusinessId = manualMatches[0].businessId;
       }
     }
 
-    // Tier 3: Match by WABA ID (used for template status webhooks or single-number WABAs)
-    if (wabaId) {
+    // Tier 3: Collect businesses sharing WABA ID for template webhooks;
+    // ONLY resolve incoming message businessId via WABA when exactly ONE business uses that WABA.
+    if (cleanWabaId) {
       const wabaConfigs = await prisma.whatsAppConfig.findMany({
-        where: { waBusinessAccountId: wabaId },
+        where: { waBusinessAccountId: cleanWabaId },
         select: { businessId: true },
       });
       wabaBusinessIds = wabaConfigs.map((c) => c.businessId);
-      if (!clientBusinessId && wabaBusinessIds.length > 0) {
+      if (!clientBusinessId && wabaBusinessIds.length === 1) {
         clientBusinessId = wabaBusinessIds[0];
-      }
-    }
-
-    // Tier 4: Single-tenant fallback if only one active business exists in the SaaS
-    if (!clientBusinessId) {
-      const totalCount = await prisma.business.count();
-      if (totalCount === 1) {
-        const defaultBiz = await prisma.business.findFirst({ select: { id: true } });
-        if (defaultBiz?.id) {
-          clientBusinessId = defaultBiz.id;
-        }
       }
     }
   } catch (e) {
@@ -160,19 +154,25 @@ async function processWebhookPayload(body: any) {
         ? { businessId: { in: wabaBusinessIds } }
         : clientBusinessId
         ? { businessId: clientBusinessId }
+        : null;
+
+    if (templateName && templateTargetFilter && (eventStatus === "APPROVED" || eventStatus === "REJECTED")) {
+      console.log(`✨ Template Webhook Notification: ${templateName} -> ${eventStatus} (WABA: ${cleanWabaId})`);
+      
+      const wabaCondition = cleanWabaId
+        ? { OR: [{ wabaId: cleanWabaId }, { wabaId: null }] }
         : {};
 
-    if (templateName && (eventStatus === "APPROVED" || eventStatus === "REJECTED")) {
-      console.log(`✨ Template Webhook Notification: ${templateName} -> ${eventStatus} (WABA: ${wabaId})`);
-      
-      // Update template status in DB for the matching business(es)
+      // Update template status in DB strictly for the matching business(es) + WABA
       const updatedTemplates = await prisma.template.updateMany({
         where: {
           name: templateName,
           ...templateTargetFilter,
+          ...wabaCondition,
         },
         data: {
           status: eventStatus,
+          ...(cleanWabaId ? { wabaId: cleanWabaId } : {}),
           rejectionReason: value?.reason || null,
         },
       });
@@ -183,6 +183,7 @@ async function processWebhookPayload(body: any) {
           where: {
             name: templateName,
             ...templateTargetFilter,
+            ...wabaCondition,
           },
           select: { id: true },
         });
@@ -350,10 +351,27 @@ async function processWebhookPayload(body: any) {
         continue;
       }
 
+      // Multi-tenant safety guard: log unmatched details for debugging instead of storing businessId=NULL
+      if (!clientBusinessId) {
+        const unmatchedDetails = {
+          phone_number_id: phoneId || null,
+          waba_id: cleanWabaId || null,
+          from: fromPhone || null,
+          display_phone_number: displayPhone || null,
+          wa_message_id: waMsgId || null,
+          message_preview: textBody ? textBody.slice(0, 80) : "",
+        };
+        console.warn("[Webhook UNMATCHED Incoming Message - Not Saved]", JSON.stringify(unmatchedDetails));
+        console.log(
+          `[Webhook Unmatched] phone_number_id=${unmatchedDetails.phone_number_id} waba_id=${unmatchedDetails.waba_id} from=${unmatchedDetails.from}`
+        );
+        continue;
+      }
+
       try {
         await prisma.incomingMessage.create({
           data: {
-            businessId: clientBusinessId || null,
+            businessId: clientBusinessId,
             fromPhone,
             customerName,
             messageText: textBody,
@@ -369,7 +387,7 @@ async function processWebhookPayload(body: any) {
       if (upperText === "STOP" || upperText === "UNSUBSCRIBE" || upperText.includes("ఆపు")) {
         await prisma.contact.updateMany({
           where: {
-            ...(clientBusinessId ? { businessId: clientBusinessId } : {}),
+            businessId: clientBusinessId,
             phone: {
               contains: fromPhone.slice(-10),
             },
@@ -377,14 +395,14 @@ async function processWebhookPayload(body: any) {
           data: { optedOut: true },
         });
 
-        console.log(`🚫 Opted-out contact for phone +${fromPhone} (Business: ${clientBusinessId || "GLOBAL"})`);
+        console.log(`🚫 Opted-out contact for phone +${fromPhone} (Business: ${clientBusinessId})`);
       } else if (textBody.length > 0) {
         // Trigger human-like WhatsApp AI auto-reply scoped to the exact client's business
         handleIncomingAiReply({
           fromPhone,
           customerName,
           incomingText: textBody,
-          waPhoneNumberId: value?.metadata?.phone_number_id,
+          waPhoneNumberId: phoneId,
           businessId: clientBusinessId,
         }).catch((err) => {
           console.error("AI Auto-reply background error:", err);
