@@ -65,6 +65,13 @@ export default function CreateCampaignPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [var1UseContactName, setVar1UseContactName] = useState(true);
   const [templateVarValues, setTemplateVarValues] = useState<Record<number, string>>({});
+  const [varMeta, setVarMeta] = useState<
+    Record<number, { aiFilled?: boolean; manualEdited?: boolean; missingFromPoster?: boolean }>
+  >({});
+  const [regeneratingVar, setRegeneratingVar] = useState<number | null>(null);
+  const varMetaRef = React.useRef(varMeta);
+  varMetaRef.current = varMeta;
+  const lastAnalyzedSourceRef = React.useRef<string | null>(null);
   const [offerText, setOfferText] = useState("");
 
   // Step 3 State (Contacts)
@@ -176,34 +183,100 @@ export default function CreateCampaignPage() {
       alert("Poster image size must be less than 5 MB");
       return;
     }
-    setMimeType(file.type);
+    setMimeType(file.type || "image/jpeg");
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64 = e.target?.result as string;
+      // Clear ref so effect triggers fresh Vision analysis + auto-fill for this uploaded image
+      lastAnalyzedSourceRef.current = null;
       setPosterImage(base64);
-      analyzeWithGemini(base64, file.type);
     };
     reader.readAsDataURL(file);
   };
 
-  const analyzeWithGemini = async (base64Img: string, type: string, lang?: string) => {
-    setAnalyzing(true);
-    setAnalysisError(null);
+  const applySuggestedVariables = (
+    suggested: Record<string, string | null> | undefined,
+    opts?: { onlyVar?: number; respectManual?: boolean }
+  ) => {
+    if (!suggested) return;
+    const varsToUpdate = opts?.onlyVar ? [opts.onlyVar] : bodyVariables;
+    const currentMetaSnapshot = varMetaRef.current;
+
+    setTemplateVarValues((prev) => {
+      const next = { ...prev };
+      for (const v of varsToUpdate) {
+        if (!opts?.onlyVar && v === 1 && var1UseContactName) continue;
+        if (opts?.respectManual && currentMetaSnapshot[v]?.manualEdited) continue;
+
+        const raw = suggested[String(v)];
+        if (raw && String(raw).trim()) {
+          const cleaned = String(raw)
+            .replace(/[\r\n\t]/g, " ")
+            .replace(/ {5,}/g, "    ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .substring(0, 300);
+          next[v] = cleaned;
+          if (v === 2) setOfferText(cleaned);
+        } else {
+          next[v] = "";
+          if (v === 2) setOfferText("");
+        }
+      }
+      return next;
+    });
+
+    setVarMeta((prev) => {
+      const next = { ...prev };
+      for (const v of varsToUpdate) {
+        if (!opts?.onlyVar && v === 1 && var1UseContactName) continue;
+        if (opts?.respectManual && prev[v]?.manualEdited) continue;
+
+        const raw = suggested[String(v)];
+        if (raw && String(raw).trim()) {
+          next[v] = { aiFilled: true, manualEdited: false, missingFromPoster: false };
+        } else {
+          next[v] = { aiFilled: false, manualEdited: false, missingFromPoster: true };
+        }
+      }
+      return next;
+    });
+  };
+
+  const analyzeWithGemini = async (
+    base64Img?: string | null,
+    type?: string,
+    lang?: string,
+    options?: { targetVar?: number; respectManual?: boolean }
+  ) => {
+    const isSingleVar = typeof options?.targetVar === "number";
+    if (isSingleVar) {
+      setRegeneratingVar(options!.targetVar!);
+    } else {
+      setAnalyzing(true);
+      setAnalysisError(null);
+    }
+
     try {
       const res = await fetch("/api/templates/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          base64Image: base64Img,
-          mimeType: type,
+          base64Image: base64Img || undefined,
+          mimeType: type || mimeType,
           targetLang: lang || offerLanguage,
           note: shortNote,
           bookingLink: bookingLink.trim(),
+          templateId: activeTemplate?.id,
+          templateBodyText: activeTemplate?.bodyText,
+          templateExamples: templateBodyExamples,
+          targetVariable: options?.targetVar,
+          extractedDetails: !base64Img && !defaultTemplateImageUrl ? extractedDetails : undefined,
         }),
       });
       const data = await res.json();
 
-      if (data.error) {
+      if (data.error && !isSingleVar) {
         setAnalysisError(data.error);
       }
 
@@ -220,11 +293,24 @@ export default function CreateCampaignPage() {
         setOfferText(picked);
         setSelectedOptionType("short");
       }
+
+      if (data.suggestedVariables) {
+        applySuggestedVariables(data.suggestedVariables, {
+          onlyVar: options?.targetVar,
+          respectManual: options?.respectManual ?? !isSingleVar,
+        });
+      }
     } catch (err: any) {
       console.error("Gemini Vision Error:", err);
-      setAnalysisError(err.message || "Failed to analyze poster image");
+      if (!isSingleVar) {
+        setAnalysisError(err.message || "Failed to analyze poster image");
+      }
     } finally {
-      setAnalyzing(false);
+      if (isSingleVar) {
+        setRegeneratingVar(null);
+      } else {
+        setAnalyzing(false);
+      }
     }
   };
 
@@ -242,6 +328,9 @@ export default function CreateCampaignPage() {
           extractedDetails: detailsToUse,
           targetLang: langToUse,
           bookingLink: bookingLink.trim(),
+          templateId: activeTemplate?.id,
+          templateBodyText: activeTemplate?.bodyText,
+          templateExamples: templateBodyExamples,
         }),
       });
       const data = await res.json();
@@ -249,6 +338,9 @@ export default function CreateCampaignPage() {
         const picked = data.generatedOptions[selectedOptionType] || data.generatedOptions.short || "";
         setGeneratedOptions(data.generatedOptions);
         setOfferText(picked);
+      }
+      if (data.suggestedVariables) {
+        applySuggestedVariables(data.suggestedVariables, { respectManual: true });
       }
     } catch (err: any) {
       console.error("Error regenerating options:", err);
@@ -322,6 +414,23 @@ export default function CreateCampaignPage() {
     }
     return maxIdx > 0 ? Array.from({ length: maxIdx }, (_, i) => i + 1) : [];
   }, [activeTemplate?.bodyText]);
+
+  // Automatically run Gemini Vision analysis & auto-fill when Step 2 uses an uploaded or template default image
+  useEffect(() => {
+    if (step !== 2 || !isImageHeader || !activeTemplate?.id || !effectivePreviewImage) {
+      return;
+    }
+    const sourceKey = `${activeTemplate.id}::${
+      posterImage ? `upload:${posterImage.length}:${posterImage.slice(-32)}` : `default:${defaultTemplateImageUrl}`
+    }`;
+    if (lastAnalyzedSourceRef.current === sourceKey) {
+      return;
+    }
+    lastAnalyzedSourceRef.current = sourceKey;
+    analyzeWithGemini(posterImage || undefined, mimeType, offerLanguage, {
+      respectManual: true,
+    });
+  }, [step, isImageHeader, activeTemplate?.id, posterImage, defaultTemplateImageUrl, effectivePreviewImage]);
 
   const resolvePreviewVarValue = (varNum: number): string => {
     if (varNum === 1 && var1UseContactName) {
@@ -805,6 +914,10 @@ export default function CreateCampaignPage() {
                       setPosterImage(null);
                       setVar1UseContactName(true);
                       setTemplateVarValues({});
+                      setVarMeta({});
+                      setExtractedDetails(null);
+                      setGeneratedOptions(null);
+                      lastAnalyzedSourceRef.current = null;
                     }}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   >
@@ -851,7 +964,10 @@ export default function CreateCampaignPage() {
                   {posterImage && defaultTemplateImageUrl && (
                     <button
                       type="button"
-                      onClick={() => setPosterImage(null)}
+                      onClick={() => {
+                        lastAnalyzedSourceRef.current = null;
+                        setPosterImage(null);
+                      }}
                       className="text-[11px] font-bold text-brand-purple hover:underline cursor-pointer"
                     >
                       Use Default Template Image
@@ -905,7 +1021,14 @@ export default function CreateCampaignPage() {
                         Poster Reading Notice
                       </span>
                       <button
-                        onClick={() => posterImage && analyzeWithGemini(posterImage, mimeType)}
+                        type="button"
+                        onClick={() => {
+                          if (effectivePreviewImage) {
+                            analyzeWithGemini(posterImage || undefined, mimeType, offerLanguage, {
+                              respectManual: true,
+                            });
+                          }
+                        }}
                         className="flex items-center gap-1 bg-white border border-rose-300 text-rose-700 px-2.5 py-1 rounded-lg text-[11px]"
                       >
                         <RefreshCw className="w-3 h-3" />
@@ -989,6 +1112,20 @@ export default function CreateCampaignPage() {
                       }}
                       placeholder="e.g. 20% OFF (or empty if no discount)"
                       className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-white text-xs font-semibold text-emerald-800"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-muted uppercase">Price</label>
+                    <input
+                      type="text"
+                      value={extractedDetails.price || ""}
+                      onChange={(e) => {
+                        const updated = { ...extractedDetails, price: e.target.value || null };
+                        setExtractedDetails(updated);
+                      }}
+                      placeholder="e.g. ₹1,499 (or empty if not visible)"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-heading"
                     />
                   </div>
 
@@ -1129,6 +1266,10 @@ export default function CreateCampaignPage() {
                           setSelectedOptionType(option.key as any);
                           setOfferText(option.text);
                           setTemplateVarValues((prev) => ({ ...prev, 2: option.text }));
+                          setVarMeta((prev) => ({
+                            ...prev,
+                            2: { aiFilled: true, manualEdited: false, missingFromPoster: false },
+                          }));
                         }}
                         className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-1.5 ${
                           isSelected
@@ -1183,20 +1324,80 @@ export default function CreateCampaignPage() {
                   {bodyVariables.map((varNum) => {
                     const currentVal = templateVarValues[varNum] || "";
                     const isFirst = varNum === 1;
+                    const meta = varMeta[varNum];
+                    const showTextBox = !(isFirst && var1UseContactName);
                     const rawExample = templateBodyExamples[varNum - 1] || "";
                     const inputPlaceholder = rawExample
                       ? `Example: ${rawExample}`
                       : `Enter value for {{${varNum}}}`;
+                    const isRegeneratingThis = regeneratingVar === varNum;
+                    const canRegenerate = Boolean(
+                      isImageHeader && (effectivePreviewImage || extractedDetails)
+                    );
+
                     return (
                       <div key={varNum} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2.5">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <label className="text-xs font-heading font-bold text-slate-heading">
-                            Variable <span className="font-mono text-emerald-700">{`{{${varNum}}}`}</span>
-                          </label>
-                          {!(isFirst && var1UseContactName) && (
-                            <span className={`text-[10px] font-mono ${currentVal.length > 300 ? "text-rose-600 font-bold" : "text-slate-muted"}`}>
-                              {currentVal.length} / 300 chars
-                            </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <label className="text-xs font-heading font-bold text-slate-heading">
+                              Variable <span className="font-mono text-emerald-700">{`{{${varNum}}}`}</span>
+                            </label>
+                            {showTextBox && meta?.aiFilled && currentVal.trim() && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <Sparkles className="w-2.5 h-2.5" />
+                                AI filled
+                              </span>
+                            )}
+                            {showTextBox && !meta?.aiFilled && meta?.missingFromPoster && !currentVal.trim() && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                Please type this
+                              </span>
+                            )}
+                          </div>
+
+                          {showTextBox && (
+                            <div className="flex items-center gap-2">
+                              {canRegenerate && (
+                                <button
+                                  type="button"
+                                  disabled={isRegeneratingThis || analyzing}
+                                  onClick={() =>
+                                    analyzeWithGemini(
+                                      posterImage || undefined,
+                                      mimeType,
+                                      offerLanguage,
+                                      { targetVar: varNum, respectManual: false }
+                                    )
+                                  }
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-700 text-[10px] font-heading font-bold transition-all disabled:opacity-50"
+                                >
+                                  <RefreshCw className={`w-3 h-3 ${isRegeneratingThis ? "animate-spin" : ""}`} />
+                                  <span>{isRegeneratingThis ? "Generating..." : "Regenerate"}</span>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTemplateVarValues((prev) => ({ ...prev, [varNum]: "" }));
+                                  if (varNum === 2) setOfferText("");
+                                  setVarMeta((prev) => ({
+                                    ...prev,
+                                    [varNum]: {
+                                      aiFilled: false,
+                                      manualEdited: false,
+                                      missingFromPoster: false,
+                                    },
+                                  }));
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 text-slate-600 hover:text-rose-700 text-[10px] font-heading font-bold transition-all"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Clear</span>
+                              </button>
+                              <span className={`text-[10px] font-mono ${currentVal.length > 300 ? "text-rose-600 font-bold" : "text-slate-muted"}`}>
+                                {currentVal.length} / 300
+                              </span>
+                            </div>
                           )}
                         </div>
 
@@ -1215,7 +1416,7 @@ export default function CreateCampaignPage() {
                           </select>
                         )}
 
-                        {!(isFirst && var1UseContactName) && (
+                        {showTextBox && (
                           <textarea
                             rows={2}
                             maxLength={300}
@@ -1224,6 +1425,14 @@ export default function CreateCampaignPage() {
                               const cleaned = e.target.value.replace(/[\r\n\t]/g, " ").replace(/ {5,}/g, "    ");
                               const nextVal = cleaned.substring(0, 300);
                               setTemplateVarValues((prev) => ({ ...prev, [varNum]: nextVal }));
+                              setVarMeta((prev) => ({
+                                ...prev,
+                                [varNum]: {
+                                  aiFilled: false,
+                                  manualEdited: nextVal.trim().length > 0,
+                                  missingFromPoster: false,
+                                },
+                              }));
                               if (varNum === 2) {
                                 setOfferText(nextVal);
                               }

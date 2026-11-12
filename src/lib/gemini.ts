@@ -5,6 +5,7 @@ export interface ExtractedPosterDetails {
   business_type: string | null;
   offer_title: string | null;
   discount: string | null;
+  price: string | null;
   products_or_services: string | null;
   occasion: string | null;
   valid_from: string | null;
@@ -28,7 +29,34 @@ export interface PosterAnalysisResponse {
   success: boolean;
   extractedDetails: ExtractedPosterDetails;
   generatedOptions: GeneratedOfferTextOptions;
+  suggestedVariables?: Record<string, string | null>;
   error?: string;
+}
+
+export function limitEmojis(text: string, maxEmojis = 2): string {
+  if (!text) return "";
+  try {
+    const emojiRegex = new RegExp("\\p{Extended_Pictographic}(?:\\uFE0F|\\u200D\\p{Extended_Pictographic})*", "gu");
+    let seen = 0;
+    return text.replace(emojiRegex, (match) => {
+      seen += 1;
+      return seen <= maxEmojis ? match : "";
+    });
+  } catch {
+    return text;
+  }
+}
+
+export function sanitizeVariableValue(val: string | null | undefined, maxEmojis = 2): string | null {
+  if (!val) return null;
+  const singleLine = String(val)
+    .replace(/[\r\n\t]/g, " ")
+    .replace(/ {5,}/g, "    ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!singleLine) return null;
+  const cleaned = limitEmojis(singleLine, maxEmojis).replace(/\s+/g, " ").trim().substring(0, 300).trim();
+  return cleaned || null;
 }
 
 export function sanitizeOfferText(text: string, bookingLink?: string): string {
@@ -66,13 +94,92 @@ function buildBalancedOffer(
   return sanitizeOfferText(full);
 }
 
+export function mapExtractedDetailsToTemplateVariables(
+  details: ExtractedPosterDetails,
+  templateBodyText?: string | null,
+  options?: { bookingLink?: string; targetVariable?: number }
+): Record<string, string | null> {
+  const result: Record<string, string | null> = {};
+  if (!templateBodyText) return result;
+
+  let maxIdx = 0;
+  const varPositions: Array<{ idx: number; start: number; end: number }> = [];
+  const regex = /\{\{(\d+)\}\}/g;
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(templateBodyText)) !== null) {
+    const idx = parseInt(m[1], 10);
+    if (!Number.isNaN(idx) && idx > 0) {
+      if (idx > maxIdx) maxIdx = idx;
+      varPositions.push({ idx, start: m.index, end: m.index + m[0].length });
+    }
+  }
+
+  for (let varNum = 1; varNum <= maxIdx; varNum++) {
+    // Keep {{1}} as Contact Name unless user specifically regenerates {{1}}
+    if (varNum === 1 && options?.targetVariable !== 1) continue;
+    if (options?.targetVariable && options.targetVariable !== varNum) continue;
+
+    const pos = varPositions.find((p) => p.idx === varNum);
+    const before = pos
+      ? templateBodyText.slice(Math.max(0, pos.start - 65), pos.start).toLowerCase()
+      : "";
+    const after = pos
+      ? templateBodyText.slice(pos.end, Math.min(templateBodyText.length, pos.end + 45)).toLowerCase()
+      : "";
+    const context = `${before} ${after}`;
+
+    let value: string | null = null;
+
+    if (/\b(valid|till|until|expir|last date|ends on|end date|validity|date)\b/.test(context)) {
+      value = details.valid_till
+        ? details.valid_from
+          ? `${details.valid_from} to ${details.valid_till}`
+          : details.valid_till
+        : null;
+    } else if (/\b(link|url|website|book here|order here|visit us at|click)\b/.test(context)) {
+      value = details.website || options?.bookingLink || null;
+    } else if (/\b(phone|call|mobile|whatsapp|helpline|contact us at|dial)\b/.test(context)) {
+      value = details.phone || null;
+    } else if (/\b(price|cost|fee|rate|mrp|rs\.?|inr|₹|starting at|only at)\b/.test(context)) {
+      value = details.price || null;
+    } else if (/\b(discount|off|save|cashback)\b/.test(context) && !/\boffer\b/.test(context)) {
+      value = details.discount || null;
+    } else if (/\b(product|service|package|item|course|treatment|plan)\b/.test(context) && !/\boffer\b/.test(context)) {
+      value = details.products_or_services || details.offer_title || null;
+    } else if (/\b(shopping with|welcome to|team|brand|shop name|store name|company)\b/.test(context)) {
+      value = details.business_name || null;
+    } else if (/\b(location|address|venue|branch|city|visit)\b/.test(context) && !details.offer_title) {
+      value = details.location || null;
+    } else {
+      // Offer / headline / general announcement slot (e.g. "special offer for you: {{2}}")
+      const headline = [details.offer_title, details.discount].filter(Boolean).join(" – ");
+      const tailParts = [details.products_or_services, details.price].filter(Boolean);
+      const linkSuffix = details.website ? ` 👉 ${details.website}` : "";
+      const phoneSuffix = !details.website && details.phone ? ` Call ${details.phone}` : "";
+      const combined = [headline, tailParts.join(" · ")].filter(Boolean).join(": ");
+      value = combined
+        ? `${combined}${linkSuffix}${phoneSuffix}`
+        : details.other_key_text || null;
+    }
+
+    result[String(varNum)] = sanitizeVariableValue(value, 2);
+  }
+
+  return result;
+}
+
 export async function analyzePosterWithGemini(
   base64Image: string,
   mimeType: string,
   targetLang: string = "auto",
   userNote?: string,
   apiKey?: string,
-  bookingLink?: string
+  bookingLink?: string,
+  templateOptions?: {
+    templateBodyText?: string;
+    templateExamples?: string[];
+    targetVariable?: number;
+  }
 ): Promise<PosterAnalysisResponse> {
   const geminiKey = apiKey || process.env.GEMINI_API_KEY;
 
@@ -95,6 +202,21 @@ export async function analyzePosterWithGemini(
       ? `Append " 👉 ${bookingLink.trim()}" at the end of each option.`
       : `If no booking link is provided, end each option immediately after the call to action.`;
 
+    const templateMappingInstructions = templateOptions?.templateBodyText
+      ? `
+TEMPLATE VARIABLE MAPPING:
+Selected WhatsApp template body text:
+"""
+${templateOptions.templateBodyText}
+"""
+${templateOptions.templateExamples?.length ? `Template variable examples (in order {{1}}..{{n}}): ${JSON.stringify(templateOptions.templateExamples)}` : ""}
+${templateOptions.targetVariable ? `Focus especially on variable {{${templateOptions.targetVariable}}}.` : "Leave {{1}} empty/omitted (it defaults to Contact Name dynamically per recipient)."}
+Rules for "suggestedVariables" object (keys "2", "3", etc.${templateOptions.targetVariable === 1 ? ' and "1"' : ""}):
+- Inspect the surrounding words before/after each {{n}} in the template body text to decide what value fits naturally there (e.g., after "offer for you:" -> concise offer text with visible discount/product/price; after "valid till" -> visible expiry date; after "at" / "price" -> visible price; after "book" -> visible link/phone).
+- Keep each variable concise, single-line, max 300 characters, NO newlines or tabs, and max 2 emojis.
+- CRITICAL: NEVER invent a discount, percentage, price, or date! If the image has NO info for that variable (for example, template asks "valid till {{3}}" but the poster shows no date), return null for that key ("3": null).`
+      : "";
+
     const prompt = `You are a precise vision OCR & WhatsApp Marketing AI assistant.
 Analyze this promotional poster image carefully.
 
@@ -103,9 +225,10 @@ CRITICAL INSTRUCTIONS:
 - NEVER invent, guess, assume, or hallucinate details.
 - If a field is not explicitly visible in the poster image, return null for that field.
 - The poster can be for any type of business (e.g. Studio, Jungle Safari / Resort, Restaurant, Store, Clinic, Event, etc.).
-- If there is NO specific discount or percentage (only a promotion/invitation), set "discount" to null and extract the promotional offer title and services.
+- If there is NO specific discount or percentage (only a promotion/invitation), set "discount" to null and extract the promotional offer title, price (if visible), and products/services.
+${templateMappingInstructions}
 
-OFFER TEXT (VARIABLE {{2}}) FORMAT RULES:
+OFFER TEXT FORMAT RULES:
 Generate 3 distinct options (short, standard, festive) that strictly adhere to this exact balanced format:
 "<1 emoji> *<title>* – <one short sentence about what the customer gets>. <short call to action>${bookingLink && bookingLink.trim() ? " 👉 " + bookingLink.trim() : ""}"
 
@@ -116,11 +239,11 @@ STRICT RULES:
 1. Title: max 35 characters, in *bold* (WhatsApp bold using asterisks), from the poster.
 2. One sentence only: max 100 characters, only facts visible on the poster (what the customer gets).
 3. Call to action: short (e.g. "Book your slot today", "Visit us this weekend", "Limited slots").
-4. Exactly 2 emojis: one relevant emoji at the start, and 👉 right before the booking link. (If no booking link, exactly 1 emoji at the start).
+4. Max 2 emojis per variable or option.
 5. Strictly NO "|" pipe separators.
 6. Never output empty segments. Trim extra spaces. Single line only (no new lines, no tabs).
 7. ${bookingRule}
-8. Max 300 characters total. Do NOT include the customer name or business name (the template already has them in greeting and footer).
+8. Max 300 characters total.
 9. Language: ${targetLang === "auto" ? "Same language as poster_language" : targetLang}.
 
 Return ONLY a valid JSON object matching this EXACT structure:
@@ -130,6 +253,7 @@ Return ONLY a valid JSON object matching this EXACT structure:
     "business_type": string or null,
     "offer_title": string or null,
     "discount": string or null (e.g. "30% OFF", "Buy 1 Get 1", or null if not visible),
+    "price": string or null (e.g. "₹1,499", "Starting ₹999", or null if not visible),
     "products_or_services": string or null,
     "occasion": string or null,
     "valid_from": string or null,
@@ -145,12 +269,15 @@ Return ONLY a valid JSON object matching this EXACT structure:
     "short": "Short, concise option in the exact balanced format (max 300 chars, NO newlines)",
     "standard": "Standard professional option in the exact balanced format (max 300 chars, NO newlines)",
     "festive": "Festive/celebratory option in the exact balanced format (max 300 chars, NO newlines)"
-  }
+  }${templateOptions?.templateBodyText ? `,
+  "suggestedVariables": {
+    "<varNumber>": string or null
+  }` : ""}
 }`;
 
     const imagePart = {
       inlineData: {
-        data: base64Image.replace(/^data:image\/\w+;base64,/, ""),
+        data: base64Image.replace(/^data:[^;]+;base64,/i, ""),
         mimeType: mimeType || "image/jpeg",
       },
     };
@@ -183,6 +310,7 @@ Return ONLY a valid JSON object matching this EXACT structure:
       business_type: parsed.extractedDetails?.business_type || null,
       offer_title: parsed.extractedDetails?.offer_title || null,
       discount: parsed.extractedDetails?.discount || null,
+      price: parsed.extractedDetails?.price || null,
       products_or_services: parsed.extractedDetails?.products_or_services || null,
       occasion: parsed.extractedDetails?.occasion || null,
       valid_from: parsed.extractedDetails?.valid_from || null,
@@ -199,6 +327,26 @@ Return ONLY a valid JSON object matching this EXACT structure:
     const standardOpt = sanitizeOfferText(parsed.generatedOptions?.standard || parsed.generatedOptions?.detailed || "", bookingLink);
     const festiveOpt = sanitizeOfferText(parsed.generatedOptions?.festive || "", bookingLink);
 
+    const suggestedVariables: Record<string, string | null> = {};
+    if (templateOptions?.templateBodyText) {
+      const heuristicVars = mapExtractedDetailsToTemplateVariables(
+        extractedDetails,
+        templateOptions.templateBodyText,
+        { bookingLink, targetVariable: templateOptions.targetVariable }
+      );
+      const rawSuggested =
+        parsed.suggestedVariables && typeof parsed.suggestedVariables === "object"
+          ? parsed.suggestedVariables
+          : {};
+
+      for (const varKey of Object.keys(heuristicVars)) {
+        const aiVal = Object.prototype.hasOwnProperty.call(rawSuggested, varKey)
+          ? sanitizeVariableValue(rawSuggested[varKey], 2)
+          : heuristicVars[varKey];
+        suggestedVariables[varKey] = aiVal;
+      }
+    }
+
     return {
       success: true,
       extractedDetails,
@@ -208,6 +356,7 @@ Return ONLY a valid JSON object matching this EXACT structure:
         detailed: standardOpt,
         festive: festiveOpt,
       },
+      ...(templateOptions?.templateBodyText ? { suggestedVariables } : {}),
     };
   } catch (err: any) {
     console.error("❌ Gemini Vision API Error:", err.message || err);
@@ -282,6 +431,7 @@ export function emptyExtractedDetails(): ExtractedPosterDetails {
     business_type: null,
     offer_title: null,
     discount: null,
+    price: null,
     products_or_services: null,
     occasion: null,
     valid_from: null,
