@@ -89,7 +89,16 @@ export async function syncClientTemplatesFromMeta(businessId: string): Promise<{
       const footerComp = m.components?.find((c: any) => c.type === "FOOTER");
 
       const headerType = headerComp?.format ? String(headerComp.format).toUpperCase() : "NONE";
+      const headerText = headerType === "TEXT" && headerComp?.text ? String(headerComp.text) : null;
       const bodyText = bodyComp?.text || `Template synced from Meta: ${tplName}`;
+      const rawPositionalExamples = bodyComp?.example?.body_text?.[0];
+      const rawNamedExamples = bodyComp?.example?.body_text_named_params;
+      const parsedExamples: string[] = Array.isArray(rawPositionalExamples)
+        ? rawPositionalExamples.map((val: any) => String(val ?? ""))
+        : Array.isArray(rawNamedExamples)
+        ? rawNamedExamples.map((item: any) => String(item?.example ?? ""))
+        : [];
+      const bodyExamplesJson = parsedExamples.length > 0 ? JSON.stringify(parsedExamples) : null;
       const footerText = footerComp?.text || null;
 
       // Match strictly within (businessId, wabaId, name, language), or claim legacy null-wabaId row for same business
@@ -112,8 +121,10 @@ export async function syncClientTemplatesFromMeta(businessId: string): Promise<{
             category: m.category || existing.category,
             language: tplLang,
             headerType,
+            headerText,
             headerImageUrl: preservedImageUrl,
             bodyText,
+            bodyExamplesJson,
             footerText,
             status: metaStatus,
             metaTemplateId: metaTplId || existing.metaTemplateId,
@@ -129,7 +140,9 @@ export async function syncClientTemplatesFromMeta(businessId: string): Promise<{
             category: m.category || "MARKETING",
             language: tplLang,
             headerType,
+            headerText,
             bodyText,
+            bodyExamplesJson,
             footerText,
             metaTemplateId: metaTplId || `meta_${Date.now()}`,
             status: metaStatus,

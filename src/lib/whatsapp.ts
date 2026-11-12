@@ -340,7 +340,9 @@ export async function sendWhatsAppTemplateMessage(
     fileName?: string;
     buttons?: Array<{ id: string; title: string }>;
     bodyVarCount?: number;
+    customBodyParameters?: string[];
     headerType?: string;
+    headerText?: string;
     allowPlatformFallback?: boolean;
   }
 ): Promise<{ success: boolean; waMessageId?: string; errorCode?: string; errorMessage?: string }> {
@@ -545,29 +547,46 @@ export async function sendWhatsAppTemplateMessage(
         .trim()
         .substring(0, 300);
 
-      const allBodyParameters: any[] = [
+      const sanitizeMetaVar = (val: string) =>
+        String(val || "")
+          .replace(/[\r\n\t]/g, " ")
+          .replace(/ {5,}/g, "    ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .substring(0, 1024) || "-";
+
+      const defaultBodyParameters: any[] = [
         { type: "text", text: recipient },
         { type: "text", text: cleanOffer },
         { type: "text", text: bName },
       ];
 
+      const suppliedParams = Array.isArray(params?.customBodyParameters)
+        ? params.customBodyParameters.map((v) => ({ type: "text", text: sanitizeMetaVar(v) }))
+        : null;
+
       const varCount =
         typeof params?.bodyVarCount === "number"
-          ? Math.max(0, Math.min(allBodyParameters.length, params.bodyVarCount))
+          ? Math.max(0, params.bodyVarCount)
+          : suppliedParams
+          ? suppliedParams.length
           : templateName === "offer_poster_v1" || templateName === "offer_update_v1"
           ? 3
           : 0;
 
       const components: any[] = [];
       if (varCount > 0) {
+        const finalBodyParams = suppliedParams
+          ? Array.from({ length: varCount }, (_, idx) => suppliedParams[idx] || { type: "text", text: "-" })
+          : defaultBodyParameters.slice(0, Math.min(defaultBodyParameters.length, varCount));
         components.push({
           type: "body",
-          parameters: allBodyParameters.slice(0, varCount),
+          parameters: finalBodyParams,
         });
       }
 
       // Header component
-      if (templateName === "offer_poster_v1" || params?.headerType === "IMAGE") {
+      if (params?.headerType === "IMAGE" || (!params?.headerType && templateName === "offer_poster_v1")) {
         let posterMediaId = params?.mediaId;
         const isPublicHttpUrl =
           Boolean(mediaUrl) &&
@@ -611,7 +630,10 @@ export async function sendWhatsAppTemplateMessage(
             };
           }
         }
-      } else if (templateName === "offer_update_v1") {
+      } else if (
+        (params?.headerType === "TEXT" && params?.headerText?.includes("{{1}}")) ||
+        (!params?.headerType && templateName === "offer_update_v1")
+      ) {
         components.unshift({
           type: "header",
           parameters: [

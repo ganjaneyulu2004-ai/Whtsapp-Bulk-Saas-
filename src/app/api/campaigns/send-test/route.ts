@@ -20,6 +20,7 @@ export async function POST(req: Request) {
       languageCode,
       headerImageUrl,
       posterImage,
+      customBodyParameters,
     } = body;
 
     let rawPhone = String(recipientPhone || phone || "").replace(/[^0-9]/g, "");
@@ -188,6 +189,12 @@ export async function POST(req: Request) {
       }
 
       const bodyVarCount = countTemplateBodyVariables(matched.bodyText);
+      const resolvedCustomVars = Array.isArray(customBodyParameters)
+        ? customBodyParameters.map((v: any) =>
+            v === "__CONTACT_NAME__" ? recipientName || "Customer" : String(v || "")
+          )
+        : undefined;
+
       const sendRes = await sendWhatsAppTemplateMessage(
         {
           waToken: token,
@@ -204,7 +211,9 @@ export async function POST(req: Request) {
           businessName: bName,
           is24HourWindow: false,
           bodyVarCount,
+          customBodyParameters: resolvedCustomVars,
           headerType: matched.headerType,
+          headerText: matched.headerText || undefined,
         }
       );
 

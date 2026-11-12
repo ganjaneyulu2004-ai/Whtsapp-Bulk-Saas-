@@ -5,6 +5,7 @@ export interface MessageDeliveryStatus {
   recipientId: string;
   status: "sent" | "delivered" | "read" | "failed";
   errorCode?: string;
+  errorTitle?: string;
   errorMessage?: string;
   timestamp: Date;
 }
@@ -17,7 +18,6 @@ export function setLastWebhookReceivedAt(date: Date) {
 
 export function recordMessageDeliveryStatus(data: MessageDeliveryStatus) {
   statusStore.set(data.waMessageId, data);
-  // Keep store from growing indefinitely
   if (statusStore.size > 1000) {
     const oldestKey = statusStore.keys().next().value;
     if (oldestKey) statusStore.delete(oldestKey);

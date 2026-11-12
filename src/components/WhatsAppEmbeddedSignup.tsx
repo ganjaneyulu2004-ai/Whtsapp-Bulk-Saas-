@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useLanguage } from "./LanguageContext";
+import { startWamidStatusPolling } from "@/lib/poll-wamid-status";
 import {
   CheckCircle2,
   AlertCircle,
@@ -68,6 +69,13 @@ export default function WhatsAppEmbeddedSignup({
   const [customTestText, setCustomTestText] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string; details?: any } | null>(null);
+  const cancelTestPollRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      cancelTestPollRef.current?.();
+    };
+  }, []);
 
   // Template creation state
   const [templates, setTemplates] = useState<any[]>([]);
@@ -385,6 +393,7 @@ export default function WhatsAppEmbeddedSignup({
       return;
     }
 
+    cancelTestPollRef.current?.();
     setSendingTest(true);
     setTestResult(null);
 
@@ -402,10 +411,12 @@ export default function WhatsAppEmbeddedSignup({
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setTestResult({
-          ok: true,
-          message: `✅ Test Message Delivered! Verified by Meta Cloud API (ID: ${data.waMessageId || "OK"}).`,
-          details: data,
+        cancelTestPollRef.current = startWamidStatusPolling(data.waMessageId, (update) => {
+          setTestResult({
+            ok: update.ok,
+            message: update.message,
+            details: update.details || data,
+          });
         });
       } else {
         setTestResult({

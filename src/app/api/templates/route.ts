@@ -249,6 +249,7 @@ export async function POST(req: Request) {
       headerMediaUrl: savedHeaderImageUrl,
       headerHandle: metaHeaderHandle,
       bodyText: bodyText.trim(),
+      bodyExamplesJson: sampleBodyVars?.[0] ? JSON.stringify(sampleBodyVars[0]) : null,
       footerText: footerText.trim() || null,
       buttonsJson: buttons ? JSON.stringify(buttons) : null,
       metaTemplateId: metaRes.metaTemplateId || `meta_${Date.now()}`,

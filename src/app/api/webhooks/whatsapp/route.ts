@@ -231,13 +231,19 @@ async function processWebhookPayload(body: any) {
 
       const errObj = statusObj.errors?.[0];
       const errCode = errObj?.code ? String(errObj.code) : undefined;
-      const errMsg = errObj?.error_data?.details || errObj?.title || errObj?.message || undefined;
+      const errTitle = errObj?.title || errObj?.message || undefined;
+      const errDetails = errObj?.error_data?.details;
+      const errMsg =
+        errTitle && errDetails && errTitle !== errDetails
+          ? `${errTitle}: ${errDetails}`
+          : errTitle || errDetails || undefined;
 
       recordMessageDeliveryStatus({
         waMessageId: waMsgId,
         recipientId: statusObj.recipient_id || "",
         status: statusType as any,
         errorCode: errCode,
+        errorTitle: errTitle,
         errorMessage: errMsg,
         timestamp,
       });
@@ -268,10 +274,8 @@ async function processWebhookPayload(body: any) {
           if (log.status !== "READ" && log.status !== "DELIVERED") {
             updateData.status = "FAILED";
           }
-          const errObj = statusObj.errors?.[0];
-          updateData.errorCode = String(errObj?.code || "UNKNOWN");
-          updateData.errorMessage =
-            errObj?.error_data?.details || errObj?.title || errObj?.message || "Message delivery failed";
+          updateData.errorCode = errCode || "UNKNOWN";
+          updateData.errorMessage = errMsg || "Message delivery failed";
         }
 
 

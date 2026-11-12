@@ -29,6 +29,18 @@ export async function GET(req: Request) {
       include: {
         template: true,
         contactList: true,
+        messageLogs: {
+          where: { status: "FAILED" },
+          select: {
+            id: true,
+            phone: true,
+            recipientName: true,
+            errorCode: true,
+            errorMessage: true,
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 25,
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -74,6 +86,7 @@ export async function POST(req: Request) {
       templateId,
       posterImage,
       headerImageUrl,
+      bodyVariables,
       contactListId,
       scheduledAt,
       contactsData,
@@ -96,6 +109,9 @@ export async function POST(req: Request) {
       );
     }
 
+    const { syncClientTemplatesFromMeta, getClientTemplates } = await import("@/lib/template-service");
+    await syncClientTemplatesFromMeta(business.id);
+
     let selectedTemplate: any = null;
     let finalTemplateId = templateId;
     if (finalTemplateId) {
@@ -114,33 +130,30 @@ export async function POST(req: Request) {
         );
       }
       selectedTemplate = ownedTemplate;
-    } else if (posterImage) {
-      const { getClientTemplates } = await import("@/lib/template-service");
-      const approved = await getClientTemplates(business.id, { syncFromMeta: true, approvedOnly: true });
-      const posterTpl = approved.find((t) => t.name === "offer_poster_v1") || approved.find((t) => t.headerType === "IMAGE");
-      if (!posterTpl) {
-        return NextResponse.json(
-          { error: "No APPROVED image-header template found in your connected WhatsApp Business Account. Please create and get one approved in Templates first." },
-          { status: 400 }
-        );
-      }
-      selectedTemplate = posterTpl;
-      finalTemplateId = posterTpl.id;
     } else {
-      const { getClientTemplates } = await import("@/lib/template-service");
-      const approved = await getClientTemplates(business.id, { syncFromMeta: true, approvedOnly: true });
-      const textTpl = approved.find((t) => t.name === "offer_update_v1") || approved[0];
-      if (!textTpl) {
+      const approved = await getClientTemplates(business.id, { syncFromMeta: false, approvedOnly: true });
+      const fallbackTpl = approved[0];
+      if (!fallbackTpl) {
         return NextResponse.json(
-          { error: "No APPROVED template found in your connected WhatsApp Business Account. Please create and get a template approved in Templates first." },
+          { error: "No APPROVED template found in your connected WhatsApp Business Account. Create and approve a template first." },
           { status: 400 }
         );
       }
-      selectedTemplate = textTpl;
-      finalTemplateId = textTpl.id;
+      selectedTemplate = fallbackTpl;
+      finalTemplateId = fallbackTpl.id;
     }
 
-    // Per-campaign IMAGE header URL (supports replacement upload without altering the template's default image)
+    // Block launch unless the selected template is live-APPROVED in Meta
+    if (String(selectedTemplate.status || "").toUpperCase() !== "APPROVED") {
+      return NextResponse.json(
+        {
+          error: `Campaign launch blocked: template "${selectedTemplate.name}" is currently "${selectedTemplate.status}" and must be APPROVED in Meta before launching.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Per-campaign IMAGE header URL (only when template has headerType === "IMAGE")
     let campaignHeaderImageUrl: string | null = null;
     if (selectedTemplate?.headerType === "IMAGE") {
       if (posterImage && String(posterImage).startsWith("data:image/")) {
@@ -158,6 +171,41 @@ export async function POST(req: Request) {
           selectedTemplate.headerImageUrl || selectedTemplate.headerMediaUrl || null;
       }
     }
+
+    const { countTemplateBodyVariables } = await import("@/lib/template-service");
+    const expectedVarCount = countTemplateBodyVariables(selectedTemplate.bodyText);
+    const normalizedBodyVariables = Array.isArray(bodyVariables)
+      ? bodyVariables.map((v: any) => String(v ?? "").trim())
+      : null;
+
+    if (expectedVarCount > 0) {
+      if (!normalizedBodyVariables || normalizedBodyVariables.length < expectedVarCount) {
+        return NextResponse.json(
+          {
+            error: `Template "${selectedTemplate.name}" expects ${expectedVarCount} body variable(s). Please fill all required variables before launching.`,
+          },
+          { status: 400 }
+        );
+      }
+      const emptyIdx = normalizedBodyVariables
+        .slice(0, expectedVarCount)
+        .findIndex((val) => val.length === 0);
+      if (emptyIdx !== -1) {
+        return NextResponse.json(
+          {
+            error: `Please provide a value for template variable {{${emptyIdx + 1}}} before launching.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const serializedBodyVariables =
+      normalizedBodyVariables && normalizedBodyVariables.length > 0
+        ? JSON.stringify(normalizedBodyVariables)
+        : bodyVariables && typeof bodyVariables === "object"
+        ? JSON.stringify(bodyVariables)
+        : null;
 
     let targetContactListId = contactListId;
     let targetContacts: any[] = [];
@@ -206,6 +254,7 @@ export async function POST(req: Request) {
         customType,
         note,
         headerImageUrl: campaignHeaderImageUrl,
+        bodyVariablesJson: serializedBodyVariables,
         templateId: finalTemplateId,
         contactListId: targetContactListId,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,

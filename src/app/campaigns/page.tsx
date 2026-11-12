@@ -48,15 +48,19 @@ export default function CampaignsHistoryPage() {
   }, [search, typeFilter, statusFilter]);
 
   const exportCSV = () => {
-    let csv = "Name,Type,Recipients,Sent,Delivered,Read,Failed,Status,Date\n";
+    let csv = "Name,Type,Recipients,Sent,Delivered,Read,Failed,Failed Reasons,Status,Date\n";
     campaigns.forEach((c) => {
-      csv += `"${c.name}","${c.type}",${c.totalRecipients},${c.sentCount},${c.deliveredCount},${c.readCount},${c.failedCount},"${c.status}","${new Date(c.createdAt).toLocaleDateString()}"\n`;
+      const reasons = (c.messageLogs || [])
+        .map((l: any) => `+${l.phone}: ${l.errorCode ? `[${l.errorCode}] ` : ""}${l.errorMessage || "Failed"}`)
+        .join(" | ")
+        .replace(/"/g, '""');
+      csv += `"${c.name}","${c.type}",${c.totalRecipients},${c.sentCount},${c.deliveredCount},${c.readCount},${c.failedCount},"${reasons}","${c.status}","${new Date(c.createdAt).toLocaleDateString()}"\n`;
     });
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "iBrainLabs_Campaigns_Report.csv";
+    a.download = "OneAmple_Campaigns_Report.csv";
     a.click();
   };
 
@@ -181,13 +185,35 @@ export default function CampaignsHistoryPage() {
                       {camp.totalRecipients}
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center gap-2 text-[11px]">
+                      <div className="flex flex-wrap items-center gap-2 text-[11px]">
                         <span className="text-slate-600">Sent: {camp.sentCount}</span>
                         <span>•</span>
                         <span className="text-emerald-700 font-semibold">Delivered: {camp.deliveredCount}</span>
                         <span>•</span>
                         <span className="text-sky-700 font-semibold">Read: {camp.readCount}</span>
+                        {camp.failedCount > 0 && (
+                          <>
+                            <span>•</span>
+                            <span className="text-rose-600 font-bold">Failed: {camp.failedCount}</span>
+                          </>
+                        )}
                       </div>
+                      {Array.isArray(camp.messageLogs) && camp.messageLogs.length > 0 && (
+                        <div className="mt-1.5 space-y-0.5 text-[11px] text-rose-700 bg-rose-50/80 border border-rose-200/80 rounded-lg px-2.5 py-1.5 max-w-md">
+                          {camp.messageLogs.slice(0, 3).map((m: any) => (
+                            <div key={m.id} className="truncate">
+                              <span className="font-mono font-semibold">+{m.phone}</span>:{" "}
+                              {m.errorCode ? `[${m.errorCode}] ` : ""}
+                              {m.errorMessage || "Failed"}
+                            </div>
+                          ))}
+                          {camp.messageLogs.length > 3 && (
+                            <div className="text-[10px] text-rose-600 font-medium">
+                              +{camp.messageLogs.length - 3} more failed — click View Analytics
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="py-4 px-4">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold ${

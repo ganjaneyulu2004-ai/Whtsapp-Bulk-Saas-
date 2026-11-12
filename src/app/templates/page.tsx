@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { startWamidStatusPolling } from "@/lib/poll-wamid-status";
 import { 
   Plus, 
   RefreshCw, 
@@ -41,6 +42,13 @@ export default function TemplatesPage() {
   const [sendingTest, setSendingTest] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const cancelTestPollRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      cancelTestPollRef.current?.();
+    };
+  }, []);
 
   const fetchTemplates = async (sync = false) => {
     if (sync) setSyncing(true);
@@ -184,6 +192,7 @@ export default function TemplatesPage() {
       return;
     }
 
+    cancelTestPollRef.current?.();
     setSendingTest(true);
     setTestResult(null);
 
@@ -200,9 +209,11 @@ export default function TemplatesPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setTestResult({
-          ok: true,
-          message: `✅ Test message delivered! Meta Message ID: ${data.waMessageId || "OK"}`,
+        cancelTestPollRef.current = startWamidStatusPolling(data.waMessageId, (update) => {
+          setTestResult({
+            ok: update.ok,
+            message: update.message,
+          });
         });
       } else {
         setTestResult({
@@ -588,7 +599,10 @@ export default function TemplatesPage() {
               </h3>
               <button
                 type="button"
-                onClick={() => setTestModalTemplate(null)}
+                onClick={() => {
+                  cancelTestPollRef.current?.();
+                  setTestModalTemplate(null);
+                }}
                 className="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer"
               >
                 ✕
@@ -638,7 +652,10 @@ export default function TemplatesPage() {
             <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
-                onClick={() => setTestModalTemplate(null)}
+                onClick={() => {
+                  cancelTestPollRef.current?.();
+                  setTestModalTemplate(null);
+                }}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 Close

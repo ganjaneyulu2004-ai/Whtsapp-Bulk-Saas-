@@ -23,6 +23,7 @@ export async function GET(req: Request) {
       source: "live_webhook",
       status: memStatus.status,
       errorCode: memStatus.errorCode,
+      errorTitle: memStatus.errorTitle,
       errorMessage: memStatus.errorMessage,
       ...(isAuthenticated ? { recipientId: memStatus.recipientId } : {}),
       timestamp: memStatus.timestamp,

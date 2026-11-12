@@ -162,12 +162,32 @@ export async function processCampaignSending(campaignId: string) {
         .substring(0, 300);
 
       const directCaption = formatDirectOfferMessage(cleanOffer, recipientName, bName, bLink);
+      const bodyVarCount = countTemplateBodyVariables(campaign.template.bodyText);
+
+      // Resolve custom per-variable parameters when configured in Create Campaign Step 2
+      let customBodyParameters: string[] | undefined = undefined;
+      if (campaign.bodyVariablesJson && bodyVarCount > 0) {
+        try {
+          const parsedVars = JSON.parse(campaign.bodyVariablesJson);
+          if (Array.isArray(parsedVars)) {
+            customBodyParameters = parsedVars.map((v) =>
+              v === "__CONTACT_NAME__" ? recipientName : String(v || "")
+            );
+          } else if (parsedVars && typeof parsedVars === "object") {
+            customBodyParameters = Array.from({ length: bodyVarCount }, (_, idx) => {
+              const rawVal = parsedVars[String(idx + 1)];
+              return rawVal === "__CONTACT_NAME__" ? recipientName : String(rawVal || "");
+            });
+          }
+        } catch {}
+      }
 
       const paramsJson = JSON.stringify({
         recipientName,
         offerText: cleanOffer,
         businessName: bName,
         bookingLink: bLink || null,
+        customBodyParameters: customBodyParameters || null,
         mode: useDirect24h ? "direct_24h" : "template",
         templateName: targetTemplateName,
       });
@@ -190,8 +210,10 @@ export async function processCampaignSending(campaignId: string) {
           is24HourWindow: useDirect24h,
           mediaId: campaignMediaId,
           freeFormText: directCaption,
-          bodyVarCount: countTemplateBodyVariables(campaign.template.bodyText),
+          bodyVarCount,
+          customBodyParameters,
           headerType: campaign.template.headerType,
+          headerText: campaign.template.headerText || undefined,
         }
       );
 
