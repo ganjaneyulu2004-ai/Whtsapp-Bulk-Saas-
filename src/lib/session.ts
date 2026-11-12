@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth";
 import { prisma } from "./prisma";
 import { encryptToken } from "./encryption";
+import { getMetaGraphVersion } from "./meta-config";
 
 export async function getCurrentBusiness() {
   try {
@@ -9,12 +10,13 @@ export async function getCurrentBusiness() {
 
     if (session?.user?.id) {
       if (session.user.role === "ADMIN") {
-        // Admin gets the platform master business (iBrainLabs)
+        // Admin gets the platform master business
         let adminBiz = await prisma.business.findFirst({
           where: {
             OR: [
               { userId: session.user.id },
               { name: "iBrainLabs" },
+              { name: "OneAmple" },
               { name: "OfferBlast Admin" },
               { id: "demo-business-id" },
             ],
@@ -26,7 +28,7 @@ export async function getCurrentBusiness() {
           adminBiz = await prisma.business.create({
             data: {
               userId: session.user.id,
-              name: "iBrainLabs",
+              name: "OneAmple",
               category: "WhatsApp Bulk SaaS Platform",
               phone: "+91 96426 83699",
               language: "en",
@@ -42,14 +44,14 @@ export async function getCurrentBusiness() {
               businessId: adminBiz.id,
               isConnected: true,
               displayPhoneNumber: "+91 96426 83699",
-              verifiedName: "iBrainLabs",
+              verifiedName: "OneAmple",
               qualityRating: "High (Green)",
               messagingLimitTier: "TIER_100K",
               connectionMethod: "OFFICIAL_OFFICE_API",
               waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
               waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
               waToken: encryptToken(process.env.WA_TOKEN || null),
-              waApiVersion: "v26.0",
+              waApiVersion: getMetaGraphVersion(),
             },
           });
           adminBiz.whatsappConfig = config;
@@ -59,7 +61,7 @@ export async function getCurrentBusiness() {
             data: {
               isConnected: true,
               displayPhoneNumber: "+91 96426 83699",
-              verifiedName: "iBrainLabs",
+              verifiedName: "OneAmple",
               connectionMethod: "OFFICIAL_OFFICE_API",
               waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID || "1443849605471143",
               waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
@@ -69,7 +71,7 @@ export async function getCurrentBusiness() {
 
         return adminBiz;
       } else {
-        // Regular user gets their own business
+        // Regular user gets their own business (isolated from master WABA)
         let userBiz = await prisma.business.findFirst({
           where: { userId: session.user.id },
           include: { whatsappConfig: true },
@@ -98,9 +100,9 @@ export async function getCurrentBusiness() {
               messagingLimitTier: "TIER_250",
               connectionMethod: "NONE",
               waPhoneNumberId: null,
-              waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-              waToken: encryptToken(process.env.WA_TOKEN || null),
-              waApiVersion: "v20.0",
+              waBusinessAccountId: null,
+              waToken: null,
+              waApiVersion: getMetaGraphVersion(),
             },
           });
           userBiz.whatsappConfig = config;
@@ -141,7 +143,7 @@ export async function getCurrentBusiness() {
       update: {},
       create: {
         username: "admin",
-        name: "iBrainLabs Admin",
+        name: "OneAmple Admin",
         passwordHash: "demo",
         role: "ADMIN",
       },
@@ -151,7 +153,7 @@ export async function getCurrentBusiness() {
       data: {
         id: "demo-business-id",
         userId: user.id,
-        name: "iBrainLabs",
+        name: "OneAmple",
         category: "Technology & Business",
       },
       include: {

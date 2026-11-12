@@ -51,7 +51,7 @@ export default function FreeTrialScannerSection({
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("offerblast_free_test_count");
+      const stored = localStorage.getItem("oneample_free_test_count");
       if (stored) {
         setTestCount(parseInt(stored, 10) || 0);
       }
@@ -115,7 +115,7 @@ export default function FreeTrialScannerSection({
         body: JSON.stringify({
           recipientPhone: targetNum,
           offerText: customOffer,
-          businessName: "OfferBlast VIP Store",
+          businessName: "OneAmple Demo Store",
         }),
       });
 
@@ -125,7 +125,7 @@ export default function FreeTrialScannerSection({
         const newCount = Math.min(maxTestLimit, testCount + 1);
         setTestCount(newCount);
         try {
-          localStorage.setItem("offerblast_free_test_count", String(newCount));
+          localStorage.setItem("oneample_free_test_count", String(newCount));
         } catch {}
 
         // Instant sub-second response
@@ -181,7 +181,7 @@ export default function FreeTrialScannerSection({
         if (res.status === 429 || data.testLimitReached) {
           setTestCount(maxTestLimit);
           try {
-            localStorage.setItem("offerblast_free_test_count", String(maxTestLimit));
+            localStorage.setItem("oneample_free_test_count", String(maxTestLimit));
           } catch {}
         }
         setSendResult({
@@ -319,7 +319,7 @@ export default function FreeTrialScannerSection({
                       </div>
                       <div className="leading-tight">
                         <div className="flex items-center gap-1 font-bold text-xs text-white">
-                          <span>iBrainLabs Offers</span>
+                          <span>OneAmple Offers</span>
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300 fill-emerald-500 inline" />
                         </div>
                         <span className="text-[9px] text-emerald-100/80 block font-normal">Official Business Account</span>
@@ -376,7 +376,7 @@ export default function FreeTrialScannerSection({
                       </div>
 
                       <p className="text-[11px] text-slate-600 leading-relaxed">
-                        Thank you for shopping with iBrainLabs. Have a great day!
+                        Thank you for shopping with OneAmple. Have a great day!
                       </p>
 
                       <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] text-slate-400">

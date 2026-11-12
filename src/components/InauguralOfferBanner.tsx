@@ -266,7 +266,7 @@ export default function InauguralOfferBanner({ onSuccess }: InauguralOfferProps)
 
                   <a
                     href={`https://wa.me/919390487233?text=${encodeURIComponent(
-                      `Hello iBrainLabs, I claimed the Grand Launch Coupon *${claimedCoupon}* for Flat 50% discount on OfferBlast SaaS. Please help me activate my subscription!`
+                      `Hello iBrainLabs, I claimed the Grand Launch Coupon *${claimedCoupon}* for Flat 50% discount on OneAmple SaaS. Please help me activate my subscription!`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"

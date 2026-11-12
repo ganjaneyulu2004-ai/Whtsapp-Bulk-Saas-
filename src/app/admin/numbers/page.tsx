@@ -213,7 +213,7 @@ export default function AdminNumbersPage() {
             Admin Quick Guide: 2-Minute Client Number Activation
           </h3>
           <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-            Quota: {stats.active} / {stats.maxAllowed} Used
+            Account Slots: {stats.active} / {stats.maxAllowed} Used
           </span>
         </div>
 
@@ -244,7 +244,7 @@ export default function AdminNumbersPage() {
               1-Click Auto Sync
             </span>
             <p className="text-slate-600">
-              Click <strong>&quot;⚡ Sync &amp; Auto-Activate&quot;</strong> above! OfferBlast auto-detects the number and activates instantly without manual copying!
+              Click <strong>&quot;⚡ Sync &amp; Auto-Activate&quot;</strong> above! OneAmple auto-detects the number and activates instantly without manual copying!
             </p>
           </div>
         </div>

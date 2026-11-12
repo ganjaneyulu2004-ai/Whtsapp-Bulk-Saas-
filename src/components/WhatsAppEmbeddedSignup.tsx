@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useLanguage } from "./LanguageContext";
 import { 
   CheckCircle2, 
   AlertCircle, 
@@ -47,6 +48,7 @@ export default function WhatsAppEmbeddedSignup({
   metaConfigId = process.env.NEXT_PUBLIC_META_CONFIG_ID || "1620839459718786",
   onConfigUpdated,
 }: WhatsAppEmbeddedSignupProps) {
+  const { t } = useLanguage();
   const [config, setConfig] = useState<WhatsAppConfigData | null>(initialConfig || null);
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -469,21 +471,21 @@ export default function WhatsAppEmbeddedSignup({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg sm:text-xl font-heading font-extrabold text-white">
-                  WhatsApp Cloud API Channel
+                  {t("embeddedSignup.channelTitle")}
                 </h3>
                 {isConnected ? (
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    CONNECTED
+                    {t("embeddedSignup.connectedBadge")}
                   </span>
                 ) : (
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-white/80 border border-white/20">
-                    NOT CONNECTED
+                    {t("embeddedSignup.notConnectedBadge")}
                   </span>
                 )}
               </div>
               <p className="text-xs text-brand-soft mt-0.5">
-                Official Meta Embedded Signup v4 • Instant Automated Setup • High Speed Cloud Delivery
+                {t("embeddedSignup.channelSubtitle")}
               </p>
             </div>
           </div>
@@ -508,13 +510,23 @@ export default function WhatsAppEmbeddedSignup({
               <span className="leading-relaxed">{errorMsg}</span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setErrorMsg(null)}
-            className="text-rose-500 hover:text-rose-700 text-xs font-bold"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleConnectWhatsApp}
+              disabled={connecting}
+              className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] transition cursor-pointer disabled:opacity-50"
+            >
+              {t("embeddedSignup.tryAgain")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setErrorMsg(null)}
+              className="text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
 
@@ -552,7 +564,7 @@ export default function WhatsAppEmbeddedSignup({
                     Connected WhatsApp Number
                   </span>
                   <span className="text-sm font-heading font-extrabold text-emerald-950">
-                    Connected ✅ {config?.displayPhoneNumber || "+91 (Active)"}
+                    {t("embeddedSignup.connectedPrefix")} {config?.displayPhoneNumber || "+91 (Active)"}
                   </span>
                 </div>
               </div>
@@ -923,10 +935,10 @@ export default function WhatsAppEmbeddedSignup({
 
             <div className="space-y-2">
               <h3 className="text-2xl sm:text-3xl font-heading font-extrabold text-slate-heading">
-                Connect Your WhatsApp Business Number
+                {t("embeddedSignup.connectHeading")}
               </h3>
               <p className="text-xs sm:text-sm text-slate-muted max-w-md mx-auto leading-relaxed">
-                Connect your WhatsApp Business number in 2 minutes. Send verified bulk campaigns, templates, and automated AI customer replies.
+                {t("embeddedSignup.connectSubheading")}
               </p>
             </div>
 
@@ -974,7 +986,7 @@ export default function WhatsAppEmbeddedSignup({
                 {connecting ? (
                   <>
                     <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span>Connecting to Meta WhatsApp...</span>
+                    <span>{t("embeddedSignup.connecting")}</span>
                   </>
                 ) : (
                   <>
@@ -982,14 +994,14 @@ export default function WhatsAppEmbeddedSignup({
                     <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                     </svg>
-                    <span>Connect WhatsApp (Log in with Facebook)</span>
+                    <span>{t("embeddedSignup.connectWhatsApp")} (Log in with Facebook)</span>
                     <ArrowRight className="w-5 h-5" />
                   </>
                 )}
               </button>
 
               <p className="text-[11px] text-slate-400 mt-3">
-                Uses official Facebook Login for Business • Embedded Signup Configuration ID: {metaConfigId}
+                {t("embeddedSignup.metaHostedNote")}
               </p>
             </div>
           </div>

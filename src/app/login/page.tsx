@@ -76,7 +76,7 @@ function LoginForm() {
   // Sync test count from localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("offerblast_free_test_count");
+      const stored = localStorage.getItem("oneample_free_test_count");
       if (stored) {
         setTestCount(parseInt(stored, 10) || 0);
       }
@@ -138,7 +138,7 @@ function LoginForm() {
         const newCount = Math.min(maxTestLimit, testCount + 1);
         setTestCount(newCount);
         try {
-          localStorage.setItem("offerblast_free_test_count", String(newCount));
+          localStorage.setItem("oneample_free_test_count", String(newCount));
         } catch {}
 
         // Immediate instant success response in 0.3s
@@ -192,7 +192,7 @@ function LoginForm() {
         if (data.testLimitReached) {
           setTestCount(maxTestLimit);
           try {
-            localStorage.setItem("offerblast_free_test_count", String(maxTestLimit));
+            localStorage.setItem("oneample_free_test_count", String(maxTestLimit));
           } catch {}
         }
         setTestSendResult({
@@ -848,7 +848,7 @@ function LoginForm() {
                       <span>OneAmple AI Assistant</span>
                     </div>
                     <p className="text-[11px] leading-relaxed">
-                      "Sure! మీ అపాయింట్‌మెంట్ తేదీ మరియు సమయం చెప్పండి, నేను వెంటనే మీ స్లాట్ కన్ఫర్మ్ చేస్తాను."
+                      &quot;Sure! Please share your preferred appointment date and time, and I will confirm your slot right away.&quot;
                     </p>
                     <div className="text-[10px] text-slate-500 text-right mt-1">Just now</div>
                   </div>

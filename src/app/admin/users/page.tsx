@@ -352,9 +352,9 @@ export default function AdminUsersPage() {
                   onChange={(e) => setExtendPlan(e.target.value)}
                   className="w-full p-2.5 bg-brand-light/70 border border-brand-soft rounded-xl text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
                 >
-                  <option value="Starter">Starter (2,000 msgs)</option>
-                  <option value="Growth">Growth (10,000 msgs)</option>
-                  <option value="Pro">Pro (30,000 msgs)</option>
+                  <option value="Starter">Starter Plan (₹999/mo)</option>
+                  <option value="Growth">Growth Plan (₹2,499/mo)</option>
+                  <option value="Pro">Pro Plan (₹4,999/mo)</option>
                   <option value="VIP Pro (Platform Fee Exempt)">⭐ VIP Pro (100% Platform Fee Exempt - Lifetime Free)</option>
                 </select>
               </div>
@@ -505,9 +505,9 @@ export default function AdminUsersPage() {
                     onChange={(e) => setNewClient({ ...newClient, plan: e.target.value })}
                     className="w-full p-2 bg-brand-light/70 border border-brand-soft rounded-xl text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
                   >
-                    <option value="Starter">Starter (2,000 msgs)</option>
-                    <option value="Growth">Growth (10,000 msgs)</option>
-                    <option value="Pro">Pro (30,000 msgs)</option>
+                    <option value="Starter">Starter Plan (₹999/mo)</option>
+                    <option value="Growth">Growth Plan (₹2,499/mo)</option>
+                    <option value="Pro">Pro Plan (₹4,999/mo)</option>
                   </select>
                 </div>
 

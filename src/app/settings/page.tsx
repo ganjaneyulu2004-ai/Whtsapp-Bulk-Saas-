@@ -305,7 +305,7 @@ export default function SettingsPage() {
                   <option value="friendly_respectful">Warm, Polite & Respectful (Human Touch) ⭐</option>
                   <option value="enthusiastic">Enthusiastic & Sales-Focused</option>
                   <option value="professional">Direct & Professional</option>
-                  <option value="telugu_friendly">Telugu & Telugish Friendly (నమస్కారం!)</option>
+                  <option value="telugu_friendly">Telugu &amp; English Bilingual Friendly</option>
                 </select>
                 <p className="text-[11px] text-slate-500 mt-1">
                   AI responds in the customer&apos;s language (English, Telugu, Telugish, Hindi) with short 1-3 sentence human replies.
@@ -443,7 +443,7 @@ export default function SettingsPage() {
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00a884]"
             />
             <p className="text-[11px] text-slate-400">
-              When a customer asks &quot;Where are you located?&quot; or &quot;location పంపండి&quot;, AI shares this link.
+              When a customer asks &quot;Where are you located?&quot; or asks for directions, AI shares this link.
             </p>
           </div>
 

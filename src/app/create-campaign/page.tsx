@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageContext";
-import MetaApiCardModal from "@/components/MetaApiCardModal";
 import { 
+  CreditCard,
   CheckCircle2, 
   Upload, 
   Sparkles, 
@@ -87,27 +87,17 @@ export default function CreateCampaignPage() {
   const [scheduledDateTime, setScheduledDateTime] = useState("");
   const [submittingCampaign, setSubmittingCampaign] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
-  const [usage, setUsage] = useState<any>(null);
-  const [cardData, setCardData] = useState<any>(null);
-  const [showCardModal, setShowCardModal] = useState(false);
-  const perMessageRate = 0.80;
-
-  const fetchCardData = async () => {
-    try {
-      const res = await fetch("/api/billing/card");
-      if (res.ok) {
-        const c = await res.json();
-        setCardData(c);
-      }
-    } catch {}
-  };
+  const [waConnected, setWaConnected] = useState(false);
 
   useEffect(() => {
-    fetch("/api/subscription/usage")
+    fetch("/api/whatsapp/embedded-signup")
       .then((res) => res.json())
-      .then((u) => setUsage(u))
+      .then((data) => {
+        if (data?.config?.isConnected) {
+          setWaConnected(true);
+        }
+      })
       .catch(() => {});
-    fetchCardData();
   }, []);
 
   useEffect(() => {
@@ -273,7 +263,7 @@ export default function CreateCampaignPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "iBrainLabs_Sample_Contacts.csv";
+    a.download = "OneAmple_Sample_Contacts.csv";
     a.click();
   };
 
@@ -344,7 +334,7 @@ export default function CreateCampaignPage() {
         body: JSON.stringify({
           recipientPhone: "919390487233",
           recipientName: firstContactName,
-          businessName: businessName.trim() || "iBrainLabs",
+          businessName: businessName.trim() || "OneAmple",
           bookingLink: bookingLink.trim() || undefined,
           posterImage,
           templateName: selectedTemplateName,
@@ -416,16 +406,6 @@ export default function CreateCampaignPage() {
         }
         router.push("/campaigns");
       } else {
-        if (data.cardRequired) {
-          alert(data.error || "⚠️ వాట్సాప్ అధికారిక API ఛార్జీల (~₹0.80/msg) కోసం దయచేసి మీ కార్డ్‌ని లింక్ చేయండి.");
-          setShowCardModal(true);
-          return;
-        }
-        if (data.limitReached) {
-          alert(data.error || "⚠️ మీ ప్లాన్ లోని మెసేజ్ లిమిట్ పూర్తయింది. మిగిలిన మెసేజ్‌లు వెళ్లడానికి దయచేసి రీఛార్జ్ / టాప్-అప్ చేసుకోండి.");
-          router.push("/complete-payment?type=topup");
-          return;
-        }
         alert(`Error: ${data.error || "Failed to launch campaign"}`);
       }
     } catch (err: any) {
@@ -463,56 +443,26 @@ export default function CreateCampaignPage() {
         </p>
       </div>
 
-      {/* ⚠️ PLAN MESSAGE LIMIT REACHED BANNER */}
-      {usage?.isLimitReached && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-pulse">
+      {/* Meta Billing Hub Notice (shown only when WhatsApp is connected) */}
+      {waConnected && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/80 border border-blue-200 text-blue-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-700">
-              <AlertTriangle className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-700">
+              <CreditCard className="w-5 h-5" />
             </div>
-            <div>
-              <p className="font-heading font-extrabold text-sm sm:text-base text-amber-900">
-                ⚠️ మీ ప్లాన్ లోని మెసేజ్ లిమిట్ పూర్తయింది.
-              </p>
-              <p className="text-xs text-amber-800 mt-0.5">
-                మిగిలిన మెసేజ్‌లు వెళ్లడానికి దయచేసి రీఛార్జ్ / టాప్-అప్ చేసుకోండి. (Your plan message quota is exhausted. Top-up credits to continue broadcasting).
-              </p>
-            </div>
+            <p className="font-heading font-semibold text-xs sm:text-sm text-blue-950">
+              {t("dashboard.metaBillingNotice")}
+            </p>
           </div>
-          <Link
-            href="/complete-payment?type=topup"
-            className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-heading font-extrabold text-xs shadow-md transition-all shrink-0 flex items-center gap-1.5 cursor-pointer"
+          <a
+            href="https://business.facebook.com/billing_hub"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2.5 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-heading font-bold text-xs shadow-xs transition-all shrink-0 flex items-center gap-1.5"
           >
-            <span>⚡ రీఛార్జ్ / టాప్-అప్ చేయండి</span>
+            <span>{t("dashboard.openMetaBillingHub")}</span>
             <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      )}
-
-      {/* 💳 OFFICIAL META PER-MESSAGE API CARD REQUIRED BANNER */}
-      {cardData && !cardData.apiCardLinked && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50 border-2 border-indigo-200 text-indigo-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-pulse">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0 text-indigo-700 font-bold">
-              💳
-            </div>
-            <div>
-              <p className="font-heading font-extrabold text-sm sm:text-base text-indigo-900">
-                💳 వాట్సాప్ అధికారిక API ఛార్జీల (~₹0.80/msg) కోసం కార్డ్ లింక్ చేయండి
-              </p>
-              <p className="text-xs text-indigo-800 mt-0.5">
-                బల్క్ క్యాంపెయిన్స్ పంపడానికి ఇది తప్పనిసరి. మొదటి మెసేజ్ నుండే API ఖర్చు ఆటో-డెబిట్ అవుతుంది (Meta లాగానే).
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowCardModal(true)}
-            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-heading font-extrabold text-xs shadow-md transition-all shrink-0 flex items-center gap-1.5 cursor-pointer"
-          >
-            <span>💳 Link Card Now</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          </a>
         </div>
       )}
 
@@ -1358,8 +1308,8 @@ export default function CreateCampaignPage() {
                 </div>
                 <div className="flex justify-between border-t border-slate-200 pt-2">
                   <span className="text-slate-heading font-heading font-bold">{t("createCampaign.estimatedCost")}:</span>
-                  <span className="font-heading font-extrabold text-sm text-emerald-700">
-                    ₹{((parsedResult?.validCount || 0) * perMessageRate).toFixed(2)}
+                  <span className="font-heading font-semibold text-xs text-blue-700">
+                    {t("createCampaign.metaDirectBilling")}
                   </span>
                 </div>
               </div>
@@ -1571,24 +1521,7 @@ export default function CreateCampaignPage() {
               <span>{t("createCampaign.prevStep")}</span>
             </button>
 
-            {cardData && !cardData.apiCardLinked ? (
-              <button
-                type="button"
-                onClick={() => setShowCardModal(true)}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-heading font-extrabold text-base px-8 py-4 rounded-2xl shadow-xl shadow-indigo-600/30 transition-all cursor-pointer"
-              >
-                <span>💳 Link Card for Meta API (Required)</span>
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            ) : usage?.isLimitReached ? (
-              <Link
-                href="/complete-payment?type=topup"
-                className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-heading font-extrabold text-base px-8 py-4 rounded-2xl shadow-xl shadow-amber-600/30 transition-all cursor-pointer"
-              >
-                <span>⚡ రీఛార్జ్ / టాప్-అప్ చేయండి (Top-Up Now)</span>
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-            ) : canLaunchNow ? (
+            {canLaunchNow ? (
               <button
                 onClick={handleLaunchCampaign}
                 disabled={submittingCampaign}
@@ -1614,13 +1547,6 @@ export default function CreateCampaignPage() {
           </div>
         </div>
       )}
-
-      {/* Meta API Card Linking Modal */}
-      <MetaApiCardModal
-        isOpen={showCardModal}
-        onClose={() => setShowCardModal(false)}
-        onSuccess={fetchCardData}
-      />
 
     </div>
   );

@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { processCampaignSending } from "@/lib/queue";
-import { getUserMessageUsage } from "@/lib/quota";
 
 export async function GET(req: Request) {
   try {
@@ -49,7 +48,6 @@ export async function POST(req: Request) {
 
     const business: any = await getCurrentBusiness();
 
-    let quota: any = null;
     if (session.user.role !== "ADMIN") {
       const sub = await prisma.subscription.findFirst({
         where: { userId: session.user.id },
@@ -58,30 +56,6 @@ export async function POST(req: Request) {
       if (!sub || sub.status !== "ACTIVE") {
         return NextResponse.json(
           { error: "Payment required. Active subscription needed to launch campaigns." },
-          { status: 403 }
-        );
-      }
-
-      // 1. Mandatory API Card check (Official Meta Per-Message charges from 1st message)
-      if (!business.apiCardLinked) {
-        return NextResponse.json(
-          {
-            error: "⚠️ వాట్సాప్ అధికారిక API ఛార్జీల (~₹0.80/msg) కోసం దయచేసి మీ కార్డ్‌ని లింక్ చేయండి. కార్డ్ లింక్ చేసిన తర్వాత మాత్రమే బల్క్ మెసేజ్‌లు పంపవచ్చు.",
-            cardRequired: true,
-          },
-          { status: 403 }
-        );
-      }
-
-      // 2. Plan Volume Quota Check (Starter/Growth plan limit reached -> Top-up required)
-      quota = await getUserMessageUsage(session.user.id);
-      if (quota.isLimitReached) {
-        return NextResponse.json(
-          { 
-            error: quota.alertMessageTe || "⚠️ మీ ప్లాన్ లోని మెసేజ్ లిమిట్ పూర్తయింది. మిగిలిన మెసేజ్‌లు వెళ్లడానికి దయచేసి రీఛార్జ్ / టాప్-అప్ చేసుకోండి.",
-            limitReached: true,
-            totalAvailable: quota.totalAvailable
-          },
           { status: 403 }
         );
       }

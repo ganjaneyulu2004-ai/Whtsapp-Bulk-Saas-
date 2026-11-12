@@ -30,7 +30,7 @@ import {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { lang, setLang } = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
@@ -61,13 +61,13 @@ export function Sidebar() {
   const isAdmin = session?.user?.role === "ADMIN";
 
   const clientNavItems = [
-    { href: "/", label: "Home", icon: Home },
-    { href: "/create-campaign", label: "Create Campaign", icon: PlusCircle },
-    { href: "/templates", label: "Templates", icon: Sparkles },
-    { href: "/inbox", label: "Inbox", icon: MessageSquare },
-    { href: "/appointments", label: "Appointments", icon: CalendarCheck },
-    { href: "/campaigns", label: "Campaigns & Reports", icon: BarChart3 },
-    { href: "/billing", label: "Billing & Plans", icon: CreditCard },
+    { href: "/", label: t("nav.home"), icon: Home },
+    { href: "/create-campaign", label: t("nav.createCampaign"), icon: PlusCircle },
+    { href: "/templates", label: t("nav.templates"), icon: Sparkles },
+    { href: "/inbox", label: t("nav.inbox"), icon: MessageSquare },
+    { href: "/appointments", label: t("nav.appointments"), icon: CalendarCheck },
+    { href: "/campaigns", label: t("nav.campaigns"), icon: BarChart3 },
+    { href: "/billing", label: t("nav.billing"), icon: CreditCard },
   ];
 
   const adminNavItems = [
@@ -168,7 +168,7 @@ export function Sidebar() {
         >
           <div className="flex items-center gap-2.5">
             <Settings className={`w-4 h-4 ${pathname === "/settings" ? "text-white" : "text-slate-500"}`} />
-            <span>Settings</span>
+            <span>{t("nav.settings")}</span>
           </div>
         </Link>
 
@@ -180,7 +180,7 @@ export function Sidebar() {
         >
           <div className="flex items-center gap-2.5">
             <Globe className="w-4 h-4 text-slate-400" />
-            <span>Language</span>
+            <span>{t("nav.language")}</span>
           </div>
           <span className="text-[10px] font-bold uppercase bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-700">
             {lang === "en" ? "English" : "Telugu"}
@@ -194,7 +194,7 @@ export function Sidebar() {
           className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-heading font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
-          <span>Log out</span>
+          <span>{t("nav.logout")}</span>
         </button>
       </div>
     </div>

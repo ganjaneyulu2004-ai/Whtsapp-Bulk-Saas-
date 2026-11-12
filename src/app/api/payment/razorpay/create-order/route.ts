@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { razorpay } from "@/lib/razorpay";
-import { SUBSCRIPTION_PLANS, CREDIT_TOPUP_PACKS } from "@/config/plans";
+import { SUBSCRIPTION_PLANS } from "@/config/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -14,38 +14,24 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { itemId, itemType } = body; // itemType: "PLAN" | "TOPUP"
+    const { itemId } = body;
 
-    let amount = 0;
-    let name = "";
-
-    if (itemType === "TOPUP") {
-      const pack = CREDIT_TOPUP_PACKS.find((p) => p.id === itemId);
-      if (!pack) {
-        return NextResponse.json({ error: "Invalid top-up pack selected." }, { status: 400 });
-      }
-      amount = pack.price;
-      name = pack.name;
-    } else {
-      const plan = SUBSCRIPTION_PLANS.find((p) => p.id === itemId);
-      if (!plan) {
-        return NextResponse.json({ error: "Invalid subscription plan selected." }, { status: 400 });
-      }
-      amount = plan.price;
-      name = plan.name;
+    const plan = SUBSCRIPTION_PLANS.find((p) => p.id === itemId);
+    if (!plan) {
+      return NextResponse.json({ error: "Invalid subscription plan selected." }, { status: 400 });
     }
 
     // Razorpay amount is in paise (1 INR = 100 paise)
     const options = {
-      amount: Math.round(amount * 100),
+      amount: Math.round(plan.price * 100),
       currency: "INR",
       receipt: `rcpt_${Date.now().toString().slice(-8)}_${session.user.id.slice(0, 4)}`,
       notes: {
         userId: session.user.id,
         username: session.user.username || "",
-        itemId,
-        itemType: itemType || "PLAN",
-        itemName: name,
+        itemId: plan.id,
+        itemType: "PLAN",
+        itemName: plan.name,
       },
     };
 

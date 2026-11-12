@@ -172,14 +172,14 @@ export async function initializeDatabase() {
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
     );`,
 
-    // Auto-migrate Business table for per-message API card billing
-    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "apiCardLinked" BOOLEAN DEFAULT false;`,
-    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "apiCardLast4" TEXT;`,
-    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "apiCardBrand" TEXT;`,
-    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "apiCardToken" TEXT;`,
-    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "unbilledApiSpend" DOUBLE PRECISION DEFAULT 0.0;`,
-    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "billingThreshold" DOUBLE PRECISION DEFAULT 500.0;`,
-    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "totalApiCharged" DOUBLE PRECISION DEFAULT 0.0;`,
+    // Clean up any legacy Meta API card billing columns (OneAmple never stores card data)
+    `ALTER TABLE "Business" DROP COLUMN IF EXISTS "apiCardLinked";`,
+    `ALTER TABLE "Business" DROP COLUMN IF EXISTS "apiCardLast4";`,
+    `ALTER TABLE "Business" DROP COLUMN IF EXISTS "apiCardBrand";`,
+    `ALTER TABLE "Business" DROP COLUMN IF EXISTS "apiCardToken";`,
+    `ALTER TABLE "Business" DROP COLUMN IF EXISTS "unbilledApiSpend";`,
+    `ALTER TABLE "Business" DROP COLUMN IF EXISTS "billingThreshold";`,
+    `ALTER TABLE "Business" DROP COLUMN IF EXISTS "totalApiCharged";`,
   ];
 
   for (const sql of ddlStatements) {

@@ -205,9 +205,9 @@ export async function GET(req: Request) {
           messagingLimitTier: "TIER_250",
           connectionMethod: "NONE",
           waPhoneNumberId: null,
-          waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-          waToken: encryptToken(process.env.WA_TOKEN || null),
-          waApiVersion: "v20.0",
+          waBusinessAccountId: null,
+          waToken: null,
+          waApiVersion: "v26.0",
         },
         select: {
           isConnected: true,

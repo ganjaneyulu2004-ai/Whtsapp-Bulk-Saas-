@@ -91,24 +91,20 @@ async function processWebhookPayload(body: any) {
   // Resolve which client business owns this incoming WhatsApp phone number or WABA
   // Matches both official Embedded Signup clients AND existing manually-onboarded clients!
   let clientBusinessId: string | undefined = undefined;
+  let wabaBusinessIds: string[] = [];
   const displayPhone = value?.metadata?.display_phone_number
     ? String(value.metadata.display_phone_number).replace(/[^0-9]/g, "")
     : undefined;
 
   try {
-    // Tier 1: Direct match by Meta Phone Number ID or WABA ID
-    if (phoneId || wabaId) {
-      const config = await prisma.whatsAppConfig.findFirst({
-        where: {
-          OR: [
-            ...(phoneId ? [{ waPhoneNumberId: phoneId }] : []),
-            ...(wabaId ? [{ waBusinessAccountId: wabaId }] : []),
-          ],
-        },
+    // Tier 1: Strictly match exact Meta Phone Number ID first (prevents WABA collisions on shared portfolios)
+    if (phoneId) {
+      const byPhoneId = await prisma.whatsAppConfig.findFirst({
+        where: { waPhoneNumberId: phoneId },
         select: { businessId: true },
       });
-      if (config?.businessId) {
-        clientBusinessId = config.businessId;
+      if (byPhoneId?.businessId) {
+        clientBusinessId = byPhoneId.businessId;
       }
     }
 
@@ -129,7 +125,19 @@ async function processWebhookPayload(body: any) {
       }
     }
 
-    // Tier 3: Single-tenant fallback if only one active business exists in the SaaS
+    // Tier 3: Match by WABA ID (used for template status webhooks or single-number WABAs)
+    if (wabaId) {
+      const wabaConfigs = await prisma.whatsAppConfig.findMany({
+        where: { waBusinessAccountId: wabaId },
+        select: { businessId: true },
+      });
+      wabaBusinessIds = wabaConfigs.map((c) => c.businessId);
+      if (!clientBusinessId && wabaBusinessIds.length > 0) {
+        clientBusinessId = wabaBusinessIds[0];
+      }
+    }
+
+    // Tier 4: Single-tenant fallback if only one active business exists in the SaaS
     if (!clientBusinessId) {
       const totalCount = await prisma.business.count();
       if (totalCount === 1) {
@@ -147,15 +155,21 @@ async function processWebhookPayload(body: any) {
   if (field === "message_template_status_update" || value?.event) {
     const templateName = value?.message_template_name || value?.template_name;
     const eventStatus = (value?.event || value?.status || "").toUpperCase(); // APPROVED, REJECTED
+    const templateTargetFilter =
+      wabaBusinessIds.length > 0
+        ? { businessId: { in: wabaBusinessIds } }
+        : clientBusinessId
+        ? { businessId: clientBusinessId }
+        : {};
 
     if (templateName && (eventStatus === "APPROVED" || eventStatus === "REJECTED")) {
       console.log(`✨ Template Webhook Notification: ${templateName} -> ${eventStatus} (WABA: ${wabaId})`);
       
-      // Update template status in DB for the specific client business
+      // Update template status in DB for the matching business(es)
       const updatedTemplates = await prisma.template.updateMany({
         where: {
           name: templateName,
-          ...(clientBusinessId ? { businessId: clientBusinessId } : {}),
+          ...templateTargetFilter,
         },
         data: {
           status: eventStatus,
@@ -168,7 +182,7 @@ async function processWebhookPayload(body: any) {
         const approvedTemplates = await prisma.template.findMany({
           where: {
             name: templateName,
-            ...(clientBusinessId ? { businessId: clientBusinessId } : {}),
+            ...templateTargetFilter,
           },
           select: { id: true },
         });

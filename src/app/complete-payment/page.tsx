@@ -9,67 +9,51 @@ import QRCode from "qrcode";
 import { fireSmallConfetti } from "@/lib/confetti";
 import { 
   Check, 
-  Copy, 
   ExternalLink, 
-  Upload, 
-  Sparkles, 
-  ShieldCheck, 
-  Smartphone, 
   CheckCircle2, 
   AlertCircle, 
   Loader2, 
   ArrowRight,
   Info,
-  CreditCard,
   Zap,
   Lock
 } from "lucide-react";
-import { PlanConfig, TopUpPack, SUBSCRIPTION_PLANS, CREDIT_TOPUP_PACKS } from "@/config/plans";
+import { PlanConfig, SUBSCRIPTION_PLANS } from "@/config/plans";
 
 function CompletePaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const preselectedType = searchParams.get("type"); // "topup" | "plan"
-  const { data: session, status } = useSession();
+  const { data: session, update } = useSession();
 
-  const [activeTab, setActiveTab] = useState<"plan" | "topup">(preselectedType === "topup" ? "topup" : "plan");
   const [plans, setPlans] = useState<PlanConfig[]>(SUBSCRIPTION_PLANS);
-  const [topUpPacks, setTopUpPacks] = useState<TopUpPack[]>(CREDIT_TOPUP_PACKS);
 
   const [selectedItem, setSelectedItem] = useState<{
     id: string;
     name: string;
     price: number;
-    messages?: number;
-    credits?: number;
-    type: "PLAN" | "TOPUP";
   }>({
     id: "growth",
     name: "Growth",
     price: 2499,
-    messages: 10000,
-    type: "PLAN",
   });
 
   const [upiId, setUpiId] = useState("9390487233@ybl");
-  const [payeeName, setPayeeName] = useState("Ibrain Labs");
+  const [payeeName, setPayeeName] = useState("OneAmple (iBrainLabs)");
   const [paymentPhone, setPaymentPhone] = useState("+919390487233");
   const [razorpayKeyId, setRazorpayKeyId] = useState(process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "");
-  const [metaNote, setMetaNote] = useState("WhatsApp messaging quota is included in your plan. If your limit is reached, top-up credits to continue sending.");
+  const [metaNote, setMetaNote] = useState(
+    "OneAmple charges only your flat monthly platform subscription fee. WhatsApp template conversation fees are billed directly to your business by Meta in Meta Billing Hub."
+  );
 
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
-  const [upiLink, setUpiLink] = useState<string>("");
 
   // Step 3 Form State: Manual UPI fallback
   const [payerName, setPayerName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [payerEmail, setPayerEmail] = useState("");
   const [payerMobile, setPayerMobile] = useState("");
-  const [payerGst, setPayerGst] = useState("");
-  const [payerCity, setPayerCity] = useState("");
   const [utrNumber, setUtrNumber] = useState("");
   const [screenshot, setScreenshot] = useState<File | null>(null);
-  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
 
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [submittingManual, setSubmittingManual] = useState(false);
@@ -97,7 +81,6 @@ function CompletePaymentContent() {
       .then((res) => res.json())
       .then((data) => {
         if (data?.plans) setPlans(data.plans);
-        if (data?.topUpPacks) setTopUpPacks(data.topUpPacks);
         if (data?.upiId) setUpiId(data.upiId);
         if (data?.payeeName) setPayeeName(data.payeeName);
         if (data?.paymentPhone) setPaymentPhone(data.paymentPhone);
@@ -115,7 +98,18 @@ function CompletePaymentContent() {
       if (session.user.businessName && !businessName) setBusinessName(session.user.businessName);
       if (session.user.email && !payerEmail) setPayerEmail(session.user.email);
     }
-  }, [session]);
+  }, [session, payerName, payerMobile, businessName, payerEmail]);
+
+  // Preselect plan if passed in URL (?plan=starter)
+  useEffect(() => {
+    const pId = searchParams.get("plan");
+    if (pId) {
+      const matched = plans.find((p) => p.id === pId);
+      if (matched) {
+        setSelectedItem({ id: matched.id, name: matched.name, price: matched.price });
+      }
+    }
+  }, [searchParams, plans]);
 
   // Generate UPI QR Code whenever plan changes
   useEffect(() => {
@@ -124,9 +118,7 @@ function CompletePaymentContent() {
     const username = session?.user?.username || "customer";
     const uri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(
       payeeName
-    )}&am=${selectedItem.price}&cu=INR&tn=OfferBlast-${selectedItem.name}-${username}`;
-
-    setUpiLink(uri);
+    )}&am=${selectedItem.price}&cu=INR&tn=OneAmple-${selectedItem.name}-${username}`;
 
     QRCode.toDataURL(uri, {
       width: 280,
@@ -154,7 +146,6 @@ function CompletePaymentContent() {
         return;
       }
       setScreenshot(file);
-      setScreenshotPreview(URL.createObjectURL(file));
       setError(null);
     }
   };
@@ -174,7 +165,6 @@ function CompletePaymentContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           itemId: selectedItem.id,
-          itemType: selectedItem.type,
         }),
       });
 
@@ -188,9 +178,9 @@ function CompletePaymentContent() {
         key: orderData.keyId || razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
         amount: orderData.amount,
         currency: orderData.currency || "INR",
-        name: "OfferBlast by iBrainLabs",
-        description: `${selectedItem.name} (${selectedItem.type === "TOPUP" ? "Credits Pack" : "SaaS Subscription"})`,
-        image: "/brand/ibrainlabs-logo.png",
+        name: "OneAmple",
+        description: `${selectedItem.name} Monthly Platform Subscription`,
+        image: "/brand/oneample-logo.png",
         order_id: orderData.orderId,
         prefill: {
           name: payerName || session?.user?.name || "Customer",
@@ -198,7 +188,7 @@ function CompletePaymentContent() {
           contact: payerMobile || session?.user?.mobile || "",
         },
         theme: {
-          color: "#4338ca", // Brand Indigo/Purple
+          color: "#4338ca",
         },
         handler: async function (response: any) {
           // 3. Verify signature on backend
@@ -211,7 +201,6 @@ function CompletePaymentContent() {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 itemId: selectedItem.id,
-                itemType: selectedItem.type,
                 payerName,
                 payerMobile,
               }),
@@ -219,10 +208,13 @@ function CompletePaymentContent() {
 
             const verifyData = await verifyRes.json();
             if (verifyRes.ok) {
-              setSuccessMessage(verifyData.message || "Payment verified! Your account is now Active.");
+              setSuccessMessage(verifyData.message || "Payment verified! Your OneAmple account is now Active.");
               fireSmallConfetti();
+              try {
+                await update();
+              } catch {}
               setTimeout(() => {
-                router.replace("/?payment_success=true");
+                window.location.href = "/?payment_success=true";
               }, 1200);
             } else {
               setError(verifyData.error || "Payment verification failed.");
@@ -283,8 +275,6 @@ function CompletePaymentContent() {
       formData.append("businessName", businessName.trim() || session?.user?.businessName || "");
       formData.append("payerEmail", payerEmail.trim() || session?.user?.email || "");
       formData.append("payerMobile", payerMobile.trim() || session?.user?.mobile || "");
-      formData.append("payerGst", payerGst.trim());
-      formData.append("payerCity", payerCity.trim());
       formData.append("utrNumber", cleanUtr);
       formData.append("screenshot", screenshot);
 
@@ -314,8 +304,8 @@ function CompletePaymentContent() {
       <div className="text-center max-w-2xl mx-auto">
         <div className="inline-block bg-white p-3 rounded-2xl border border-slate-200 shadow-xs mb-3">
           <Image
-            src="/brand/ibrainlabs-logo.png"
-            alt="iBrainLabs"
+            src="/brand/oneample-logo.png"
+            alt="OneAmple"
             width={180}
             height={50}
             className="h-9 w-auto object-contain mx-auto"
@@ -323,10 +313,10 @@ function CompletePaymentContent() {
           />
         </div>
         <h1 className="text-2xl sm:text-3xl font-heading font-extrabold text-slate-900 tracking-tight">
-          Complete Your OfferBlast Subscription
+          Complete Your OneAmple Subscription
         </h1>
         <p className="text-slate-500 text-xs sm:text-sm mt-1.5">
-          Official Meta WhatsApp Cloud API bulk messaging platform. Choose your package and activate instantly.
+          Official Meta WhatsApp Cloud API marketing platform. Choose your monthly plan and activate instantly via Razorpay.
         </p>
       </div>
 
@@ -336,7 +326,7 @@ function CompletePaymentContent() {
             <span className="text-2xl">👑</span>
             <div>
               <p className="font-heading font-bold text-sm">Super Admin Notice</p>
-              <p className="text-xs text-amber-800">You are logged in as Master Admin. You have unrestricted lifetime access and do not need to buy a plan. (The plans below are for client billing).</p>
+              <p className="text-xs text-amber-800">You are logged in as Master Admin. You have unrestricted lifetime access and do not need to buy a plan.</p>
             </div>
           </div>
           <Link
@@ -362,55 +352,7 @@ function CompletePaymentContent() {
         </div>
       )}
 
-      {/* Package Selection Tabs */}
-      <div className="flex justify-center">
-        <div className="inline-flex p-1.5 rounded-2xl bg-slate-100 border border-slate-200 shadow-2xs">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("plan");
-              const defaultPlan = plans.find((p) => p.popular) || plans[0];
-              setSelectedItem({
-                id: defaultPlan.id,
-                name: defaultPlan.name,
-                price: defaultPlan.price,
-                messages: defaultPlan.messages,
-                type: "PLAN",
-              });
-            }}
-            className={`px-5 py-2.5 rounded-xl font-heading text-xs font-bold transition-all cursor-pointer ${
-              activeTab === "plan"
-                ? "bg-white text-brand-purple shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            📅 Monthly Subscription Plans
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("topup");
-              const defaultTopup = topUpPacks[0];
-              setSelectedItem({
-                id: defaultTopup.id,
-                name: defaultTopup.name,
-                price: defaultTopup.price,
-                credits: defaultTopup.credits,
-                type: "TOPUP",
-              });
-            }}
-            className={`px-5 py-2.5 rounded-xl font-heading text-xs font-bold transition-all cursor-pointer ${
-              activeTab === "topup"
-                ? "bg-white text-brand-purple shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            ⚡ Credit Top-Up Packs (Add-on)
-          </button>
-        </div>
-      </div>
-
-      {/* STEP 1: CHOOSE PLAN OR TOP-UP */}
+      {/* STEP 1: CHOOSE MONTHLY SUBSCRIPTION PLAN */}
       <section className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-card">
         <div className="flex items-center gap-3 mb-6">
           <span className="w-8 h-8 rounded-full bg-brand-purple text-white flex items-center justify-center font-heading font-bold text-sm">
@@ -418,188 +360,100 @@ function CompletePaymentContent() {
           </span>
           <div>
             <h2 className="text-lg sm:text-xl font-heading font-bold text-slate-900">
-              {activeTab === "plan" ? "Select Your Monthly Plan" : "Select Your Message Credit Pack"}
+              Select Your Monthly OneAmple Plan
             </h2>
             <p className="text-xs text-slate-500">
-              {activeTab === "plan"
-                ? "Full features included in every plan. Choose based on your monthly message volume."
-                : "Packs start from 1,000 credits. Never expire and top up your message wallet instantly."}
+              Flat monthly software subscription paid via Razorpay. Meta bills WhatsApp conversation charges directly in Meta Billing Hub.
             </p>
           </div>
         </div>
 
-        {activeTab === "plan" ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {plans.map((p) => {
-              const isSelected = selectedItem.id === p.id && selectedItem.type === "PLAN";
-              return (
-                <div
-                  key={p.id}
-                  onClick={() =>
-                    setSelectedItem({
-                      id: p.id,
-                      name: p.name,
-                      price: p.price,
-                      messages: p.messages,
-                      type: "PLAN",
-                    })
-                  }
-                  className={`relative rounded-2xl p-6 cursor-pointer transition-all border-2 flex flex-col justify-between ${
-                    isSelected
-                      ? "border-brand-purple bg-purple-50/50 shadow-md scale-[1.01]"
-                      : "border-slate-200 bg-white hover:border-brand-purple/40 hover:bg-slate-50/50"
-                  }`}
-                >
-                  {p.popular && (
-                    <span className="absolute -top-3 right-6 bg-brand-purple text-white text-[10px] font-heading font-bold px-3 py-1 rounded-full shadow-xs">
-                      Most Popular
-                    </span>
-                  )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {plans.map((p) => {
+            const isSelected = selectedItem.id === p.id;
+            return (
+              <div
+                key={p.id}
+                onClick={() =>
+                  setSelectedItem({
+                    id: p.id,
+                    name: p.name,
+                    price: p.price,
+                  })
+                }
+                className={`relative rounded-2xl p-6 cursor-pointer transition-all border-2 flex flex-col justify-between ${
+                  isSelected
+                    ? "border-brand-purple bg-purple-50/50 shadow-md scale-[1.01]"
+                    : "border-slate-200 bg-white hover:border-brand-purple/40 hover:bg-slate-50/50"
+                }`}
+              >
+                {p.popular && (
+                  <span className="absolute -top-3 right-6 bg-brand-purple text-white text-[10px] font-heading font-bold px-3 py-1 rounded-full shadow-xs">
+                    Most Popular
+                  </span>
+                )}
 
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-heading font-bold text-slate-900">{p.name}</h3>
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          isSelected ? "border-brand-purple bg-brand-purple" : "border-slate-300"
-                        }`}
-                      >
-                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-500 min-h-[32px] mb-4">{p.description}</p>
-
-                    <div className="flex items-baseline gap-1 mb-5">
-                      <span className="text-3xl font-heading font-extrabold text-brand-purple">
-                        ₹{p.price.toLocaleString("en-IN")}
-                      </span>
-                      <span className="text-xs text-slate-400 font-medium">/{p.period}</span>
-                    </div>
-
-                    <ul className="space-y-2 text-xs text-slate-700 pt-4 border-t border-slate-100">
-                      {p.features.map((feat, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                          <span>{feat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="mt-6 pt-4 border-t border-slate-100">
-                    <button
-                      type="button"
-                      className={`w-full py-2.5 rounded-xl font-heading font-semibold text-xs transition-colors ${
-                        isSelected
-                          ? "bg-brand-purple text-white shadow-xs"
-                          : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-lg font-heading font-bold text-slate-900">{p.name}</h3>
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        isSelected ? "border-brand-purple bg-brand-purple" : "border-slate-300"
                       }`}
                     >
-                      {isSelected ? "Selected Plan ✓" : "Choose " + p.name}
-                    </button>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {topUpPacks.map((pack) => {
-              const isSelected = selectedItem.id === pack.id && selectedItem.type === "TOPUP";
-              return (
-                <div
-                  key={pack.id}
-                  onClick={() =>
-                    setSelectedItem({
-                      id: pack.id,
-                      name: pack.name,
-                      price: pack.price,
-                      credits: pack.credits,
-                      type: "TOPUP",
-                    })
-                  }
-                  className={`relative rounded-2xl p-5 cursor-pointer transition-all border-2 flex flex-col justify-between ${
-                    isSelected
-                      ? "border-emerald-500 bg-emerald-50/50 shadow-md scale-[1.01]"
-                      : "border-slate-200 bg-white hover:border-emerald-300 hover:bg-slate-50/50"
-                  }`}
-                >
-                  {pack.popular && (
-                    <span className="absolute -top-3 right-4 bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
-                      Best Value
+
+                  <p className="text-xs text-slate-500 min-h-[32px] mb-4">{p.description}</p>
+
+                  <div className="flex items-baseline gap-1 mb-5">
+                    <span className="text-3xl font-heading font-extrabold text-brand-purple">
+                      ₹{p.price.toLocaleString("en-IN")}
                     </span>
-                  )}
-
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
-                        Credit Pack
-                      </span>
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          isSelected ? "border-emerald-600 bg-emerald-600" : "border-slate-300"
-                        }`}
-                      >
-                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
-                      </div>
-                    </div>
-
-                    <div className="text-xl font-heading font-black text-slate-900 mt-2">
-                      +{pack.credits.toLocaleString("en-IN")} Credits
-                    </div>
-                    <div className="text-2xl font-black text-emerald-600 mt-1">
-                      ₹{pack.price.toLocaleString("en-IN")}
-                    </div>
-                    <div className="text-[11px] text-slate-500 mt-1 font-medium">
-                      Rate: {pack.perMessageRate} / message
-                    </div>
-
-                    <ul className="space-y-1.5 text-xs text-slate-600 mt-4 pt-3 border-t border-slate-100">
-                      <li className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>Instant Wallet Top-up</span>
-                      </li>
-                      <li className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>Full AI & Analytics Access</span>
-                      </li>
-                      <li className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>No Expiry Date</span>
-                      </li>
-                    </ul>
+                    <span className="text-xs text-slate-400 font-medium">/{p.period}</span>
                   </div>
 
+                  <ul className="space-y-2 text-xs text-slate-700 pt-4 border-t border-slate-100">
+                    {p.features.map((feat, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-100">
                   <button
                     type="button"
-                    className={`mt-5 w-full py-2.5 rounded-xl text-xs font-bold transition ${
+                    className={`w-full py-2.5 rounded-xl font-heading font-semibold text-xs transition-colors ${
                       isSelected
-                        ? "bg-emerald-600 text-white shadow-xs"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        ? "bg-brand-purple text-white shadow-xs"
+                        : "bg-slate-100 text-slate-800 hover:bg-slate-200"
                     }`}
                   >
-                    {isSelected ? "Selected ✓" : "Select Pack"}
+                    {isSelected ? "Selected Plan ✓" : "Choose " + p.name}
                   </button>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </div>
+            );
+          })}
+        </div>
 
         {/* Meta Official Cloud API Notice Card */}
-        <div className="mt-6 p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600">
+        <div className="mt-6 p-4 rounded-2xl bg-blue-50/70 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-700">
           <div className="flex items-center gap-2.5">
-            <Info className="w-4 h-4 text-brand-purple shrink-0" />
+            <Info className="w-4 h-4 text-blue-700 shrink-0" />
             <span>{metaNote}</span>
           </div>
           <a
             href="https://business.facebook.com/billing_hub"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-brand-purple font-bold hover:underline shrink-0"
+            className="inline-flex items-center gap-1.5 text-blue-700 font-bold hover:underline shrink-0"
           >
-            <span>Manage Meta Card &amp; Billing</span>
+            <span>Open Meta Billing Hub</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
@@ -616,12 +470,12 @@ function CompletePaymentContent() {
               Step 2: Choose Payment Method
             </h2>
             <p className="text-xs text-slate-500">
-              Pay ₹{selectedItem.price.toLocaleString("en-IN")} securely for {selectedItem.name}.
+              Pay ₹{selectedItem.price.toLocaleString("en-IN")} securely for OneAmple {selectedItem.name} Plan.
             </p>
           </div>
         </div>
 
-        {/* ⭐ PRIMARY RECOMMENDED: RAZORPAY INSTANT AUTO-ACTIVATION */}
+        {/* RAZORPAY INSTANT AUTO-ACTIVATION */}
         <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white shadow-xl relative overflow-hidden border border-indigo-800/50">
           <div className="absolute top-0 right-0 w-72 h-72 bg-brand-purple/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -629,13 +483,13 @@ function CompletePaymentContent() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-2 border border-emerald-500/30">
                 <Zap className="w-3.5 h-3.5 text-emerald-400" />
-                Recommended • 1-Second Instant Activation
+                Recommended • Instant Activation
               </div>
               <h3 className="text-2xl font-extrabold font-heading text-white tracking-tight">
                 Pay with Razorpay Gateway
               </h3>
               <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-                Supports Google Pay, PhonePe, Paytm, CRED, All UPI Apps, Debit/Credit Cards (Visa, Mastercard, RuPay) &amp; NetBanking. No waiting for manual approval!
+                Supports Google Pay, PhonePe, Paytm, All UPI Apps, Debit/Credit Cards &amp; NetBanking. No waiting for manual approval!
               </p>
             </div>
 

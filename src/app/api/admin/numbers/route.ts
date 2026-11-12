@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
 import { encryptToken, decryptToken, maskToken } from "@/lib/encryption";
+import { getMetaGraphVersion } from "@/lib/meta-config";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,8 @@ export async function GET() {
 
     if (wabaId && token) {
       try {
-        const metaRes = await fetch(`https://graph.facebook.com/v20.0/${wabaId}/phone_numbers?access_token=${token}`, {
+        const apiVersion = getMetaGraphVersion();
+        const metaRes = await fetch(`https://graph.facebook.com/${apiVersion}/${wabaId}/phone_numbers?access_token=${token}`, {
           cache: "no-store",
         });
         const metaData = await metaRes.json();
@@ -62,6 +64,8 @@ export async function GET() {
                 isConnected: true,
                 connectionMethod: "OFFICIAL_DIRECT",
                 waPhoneNumberId: metaPhone.id,
+                waBusinessAccountId: matchBiz.whatsappConfig?.waBusinessAccountId || wabaId,
+                ...(!matchBiz.whatsappConfig?.waToken ? { waToken: encryptToken(token) } : {}),
                 displayPhoneNumber: metaPhone.display_phone_number,
                 verifiedName: metaPhone.verified_name || matchBiz.name,
                 qualityRating: metaPhone.quality_rating || "GREEN",
@@ -71,6 +75,8 @@ export async function GET() {
                 isConnected: true,
                 connectionMethod: "OFFICIAL_DIRECT",
                 waPhoneNumberId: metaPhone.id,
+                waBusinessAccountId: matchBiz.whatsappConfig?.waBusinessAccountId || wabaId,
+                ...(!matchBiz.whatsappConfig?.waToken ? { waToken: encryptToken(token) } : {}),
                 displayPhoneNumber: metaPhone.display_phone_number,
                 verifiedName: metaPhone.verified_name || matchBiz.name,
                 qualityRating: metaPhone.quality_rating || "GREEN",
@@ -175,7 +181,7 @@ export async function POST(req: Request) {
           messagingLimitTier: "TIER_250",
           waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
           waToken: encryptToken(process.env.WA_TOKEN || null),
-          waApiVersion: "v20.0",
+          waApiVersion: getMetaGraphVersion(),
         },
         create: {
           businessId: business.id,
@@ -188,7 +194,7 @@ export async function POST(req: Request) {
           messagingLimitTier: "TIER_250",
           waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
           waToken: encryptToken(process.env.WA_TOKEN || null),
-          waApiVersion: "v20.0",
+          waApiVersion: getMetaGraphVersion(),
         },
       });
 
@@ -230,7 +236,7 @@ export async function POST(req: Request) {
         {
           waToken: decryptToken(cfg.waToken) || process.env.WA_TOKEN || "",
           waPhoneNumberId: cfg.waPhoneNumberId,
-          waApiVersion: cfg.waApiVersion || "v20.0",
+          waApiVersion: getMetaGraphVersion(cfg.waApiVersion),
         },
         targetPhone,
         business.user.name || "Business Owner",

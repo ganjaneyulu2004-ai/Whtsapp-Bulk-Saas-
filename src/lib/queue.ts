@@ -1,6 +1,5 @@
 import { prisma } from "./prisma";
 import { sendWhatsAppTemplateMessage, uploadMediaToMeta, formatDirectOfferMessage } from "./whatsapp";
-import { getOrCreateReusableTemplate } from "./template-service";
 import { decryptToken } from "./encryption";
 import { getMetaGraphVersion } from "./meta-config";
 
@@ -134,7 +133,7 @@ export async function processCampaignSending(campaignId: string) {
       await new Promise((r) => setTimeout(r, 50));
 
       const recipientName = log.recipientName?.trim() || "Customer";
-      const bName = campaign.businessName?.trim() || campaign.business.name || "iBrainLabs";
+      const bName = campaign.businessName?.trim() || campaign.business.name || "OneAmple";
       const bLink = campaign.bookingLink?.trim() || "";
       const baseOffer = campaign.note?.trim() || "Special Offer for you today!";
       const offerWithBooking = bLink && !baseOffer.includes(bLink) ? `${baseOffer} 👉 ${bLink}` : baseOffer;
@@ -201,36 +200,6 @@ export async function processCampaignSending(campaignId: string) {
             sentCount: { increment: 1 },
           },
         });
-
-        // Track per-message API cost (cut from added card via threshold)
-        const costPerMsg = campaign.business.perMessageCost || 0.80;
-        try {
-          const updatedBusiness = await prisma.business.update({
-            where: { id: campaign.businessId },
-            data: {
-              unbilledApiSpend: { increment: costPerMsg },
-            },
-            select: {
-              unbilledApiSpend: true,
-              billingThreshold: true,
-            },
-          });
-
-          // Meta Threshold Auto-Debit (e.g. every ₹500)
-          const threshold = updatedBusiness.billingThreshold || 500.0;
-          if (updatedBusiness.unbilledApiSpend >= threshold) {
-            await prisma.business.update({
-              where: { id: campaign.businessId },
-              data: {
-                unbilledApiSpend: { decrement: threshold },
-                totalApiCharged: { increment: threshold },
-              },
-            });
-            console.log(`[Card Auto-Debit] Deducted ₹${threshold} for business ${campaign.businessId} at threshold.`);
-          }
-        } catch (cardErr) {
-          console.warn("Card spend tracking warning:", cardErr);
-        }
       } else {
         await prisma.messageLog.update({
           where: { id: log.id },

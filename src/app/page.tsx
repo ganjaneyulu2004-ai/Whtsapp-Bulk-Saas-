@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -11,32 +10,22 @@ import {
   Send,
   CheckCheck,
   Eye,
-  Calendar,
   Sparkles,
   ArrowRight,
-  TrendingUp,
-  MessageSquare,
   ChevronRight,
   ShieldCheck,
-  Clock,
   AlertTriangle,
   RotateCw,
-  Info,
   X,
-  FileSpreadsheet,
-  Zap,
   BarChart3,
   XCircle,
-  HelpCircle,
   Loader2,
   PhoneCall,
   Users,
   CreditCard,
   Trash2
 } from "lucide-react";
-import FreeTrialScannerSection from "@/components/FreeTrialScannerSection";
 import WhatsAppEmbeddedSignup from "@/components/WhatsAppEmbeddedSignup";
-import MetaApiCardModal from "@/components/MetaApiCardModal";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -48,34 +37,11 @@ export default function DashboardPage() {
   const [customEnd, setCustomEnd] = useState("");
 
   const [statsData, setStatsData] = useState<any>(null);
-  const [usage, setUsage] = useState<any>(null);
-  const [cardData, setCardData] = useState<any>(null);
-  const [showCardModal, setShowCardModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   // Failure reasons modal
   const [showFailureModal, setShowFailureModal] = useState(false);
-
-  const fetchUsage = async () => {
-    try {
-      const res = await fetch("/api/subscription/usage");
-      if (res.ok) {
-        const u = await res.json();
-        setUsage(u);
-      }
-    } catch { }
-  };
-
-  const fetchCardData = async () => {
-    try {
-      const res = await fetch("/api/billing/card");
-      if (res.ok) {
-        const c = await res.json();
-        setCardData(c);
-      }
-    } catch { }
-  };
 
   const fetchStats = async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -102,13 +68,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (session) {
       fetchStats();
-      fetchUsage();
-      fetchCardData();
       // Auto-refresh every 30 seconds
       const interval = setInterval(() => {
         fetchStats();
-        fetchUsage();
-        fetchCardData();
       }, 30000);
       return () => clearInterval(interval);
     } else {
@@ -193,7 +155,6 @@ export default function DashboardPage() {
     readRate: 0,
   };
 
-  const chartData = statsData?.chartData || [];
   const recentCampaigns = statsData?.recentCampaigns || [];
   const failureReasons = statsData?.failureReasons || [];
   const waConfig = statsData?.whatsappConfig;
@@ -233,7 +194,7 @@ export default function DashboardPage() {
               Super Admin Console
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-heading">
-              OfferBlast Administration
+              OneAmple Administration
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
               Platform controls, client WhatsApp number activations, and payment approvals.
@@ -321,7 +282,7 @@ export default function DashboardPage() {
                   {adminStats.totalClients}
                 </div>
                 <p className="text-xs text-slate-500 mt-2">
-                  Registered shop owners & businesses
+                  Registered shop owners &amp; businesses
                 </p>
               </div>
             </div>
@@ -377,7 +338,7 @@ export default function DashboardPage() {
               </div>
               <h3 className="text-xs font-bold text-slate-800">Client Submits Number</h3>
               <p className="text-xs text-slate-500 mt-1">
-                Client enters their 10-digit mobile number in their OfferBlast dashboard.
+                Client connects their WhatsApp Business account directly from their OneAmple dashboard.
               </p>
             </div>
 
@@ -433,146 +394,35 @@ export default function DashboardPage() {
         onConfigUpdated={() => fetchStats(true)}
       />
 
-      {/* ⚠️ PLAN MESSAGE LIMIT REACHED BANNER */}
-      {usage?.isLimitReached && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-pulse">
+      {/* 2. Meta Billing Hub Notice (shown ONLY after WhatsApp is connected) */}
+      {isWhatsAppConnected && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/80 border border-blue-200 text-blue-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-700">
-              <AlertTriangle className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-700">
+              <CreditCard className="w-5 h-5" />
             </div>
-            <div>
-              <p className="font-heading font-extrabold text-sm sm:text-base text-amber-900">
-                ⚠️ మీ ప్లాన్ లోని మెసేజ్ లిమిట్ పూర్తయింది.
-              </p>
-              <p className="text-xs text-amber-800 mt-0.5">
-                మిగిలిన మెసేజ్‌లు వెళ్లడానికి దయచేసి రీఛార్జ్ / టాప్-అప్ చేసుకోండి. (Your plan message quota is exhausted. Top-up credits to continue broadcasting).
-              </p>
-            </div>
+            <p className="font-heading font-semibold text-xs sm:text-sm text-blue-950">
+              {t("dashboard.metaBillingNotice")}
+            </p>
           </div>
-          <Link
-            href="/complete-payment?type=topup"
-            className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-heading font-extrabold text-xs shadow-md transition-all shrink-0 flex items-center gap-1.5 cursor-pointer"
+          <a
+            href="https://business.facebook.com/billing_hub"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2.5 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-heading font-bold text-xs shadow-xs transition-all shrink-0 flex items-center gap-1.5"
           >
-            <span>⚡ రీఛార్జ్ / టాప్-అప్ చేయండి</span>
+            <span>{t("dashboard.openMetaBillingHub")}</span>
             <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          </a>
         </div>
       )}
 
-      {/* MESSAGE QUOTA & TOP-UP BAR */}
-      {usage && !isAdmin && (
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-purple/10 text-brand-purple flex items-center justify-center shrink-0">
-              <Zap className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  {usage.planName} Plan Message Quota
-                </span>
-                {usage.isLimitReached ? (
-                  <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
-                    Limit Reached
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                    Active
-                  </span>
-                )}
-              </div>
-              <div className="text-sm font-heading font-bold text-slate-800 mt-0.5">
-                Available: <span className="text-brand-purple font-extrabold">{usage.totalAvailable.toLocaleString()} messages</span>
-                <span className="text-xs text-slate-400 font-normal ml-2">
-                  ({usage.messagesSentInCycle.toLocaleString()} / {usage.planLimit.toLocaleString()} used
-                  {usage.topUpRemaining > 0 ? ` + ${usage.topUpRemaining.toLocaleString()} top-up credits` : ""})
-                </span>
-              </div>
-            </div>
-          </div>
-          <Link
-            href="/complete-payment?type=topup"
-            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-heading font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0"
-          >
-            <span>⚡ Buy Top-Up</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      )}
-
-      {/* 💳 OFFICIAL META PER-MESSAGE API CARD BILLING BAR */}
-      {!isAdmin && (
-        cardData?.apiCardLinked ? (
-          <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 font-bold">
-                💳
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">
-                    Official Meta WhatsApp API Billing
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-800 text-[10px] font-bold">
-                    Card Linked ✓
-                  </span>
-                </div>
-                <div className="text-sm font-heading font-bold text-slate-800 mt-0.5">
-                  <span>{cardData.apiCardBrand || "Card"} ending in {cardData.apiCardLast4 || "••••"}</span>
-                  <span className="text-xs text-slate-500 font-normal ml-2">
-                    (Meter: ₹{(cardData.unbilledApiSpend || 0).toFixed(2)} / ₹{cardData.billingThreshold || 500} auto-debit threshold)
-                  </span>
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowCardModal(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-emerald-300 text-emerald-800 font-heading font-bold text-xs transition shrink-0 cursor-pointer"
-            >
-              Update Card
-            </button>
-          </div>
-        ) : (
-          <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50 border-2 border-indigo-200 text-indigo-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-pulse">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0 text-indigo-700">
-                <CreditCard className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="font-heading font-extrabold text-sm sm:text-base text-indigo-900">
-                  💳 వాట్సాప్ అధికారిక API ఛార్జీల (~₹0.80/msg) కోసం కార్డ్ లింక్ చేయండి
-                </p>
-                <p className="text-xs text-indigo-800 mt-0.5">
-                  బల్క్ క్యాంపెయిన్స్ పంపడానికి ఇది తప్పనిసరి. మొదటి మెసేజ్ నుండే API ఖర్చు ఆటో-డెబిట్ అవుతుంది (Meta లాగానే).
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowCardModal(true)}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-heading font-extrabold text-xs shadow-md transition-all shrink-0 flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>💳 Link Card Now</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )
-      )}
-
-      {/* Meta API Card Linking Modal */}
-      <MetaApiCardModal
-        isOpen={showCardModal}
-        onClose={() => setShowCardModal(false)}
-        onSuccess={fetchCardData}
-      />
-
-      {/* 2. Top Header & Action Bar (Clean & Seamless) */}
+      {/* 3. Top Header & Action Bar (Clean & Seamless) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
-              Dashboard Overview
+              {t("dashboard.overviewTitle")}
             </h1>
             {isWhatsAppConnected && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-200">
@@ -582,7 +432,7 @@ export default function DashboardPage() {
             )}
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Real-time delivery verification and campaign statistics
+            {t("dashboard.overviewSubtitle")}
           </p>
         </div>
 
@@ -600,7 +450,7 @@ export default function DashboardPage() {
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   }`}
               >
-                {r === "today" ? "Today" : r === "7days" ? "7 Days" : "30 Days"}
+                {r === "today" ? t("dashboard.today") : r === "7days" ? t("dashboard.days7") : t("dashboard.days30")}
               </button>
             ))}
           </div>
@@ -622,18 +472,18 @@ export default function DashboardPage() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium transition shadow-2xs cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Create Campaign</span>
+            <span>{t("dashboard.createCta")}</span>
           </Link>
         </div>
       </div>
 
-      {/* 3. Core KPI Metric Cards (Matching Billing Cards Design) */}
+      {/* 4. Core KPI Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Card 1: Total Sent */}
         <div className="bg-white p-5 rounded-2xl border border-brand-soft shadow-card hover:shadow-md hover:border-brand-purple/40 hover:-translate-y-1 transition-all duration-300 ease-out group cursor-default">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-muted uppercase tracking-wider block">
-              Total Sent
+              {t("dashboard.statTotalSent")}
             </span>
             <div className="w-8 h-8 rounded-xl bg-purple-50 text-brand-purple flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-purple group-hover:text-white transition-all duration-300">
               <Send className="w-4 h-4" />
@@ -644,7 +494,7 @@ export default function DashboardPage() {
               {stats.totalSent.toLocaleString()}
             </div>
             <p className="text-xs text-slate-muted mt-1 font-medium">
-              Messages dispatched
+              {t("dashboard.messagesDispatched")}
             </p>
           </div>
         </div>
@@ -653,7 +503,7 @@ export default function DashboardPage() {
         <div className="bg-white p-5 rounded-2xl border border-brand-soft shadow-card hover:shadow-md hover:border-brand-purple/40 hover:-translate-y-1 transition-all duration-300 ease-out group cursor-default">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-muted uppercase tracking-wider block">
-              Delivered
+              {t("dashboard.statDelivered")}
             </span>
             <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
               <CheckCheck className="w-4 h-4" />
@@ -664,7 +514,7 @@ export default function DashboardPage() {
               {stats.totalDelivered.toLocaleString()}
             </div>
             <p className="text-xs text-slate-muted mt-1 font-medium">
-              Reached handsets
+              {t("dashboard.reachedHandsets")}
             </p>
           </div>
         </div>
@@ -673,7 +523,7 @@ export default function DashboardPage() {
         <div className="bg-white p-5 rounded-2xl border border-brand-soft shadow-card hover:shadow-md hover:border-brand-purple/40 hover:-translate-y-1 transition-all duration-300 ease-out group cursor-default">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-muted uppercase tracking-wider block">
-              Read
+              {t("dashboard.statRead")}
             </span>
             <div className="w-8 h-8 rounded-xl bg-blue-50 text-brand-blue flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-blue group-hover:text-white transition-all duration-300">
               <Eye className="w-4 h-4" />
@@ -689,7 +539,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <p className="text-xs text-slate-muted mt-1 font-medium">
-              Opened by customer
+              {t("dashboard.openedByCustomer")}
             </p>
           </div>
         </div>
@@ -701,7 +551,7 @@ export default function DashboardPage() {
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-muted uppercase tracking-wider block group-hover:text-rose-600 transition-colors">
-              Failed
+              {t("dashboard.statFailed")}
             </span>
             <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-rose-600 group-hover:text-white transition-all duration-300">
               <AlertTriangle className="w-4 h-4" />
@@ -712,24 +562,24 @@ export default function DashboardPage() {
               {stats.totalFailed.toLocaleString()}
             </div>
             <p className="text-xs text-rose-500 group-hover:text-rose-600 transition-colors mt-1 flex items-center gap-1 font-medium">
-              <span>Click to view reasons</span>
+              <span>{t("dashboard.clickViewReasons")}</span>
               <span className="group-hover:translate-x-0.5 transition-transform">→</span>
             </p>
           </div>
         </div>
       </div>
 
-      {/* CAMPAIGN TABLE: Campaign name, date, Sent, Delivered, Read, Not Read, Failed, Read Rate % */}
+      {/* CAMPAIGN TABLE */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-soft pb-5">
           <div className="flex items-center gap-2.5">
             <BarChart3 className="w-5 h-5 text-brand-purple" />
             <div>
               <h2 className="text-base font-bold text-text-main uppercase tracking-wider">
-                Recent Campaigns & Delivery Stats
+                {t("dashboard.recentCampaigns")}
               </h2>
               <p className="text-xs text-slate-muted mt-0.5">
-                Click any campaign row to inspect per-contact logs or trigger a resend to unread recipients.
+                {t("dashboard.recentCampaignsSubtitle")}
               </p>
             </div>
           </div>
@@ -738,7 +588,7 @@ export default function DashboardPage() {
             href="/campaigns"
             className="text-xs font-semibold text-brand-purple hover:text-brand-blue flex items-center gap-1 transition-colors group"
           >
-            <span>View All Campaigns</span>
+            <span>{t("dashboard.viewAll")}</span>
             <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
@@ -752,10 +602,10 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-text-main">
-                    Ready to Launch Your First WhatsApp Broadcast?
+                    {t("dashboard.noCampaignsYet")}
                   </h4>
                   <p className="text-xs text-slate-muted mt-0.5">
-                    Follow these 3 easy steps to reach your customer audience with high open rates.
+                    {t("dashboard.startFirstCampaign")}
                   </p>
                 </div>
               </div>
@@ -765,7 +615,7 @@ export default function DashboardPage() {
                 className="px-5 py-2.5 rounded-xl bg-[#5A237A] hover:bg-[#471A62] text-white font-semibold text-xs shadow-xs flex items-center justify-center gap-2 transition-all self-start sm:self-auto cursor-pointer active:scale-95"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
-                <span>Launch First Campaign</span>
+                <span>{t("dashboard.launchFirstCampaign")}</span>
               </Link>
             </div>
 
@@ -799,7 +649,7 @@ export default function DashboardPage() {
                   Step 3
                 </span>
                 <h4 className="text-base font-bold text-text-main">
-                  Send & Track Live
+                  Send &amp; Track Live
                 </h4>
                 <p className="text-xs text-slate-muted mt-1 leading-relaxed">
                   Watch real-time delivery double ticks and track customer read receipts.
