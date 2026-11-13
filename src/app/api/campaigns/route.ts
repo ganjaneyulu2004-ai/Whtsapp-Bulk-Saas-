@@ -173,38 +173,31 @@ export async function POST(req: Request) {
     }
 
     const { countTemplateBodyVariables } = await import("@/lib/template-service");
+    const { getGenericFallbackForVariable } = await import("@/lib/template-variables");
     const expectedVarCount = countTemplateBodyVariables(selectedTemplate.bodyText);
-    const normalizedBodyVariables = Array.isArray(bodyVariables)
-      ? bodyVariables.map((v: any) => String(v ?? "").trim())
-      : null;
+    let normalizedBodyVariables: string[] | null = null;
 
     if (expectedVarCount > 0) {
-      if (!normalizedBodyVariables || normalizedBodyVariables.length < expectedVarCount) {
-        return NextResponse.json(
-          {
-            error: `Template "${selectedTemplate.name}" expects ${expectedVarCount} body variable(s). Please fill all required variables before launching.`,
-          },
-          { status: 400 }
-        );
-      }
-      const emptyIdx = normalizedBodyVariables
-        .slice(0, expectedVarCount)
-        .findIndex((val) => val.length === 0);
-      if (emptyIdx !== -1) {
-        return NextResponse.json(
-          {
-            error: `Please provide a value for template variable {{${emptyIdx + 1}}} before launching.`,
-          },
-          { status: 400 }
-        );
-      }
+      const incomingList = Array.isArray(bodyVariables) ? bodyVariables : [];
+      normalizedBodyVariables = Array.from({ length: expectedVarCount }, (_, idx) => {
+        const num = idx + 1;
+        const raw = incomingList[idx];
+        if (num === 1 && (raw === "__CONTACT_NAME__" || !raw || String(raw).trim() === "")) {
+          return "__CONTACT_NAME__";
+        }
+        const val = raw ? String(raw).trim() : "";
+        if (val) return val;
+        // Auto-fill fallback so server never blocks launch
+        return getGenericFallbackForVariable(num, selectedTemplate.bodyText, undefined, {
+          name: businessName?.trim() || business.name,
+          bookingLink: bookingLink?.trim(),
+        });
+      });
     }
 
     const serializedBodyVariables =
       normalizedBodyVariables && normalizedBodyVariables.length > 0
         ? JSON.stringify(normalizedBodyVariables)
-        : bodyVariables && typeof bodyVariables === "object"
-        ? JSON.stringify(bodyVariables)
         : null;
 
     let targetContactListId = contactListId;

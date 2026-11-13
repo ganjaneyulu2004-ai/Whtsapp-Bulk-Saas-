@@ -4,6 +4,7 @@ import { decryptToken } from "@/lib/encryption";
 import { getMetaGraphVersion } from "@/lib/meta-config";
 import { sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
 import { countTemplateBodyVariables, getClientTemplates } from "@/lib/template-service";
+import { getGenericFallbackForVariable } from "@/lib/template-variables";
 import { saveBase64TemplateImage } from "@/lib/media-storage";
 
 export async function POST(req: Request) {
@@ -189,10 +190,22 @@ export async function POST(req: Request) {
       }
 
       const bodyVarCount = countTemplateBodyVariables(matched.bodyText);
-      const resolvedCustomVars = Array.isArray(customBodyParameters)
-        ? customBodyParameters.map((v: any) =>
-            v === "__CONTACT_NAME__" ? recipientName || "Customer" : String(v || "")
-          )
+      const incomingList = Array.isArray(customBodyParameters) ? customBodyParameters : [];
+      const resolvedCustomVars = bodyVarCount > 0
+        ? Array.from({ length: bodyVarCount }, (_, idx) => {
+            const num = idx + 1;
+            const raw = incomingList[idx];
+            if (num === 1 && (raw === "__CONTACT_NAME__" || !raw || String(raw).trim() === "")) {
+              return recipientName || "Customer";
+            }
+            if (raw && String(raw).trim() !== "") {
+              return raw === "__CONTACT_NAME__" ? (recipientName || "Customer") : String(raw).trim();
+            }
+            return getGenericFallbackForVariable(num, matched.bodyText, undefined, {
+              name: bName,
+              recipientName: recipientName || "Customer",
+            });
+          })
         : undefined;
 
       const sendRes = await sendWhatsAppTemplateMessage(

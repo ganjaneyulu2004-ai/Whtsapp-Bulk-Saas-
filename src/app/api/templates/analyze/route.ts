@@ -7,6 +7,7 @@ import {
   analyzePosterWithGemini,
   generateOfferOptionsFromDetails,
   mapExtractedDetailsToTemplateVariables,
+  emptyExtractedDetails,
 } from "@/lib/gemini";
 
 async function loadOwnedTemplateImageBase64(
@@ -185,8 +186,26 @@ export async function POST(req: Request) {
       });
     }
 
+    // 3. Fallback when template is selected without poster: auto-fill every variable with safe generic fallback
+    if (resolvedBodyText) {
+      const suggestedVariables = mapExtractedDetailsToTemplateVariables(
+        emptyExtractedDetails(),
+        resolvedBodyText,
+        {
+          bookingLink: finalBookingLink || undefined,
+          businessName: business.name,
+          targetVariable: parsedTargetVar,
+        }
+      );
+      return NextResponse.json({
+        success: true,
+        extractedDetails: emptyExtractedDetails(),
+        suggestedVariables,
+      });
+    }
+
     return NextResponse.json(
-      { error: "Poster image or template default image is required for vision analysis" },
+      { error: "Template body text or image is required" },
       { status: 400 }
     );
   } catch (err: any) {

@@ -1,4 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import {
+  limitEmojis,
+  sanitizeVariableValue,
+  getGenericFallbackForVariable,
+} from "./template-variables";
+
+export { limitEmojis, sanitizeVariableValue };
 
 export interface ExtractedPosterDetails {
   business_name: string | null;
@@ -29,34 +36,8 @@ export interface PosterAnalysisResponse {
   success: boolean;
   extractedDetails: ExtractedPosterDetails;
   generatedOptions: GeneratedOfferTextOptions;
-  suggestedVariables?: Record<string, string | null>;
+  suggestedVariables?: Record<string, string>;
   error?: string;
-}
-
-export function limitEmojis(text: string, maxEmojis = 2): string {
-  if (!text) return "";
-  try {
-    const emojiRegex = new RegExp("\\p{Extended_Pictographic}(?:\\uFE0F|\\u200D\\p{Extended_Pictographic})*", "gu");
-    let seen = 0;
-    return text.replace(emojiRegex, (match) => {
-      seen += 1;
-      return seen <= maxEmojis ? match : "";
-    });
-  } catch {
-    return text;
-  }
-}
-
-export function sanitizeVariableValue(val: string | null | undefined, maxEmojis = 2): string | null {
-  if (!val) return null;
-  const singleLine = String(val)
-    .replace(/[\r\n\t]/g, " ")
-    .replace(/ {5,}/g, "    ")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (!singleLine) return null;
-  const cleaned = limitEmojis(singleLine, maxEmojis).replace(/\s+/g, " ").trim().substring(0, 300).trim();
-  return cleaned || null;
 }
 
 export function sanitizeOfferText(text: string, bookingLink?: string): string {
@@ -97,21 +78,17 @@ function buildBalancedOffer(
 export function mapExtractedDetailsToTemplateVariables(
   details: ExtractedPosterDetails,
   templateBodyText?: string | null,
-  options?: { bookingLink?: string; targetVariable?: number }
-): Record<string, string | null> {
-  const result: Record<string, string | null> = {};
+  options?: { bookingLink?: string; businessName?: string; targetVariable?: number }
+): Record<string, string> {
+  const result: Record<string, string> = {};
   if (!templateBodyText) return result;
 
   let maxIdx = 0;
-  const varPositions: Array<{ idx: number; start: number; end: number }> = [];
   const regex = /\{\{(\d+)\}\}/g;
   let m: RegExpExecArray | null;
   while ((m = regex.exec(templateBodyText)) !== null) {
     const idx = parseInt(m[1], 10);
-    if (!Number.isNaN(idx) && idx > 0) {
-      if (idx > maxIdx) maxIdx = idx;
-      varPositions.push({ idx, start: m.index, end: m.index + m[0].length });
-    }
+    if (!Number.isNaN(idx) && idx > maxIdx) maxIdx = idx;
   }
 
   for (let varNum = 1; varNum <= maxIdx; varNum++) {
@@ -119,50 +96,11 @@ export function mapExtractedDetailsToTemplateVariables(
     if (varNum === 1 && options?.targetVariable !== 1) continue;
     if (options?.targetVariable && options.targetVariable !== varNum) continue;
 
-    const pos = varPositions.find((p) => p.idx === varNum);
-    const before = pos
-      ? templateBodyText.slice(Math.max(0, pos.start - 65), pos.start).toLowerCase()
-      : "";
-    const after = pos
-      ? templateBodyText.slice(pos.end, Math.min(templateBodyText.length, pos.end + 45)).toLowerCase()
-      : "";
-    const context = `${before} ${after}`;
-
-    let value: string | null = null;
-
-    if (/\b(valid|till|until|expir|last date|ends on|end date|validity|date)\b/.test(context)) {
-      value = details.valid_till
-        ? details.valid_from
-          ? `${details.valid_from} to ${details.valid_till}`
-          : details.valid_till
-        : null;
-    } else if (/\b(link|url|website|book here|order here|visit us at|click)\b/.test(context)) {
-      value = details.website || options?.bookingLink || null;
-    } else if (/\b(phone|call|mobile|whatsapp|helpline|contact us at|dial)\b/.test(context)) {
-      value = details.phone || null;
-    } else if (/\b(price|cost|fee|rate|mrp|rs\.?|inr|₹|starting at|only at)\b/.test(context)) {
-      value = details.price || null;
-    } else if (/\b(discount|off|save|cashback)\b/.test(context) && !/\boffer\b/.test(context)) {
-      value = details.discount || null;
-    } else if (/\b(product|service|package|item|course|treatment|plan)\b/.test(context) && !/\boffer\b/.test(context)) {
-      value = details.products_or_services || details.offer_title || null;
-    } else if (/\b(shopping with|welcome to|team|brand|shop name|store name|company)\b/.test(context)) {
-      value = details.business_name || null;
-    } else if (/\b(location|address|venue|branch|city|visit)\b/.test(context) && !details.offer_title) {
-      value = details.location || null;
-    } else {
-      // Offer / headline / general announcement slot (e.g. "special offer for you: {{2}}")
-      const headline = [details.offer_title, details.discount].filter(Boolean).join(" – ");
-      const tailParts = [details.products_or_services, details.price].filter(Boolean);
-      const linkSuffix = details.website ? ` 👉 ${details.website}` : "";
-      const phoneSuffix = !details.website && details.phone ? ` Call ${details.phone}` : "";
-      const combined = [headline, tailParts.join(" · ")].filter(Boolean).join(": ");
-      value = combined
-        ? `${combined}${linkSuffix}${phoneSuffix}`
-        : details.other_key_text || null;
-    }
-
-    result[String(varNum)] = sanitizeVariableValue(value, 2);
+    const val = getGenericFallbackForVariable(varNum, templateBodyText, details, {
+      bookingLink: options?.bookingLink,
+      name: options?.businessName,
+    });
+    result[String(varNum)] = val;
   }
 
   return result;
@@ -327,7 +265,7 @@ Return ONLY a valid JSON object matching this EXACT structure:
     const standardOpt = sanitizeOfferText(parsed.generatedOptions?.standard || parsed.generatedOptions?.detailed || "", bookingLink);
     const festiveOpt = sanitizeOfferText(parsed.generatedOptions?.festive || "", bookingLink);
 
-    const suggestedVariables: Record<string, string | null> = {};
+    const suggestedVariables: Record<string, string> = {};
     if (templateOptions?.templateBodyText) {
       const heuristicVars = mapExtractedDetailsToTemplateVariables(
         extractedDetails,
@@ -340,10 +278,12 @@ Return ONLY a valid JSON object matching this EXACT structure:
           : {};
 
       for (const varKey of Object.keys(heuristicVars)) {
-        const aiVal = Object.prototype.hasOwnProperty.call(rawSuggested, varKey)
-          ? sanitizeVariableValue(rawSuggested[varKey], 2)
-          : heuristicVars[varKey];
-        suggestedVariables[varKey] = aiVal;
+        const raw = rawSuggested[varKey];
+        const aiVal =
+          raw && String(raw).trim() && raw !== "null"
+            ? sanitizeVariableValue(raw, 2)
+            : "";
+        suggestedVariables[varKey] = aiVal || heuristicVars[varKey];
       }
     }
 

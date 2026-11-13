@@ -28,6 +28,10 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
+import {
+  getGenericFallbackForVariable,
+  sanitizeVariableValue,
+} from "@/lib/template-variables";
 
 export default function CreateCampaignPage() {
   const router = useRouter();
@@ -216,17 +220,18 @@ export default function CreateCampaignPage() {
 
         const raw = suggested[String(v)];
         if (raw && String(raw).trim()) {
-          const cleaned = String(raw)
-            .replace(/[\r\n\t]/g, " ")
-            .replace(/ {5,}/g, "    ")
-            .replace(/\s+/g, " ")
-            .trim()
-            .substring(0, 300);
+          const cleaned = sanitizeVariableValue(raw, 2);
           next[v] = cleaned;
           if (v === 2) setOfferText(cleaned);
         } else {
-          next[v] = "";
-          if (v === 2) setOfferText("");
+          const fallback = getGenericFallbackForVariable(
+            v,
+            activeTemplate?.bodyText,
+            extractedDetails,
+            { name: businessName, bookingLink: bookingLink.trim(), recipientName: firstContactName }
+          );
+          next[v] = fallback;
+          if (v === 2) setOfferText(fallback);
         }
       }
       return next;
@@ -238,12 +243,7 @@ export default function CreateCampaignPage() {
         if (!opts?.onlyVar && v === 1 && var1UseContactName) continue;
         if (opts?.respectManual && prev[v]?.manualEdited) continue;
 
-        const raw = suggested[String(v)];
-        if (raw && String(raw).trim()) {
-          next[v] = { aiFilled: true, manualEdited: false, missingFromPoster: false };
-        } else {
-          next[v] = { aiFilled: false, manualEdited: false, missingFromPoster: true };
-        }
+        next[v] = { aiFilled: true, manualEdited: false, missingFromPoster: false };
       }
       return next;
     });
@@ -421,6 +421,43 @@ export default function CreateCampaignPage() {
     return maxIdx > 0 ? Array.from({ length: maxIdx }, (_, i) => i + 1) : [];
   }, [activeTemplate?.bodyText]);
 
+  // Auto-fill template variables with safe generic fallbacks whenever active template or bodyVariables change
+  useEffect(() => {
+    if (!activeTemplate?.id || bodyVariables.length === 0) return;
+    setTemplateVarValues((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const v of bodyVariables) {
+        if (!next[v] || !next[v].trim()) {
+          const fallback = getGenericFallbackForVariable(
+            v,
+            activeTemplate.bodyText,
+            extractedDetails,
+            { name: businessName, bookingLink: bookingLink.trim(), recipientName: firstContactName }
+          );
+          next[v] = fallback;
+          changed = true;
+          if (v === 2 && !offerText) {
+            setOfferText(fallback);
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
+
+    setVarMeta((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const v of bodyVariables) {
+        if (!next[v]) {
+          next[v] = { aiFilled: true, manualEdited: false, missingFromPoster: false };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [activeTemplate?.id, bodyVariables, businessName, bookingLink, firstContactName]);
+
   // Automatically run Gemini Vision analysis & auto-fill when Step 2 uses an uploaded or template default image
   useEffect(() => {
     if (step !== 2 || !isImageHeader || !activeTemplate?.id || !effectivePreviewImage) {
@@ -476,23 +513,15 @@ export default function CreateCampaignPage() {
     return `value for {{${varNum}}}`;
   };
 
-  const missingBodyVars = bodyVariables.filter((v) => {
-    if (v === 1 && var1UseContactName) return false;
-    return !(templateVarValues[v] || "").trim();
-  });
-
   const hasMissingStep2Fields =
     !activeTemplate ||
     !isApproved ||
-    (isImageHeader && !effectivePreviewImage) ||
-    missingBodyVars.length > 0;
+    (isImageHeader && !effectivePreviewImage);
 
   const renderVariableCard = (varNum: number) => {
     const currentVal = templateVarValues[varNum] || "";
     const isFirst = varNum === 1;
-    const meta = varMeta[varNum];
     const showTextBox = !(isFirst && var1UseContactName);
-    const isMissingNow = showTextBox && !currentVal.trim();
     const rawExample = templateBodyExamples[varNum - 1] || "";
     const neededLabel = describeNeededVariable(activeTemplate?.bodyText, varNum);
     const inputPlaceholder = rawExample
@@ -506,27 +535,16 @@ export default function CreateCampaignPage() {
     return (
       <div
         key={varNum}
-        className={`p-4 rounded-2xl border space-y-2.5 transition-all ${
-          isMissingNow
-            ? "border-rose-400 bg-rose-50/70 ring-2 ring-rose-200"
-            : "border-slate-200 bg-slate-50/50"
-        }`}
+        className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2.5 transition-all"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <label className="text-xs font-heading font-bold text-slate-heading">
-              Variable <span className={`font-mono ${isMissingNow ? "text-rose-700" : "text-emerald-700"}`}>{`{{${varNum}}}`}</span>
+              Variable <span className="font-mono text-emerald-700">{`{{${varNum}}}`}</span>
             </label>
-            {showTextBox && meta?.aiFilled && currentVal.trim() && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                <Sparkles className="w-2.5 h-2.5" />
-                AI filled
-              </span>
-            )}
-            {isMissingNow && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
-                <AlertTriangle className="w-2.5 h-2.5 text-rose-600" />
-                Please type {neededLabel}
+            {showTextBox && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-600">
+                AI
               </span>
             )}
           </div>
@@ -545,7 +563,7 @@ export default function CreateCampaignPage() {
                       { targetVar: varNum, respectManual: false }
                     )
                   }
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-700 text-[10px] font-heading font-bold transition-all disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-heading font-bold transition-all disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3 h-3 ${isRegeneratingThis ? "animate-spin" : ""}`} />
                   <span>{isRegeneratingThis ? "Generating..." : "Regenerate"}</span>
@@ -562,7 +580,7 @@ export default function CreateCampaignPage() {
                       [varNum]: {
                         aiFilled: false,
                         manualEdited: false,
-                        missingFromPoster: true,
+                        missingFromPoster: false,
                       },
                     }));
                   }}
@@ -608,7 +626,7 @@ export default function CreateCampaignPage() {
                 [varNum]: {
                   aiFilled: false,
                   manualEdited: nextVal.trim().length > 0,
-                  missingFromPoster: nextVal.trim().length === 0,
+                  missingFromPoster: false,
                 },
               }));
               if (varNum === 2) {
@@ -616,11 +634,7 @@ export default function CreateCampaignPage() {
               }
             }}
             placeholder={inputPlaceholder}
-            className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-xs font-body focus:ring-2 ${
-              isMissingNow
-                ? "border-rose-300 focus:ring-rose-400"
-                : "border-slate-200 focus:ring-emerald-500"
-            }`}
+            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-body focus:ring-2 focus:ring-emerald-500"
           />
         )}
       </div>
@@ -629,11 +643,16 @@ export default function CreateCampaignPage() {
 
   const resolvePreviewVarValue = (varNum: number): string => {
     if (varNum === 1 && var1UseContactName) {
-      return firstContactName;
+      return firstContactName || "Customer";
     }
     const typed = (templateVarValues[varNum] || "").trim();
     if (typed) return typed;
-    return `{{${varNum}}}`;
+    return getGenericFallbackForVariable(
+      varNum,
+      activeTemplate?.bodyText,
+      extractedDetails,
+      { name: businessName, bookingLink: bookingLink.trim(), recipientName: firstContactName }
+    );
   };
 
   const buildCustomBodyParameters = (): string[] | undefined => {
@@ -644,7 +663,14 @@ export default function CreateCampaignPage() {
       if (num === 1 && var1UseContactName) {
         return "__CONTACT_NAME__";
       }
-      return (templateVarValues[num] || "").trim();
+      const typed = (templateVarValues[num] || "").trim();
+      if (typed) return typed;
+      return getGenericFallbackForVariable(
+        num,
+        activeTemplate?.bodyText,
+        extractedDetails,
+        { name: businessName, bookingLink: bookingLink.trim(), recipientName: firstContactName }
+      );
     });
   };
 
@@ -658,16 +684,8 @@ export default function CreateCampaignPage() {
       if (m) {
         const varNum = parseInt(m[1], 10);
         const val = resolvePreviewVarValue(varNum);
-        const isMissing = val === part;
         return (
-          <span
-            key={idx}
-            className={
-              isMissing
-                ? "font-mono font-bold text-amber-700 bg-amber-100 px-1 rounded"
-                : "font-bold text-emerald-700"
-            }
-          >
+          <span key={idx} className="font-bold text-emerald-700">
             {val}
           </span>
         );
@@ -731,14 +749,6 @@ export default function CreateCampaignPage() {
       alert("Please select an APPROVED WhatsApp template before sending a test.");
       return;
     }
-    for (const v of bodyVariables) {
-      if (v === 1 && var1UseContactName) continue;
-      if (!(templateVarValues[v] || "").trim()) {
-        alert(`Please enter a value for template variable {{${v}}} before sending a test.`);
-        setStep(2);
-        return;
-      }
-    }
     if (isImageHeader && !effectivePreviewImage) {
       alert("This template requires an IMAGE header. Please upload a JPG or PNG image in Step 2.");
       setStep(2);
@@ -791,14 +801,6 @@ export default function CreateCampaignPage() {
       alert("Campaign launch blocked: you must select a template that is APPROVED in Meta.");
       setStep(2);
       return;
-    }
-    for (const v of bodyVariables) {
-      if (v === 1 && var1UseContactName) continue;
-      if (!(templateVarValues[v] || "").trim()) {
-        alert(`Please enter a value for template variable {{${v}}} before launching.`);
-        setStep(2);
-        return;
-      }
     }
     if (isImageHeader && !effectivePreviewImage) {
       alert("This template requires an IMAGE header. Please upload a JPG/PNG image.");
@@ -1244,27 +1246,6 @@ export default function CreateCampaignPage() {
               </div>
             )}
 
-            {/* Expanded red inputs ONLY for variables missing after poster analysis (or non-image templates) */}
-            {!showEditMessage &&
-              !analyzing &&
-              bodyVariables.length > 0 &&
-              (!isImageHeader || Boolean(effectivePreviewImage)) &&
-              missingBodyVars.length > 0 && (
-                <div className="bg-rose-50/70 rounded-3xl p-5 border-2 border-rose-300 shadow-card space-y-3">
-                  <div className="flex items-center gap-2 text-rose-900 font-heading font-bold text-xs">
-                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span>
-                      {isImageHeader
-                        ? "Not found in poster — please type the missing details to continue:"
-                        : "Please fill in the required template fields:"}
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    {missingBodyVars.map((varNum) => renderVariableCard(varNum))}
-                  </div>
-                </div>
-              )}
-
             {/* Collapsed "Edit message (optional)" section for reviewing/editing filled variables */}
             {isApproved && (
               <div className="bg-white rounded-3xl border border-emerald-100 shadow-card overflow-hidden">
@@ -1277,7 +1258,7 @@ export default function CreateCampaignPage() {
                     <span className="text-sm font-heading font-bold text-slate-heading">
                       Edit message (optional)
                     </span>
-                    {!analyzing && missingBodyVars.length === 0 && (!isImageHeader || Boolean(effectivePreviewImage)) && (
+                    {!analyzing && (!isImageHeader || Boolean(effectivePreviewImage)) && (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                         <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                         Ready for preview
@@ -1400,11 +1381,21 @@ export default function CreateCampaignPage() {
                     alert("Please upload a JPG or PNG campaign poster image before continuing.");
                     return;
                   }
-                  if (missingBodyVars.length > 0) {
-                    const firstNeeded = describeNeededVariable(activeTemplate?.bodyText, missingBodyVars[0]);
-                    alert(`Please type ${firstNeeded} before continuing.`);
-                    return;
-                  }
+                  // Safety net: ensure any blank variable is safely filled with fallback before advancing
+                  setTemplateVarValues((prev) => {
+                    const next = { ...prev };
+                    for (const v of bodyVariables) {
+                      if (!next[v] || !next[v].trim()) {
+                        next[v] = getGenericFallbackForVariable(
+                          v,
+                          activeTemplate?.bodyText,
+                          extractedDetails,
+                          { name: businessName, bookingLink: bookingLink.trim(), recipientName: firstContactName }
+                        );
+                      }
+                    }
+                    return next;
+                  });
                   setStep(3);
                 }}
                 disabled={analyzing || hasMissingStep2Fields || loadingTemplates}

@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { sendWhatsAppTemplateMessage, uploadMediaToMeta, formatDirectOfferMessage } from "./whatsapp";
 import { countTemplateBodyVariables } from "./template-service";
+import { getGenericFallbackForVariable } from "./template-variables";
 import { decryptToken } from "./encryption";
 import { getMetaGraphVersion } from "./meta-config";
 
@@ -166,20 +167,36 @@ export async function processCampaignSending(campaignId: string) {
 
       // Resolve custom per-variable parameters when configured in Create Campaign Step 2
       let customBodyParameters: string[] | undefined = undefined;
-      if (campaign.bodyVariablesJson && bodyVarCount > 0) {
-        try {
-          const parsedVars = JSON.parse(campaign.bodyVariablesJson);
-          if (Array.isArray(parsedVars)) {
-            customBodyParameters = parsedVars.map((v) =>
-              v === "__CONTACT_NAME__" ? recipientName : String(v || "")
-            );
-          } else if (parsedVars && typeof parsedVars === "object") {
-            customBodyParameters = Array.from({ length: bodyVarCount }, (_, idx) => {
-              const rawVal = parsedVars[String(idx + 1)];
-              return rawVal === "__CONTACT_NAME__" ? recipientName : String(rawVal || "");
-            });
+      if (bodyVarCount > 0) {
+        let rawList: string[] = [];
+        if (campaign.bodyVariablesJson) {
+          try {
+            const parsedVars = JSON.parse(campaign.bodyVariablesJson);
+            if (Array.isArray(parsedVars)) {
+              rawList = parsedVars.map((v) => String(v || ""));
+            } else if (parsedVars && typeof parsedVars === "object") {
+              rawList = Array.from({ length: bodyVarCount }, (_, idx) => String(parsedVars[String(idx + 1)] || ""));
+            }
+          } catch {}
+        }
+
+        // Final safety net: ensure every slot 1..bodyVarCount has a non-empty value
+        customBodyParameters = Array.from({ length: bodyVarCount }, (_, idx) => {
+          const num = idx + 1;
+          const raw = rawList[idx];
+          if (num === 1 && (raw === "__CONTACT_NAME__" || !raw || raw.trim() === "")) {
+            return recipientName;
           }
-        } catch {}
+          if (raw && raw.trim() !== "") {
+            return raw === "__CONTACT_NAME__" ? recipientName : raw.trim();
+          }
+          // Safety net fallback
+          return getGenericFallbackForVariable(num, campaign.template.bodyText, undefined, {
+            name: bName,
+            bookingLink: bLink,
+            recipientName,
+          });
+        });
       }
 
       const paramsJson = JSON.stringify({
