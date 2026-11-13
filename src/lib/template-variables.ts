@@ -278,98 +278,115 @@ export function detectVariableSlotType(
 }
 
 /**
- * Generates an OFFER fallback from the business profile (services & pricing / about).
- * Writes a short honest line, e.g. "special pricing on podcast & video studio sessions".
- * Only if profile is empty, returns "special pricing on our services".
+ * Extracts the first clean service item name from servicesAndPricing text,
+ * stripping any prices, currencies, percentages, and frequency/duration suffixes.
+ */
+export function extractCleanServiceItem(rawText: string): string | null {
+  if (!rawText || !rawText.trim()) return null;
+
+  // Split by newlines, bullets (•), semicolons, or pipes
+  const candidates = rawText
+    .split(/[\r\n;•|]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  for (const candidate of candidates) {
+    // If a line has multiple comma-separated items, inspect each token
+    const subTokens = candidate.split(/,\s*/);
+    for (const subToken of subTokens) {
+      let item = subToken.trim();
+      if (!item) continue;
+
+      // 1. Strip leading numbering or bullet markers (e.g. "1. ", "1) ", "- ", "* ")
+      item = item.replace(/^[\d\.\)\-\*•–—\s]+/, "").trim();
+
+      // 2. Strip prices, currencies, percentages, and frequency/duration suffixes
+      // e.g. @ ₹15,000/hr, ₹15,000, 15000/-, Rs. 15000, $500, 25% off, per hour, for 1 hour
+      item = item
+        .replace(/@?\s*(?:rs\.?|inr|₹|\$)\s*[\d,]+(?:\.\d+)?(?:\s*\/\s*[\w]+)?/gi, "")
+        .replace(/\b(?:rs\.?|inr|₹|\$)\s*[\d,]+(?:\.\d+)?/gi, "")
+        .replace(/\b[\d,]+\s*(?:rs|inr|₹|\$|-|\/-)\b/gi, "")
+        .replace(/\b\d+%\s*(?:off)?\b/gi, "")
+        .replace(/\b(?:per|for)\s+(?:hour|hr|session|day|month|slot)\b/gi, "")
+        .replace(/https?:\/\/\S+/gi, "")
+        .replace(/\+?\d[\d\s-]{8,}\d/g, "")
+        .replace(/^[-–—:, \t]+/, "")
+        .replace(/[-–—:, \t]+$/, "")
+        .trim();
+
+      // Check if item is a meaningful service name (between 3 and 60 chars)
+      if (item.length >= 3 && item.length <= 60) {
+        return item;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Generates an OFFER fallback from THIS business's own data in order:
+ * 1. services list item names from servicesAndPricing (strip prices)
+ * 2. category label
+ * 3. business name
+ * 4. "special pricing on our services" (only if profile is empty).
+ *
+ * Example: for "Content Creation Session ₹15,000" -> "special pricing on content creation sessions".
+ * Never uses a hard-coded category list that can pick another industry.
  * Never invents a discount percentage, exact price, or date.
  */
 export function generateOfferFallbackFromProfile(biz?: BusinessVariableContext | null): string {
   if (!biz) return "special pricing on our services";
 
-  const rawSource = [
-    biz.servicesAndPricing,
-    biz.businessDescription,
-    biz.about,
-  ]
-    .filter((s): s is string => Boolean(s && String(s).trim()))
-    .join(" ");
+  // 1. Try services list item names from servicesAndPricing (or businessDescription/about if servicesAndPricing empty)
+  const servicesSource = (biz.servicesAndPricing || biz.businessDescription || biz.about || "").trim();
+  const rawServiceItem = extractCleanServiceItem(servicesSource);
 
-  if (!rawSource || !rawSource.trim()) {
-    // If services & pricing is empty, check category
-    if (biz.category && biz.category.trim()) {
-      const cat = biz.category.toLowerCase().trim();
-      if (
-        !cat.includes("retail shop") &&
-        !cat.includes("retail & business") &&
-        !cat.includes("other") &&
-        !cat.includes("general")
-      ) {
-        return sanitizeVariableValue(`special pricing on ${cat} services`, 2);
-      }
+  if (rawServiceItem) {
+    // If item already starts with "special pricing" or "special offer", sanitize and return
+    if (/^special (pricing|offer|discount)/i.test(rawServiceItem)) {
+      return sanitizeVariableValue(rawServiceItem, 2);
     }
-    return "special pricing on our services";
-  }
 
-  // Clean rawSource: NEVER invent % or price!
-  // Strip out any existing prices, currencies, percentages, links, and phone numbers
-  let cleaned = rawSource
-    .replace(/https?:\/\/\S+/gi, "")
-    .replace(/@?\s*(?:rs\.?|inr|₹|\$)\s*[\d,]+(?:\.\d+)?(?:\s*\/\s*[\w]+)?/gi, "")
-    .replace(/\b\d+%\s*(?:off)?\b/gi, "")
-    .replace(/\+?\d[\d\s-]{8,}\d/g, "")
-    .replace(/[\r\n\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const lower = cleaned.toLowerCase();
-
-  // Common business domains -> natural concise honest lines
-  if (lower.includes("podcast") && (lower.includes("video") || lower.includes("studio") || lower.includes("shoot"))) {
-    return "special pricing on podcast & video studio sessions";
-  }
-  if (lower.includes("photography") || lower.includes("photo shoot") || lower.includes("photoshoot")) {
-    return "special pricing on photography & studio sessions";
-  }
-  if (lower.includes("saree") || lower.includes("silk") || lower.includes("apparel") || lower.includes("clothing")) {
-    return "special pricing on sarees & festive collection";
-  }
-  if (lower.includes("fitness") || lower.includes("gym") || lower.includes("workout")) {
-    return "special pricing on gym & fitness memberships";
-  }
-  if (lower.includes("salon") || lower.includes("spa") || lower.includes("haircut") || lower.includes("facial")) {
-    return "special pricing on salon & beauty services";
-  }
-  if (lower.includes("dental") || lower.includes("clinic") || lower.includes("teeth") || lower.includes("dentist")) {
-    return "special pricing on dental treatments & consultations";
-  }
-
-  // Extract first concise clause before punctuation (.;|•)
-  const firstClause = cleaned.split(/[.;|•\n]/)[0].trim();
-  if (firstClause.length >= 6 && firstClause.length <= 60) {
-    let subject = firstClause
-      .replace(/^[-–—:, \t]+/, "")
-      .replace(/[-–—:, \t]+$/, "")
-      .trim();
-
-    if (/^special (pricing|offer|discount)/i.test(subject)) {
-      return sanitizeVariableValue(subject, 2);
+    // Natural pluralization for common singular session/service nouns:
+    // e.g. "Content Creation Session" -> "content creation sessions"
+    let lowerItem = rawServiceItem.toLowerCase();
+    if (lowerItem.endsWith("session")) {
+      lowerItem = lowerItem + "s";
+    } else if (lowerItem.endsWith("package")) {
+      lowerItem = lowerItem + "s";
+    } else if (lowerItem.endsWith("shoot")) {
+      lowerItem = lowerItem + "s";
+    } else if (lowerItem.endsWith("consultation")) {
+      lowerItem = lowerItem + "s";
     }
-    subject = subject.charAt(0).toLowerCase() + subject.slice(1);
-    return sanitizeVariableValue(`special pricing on ${subject}`, 2);
+
+    return sanitizeVariableValue(`special pricing on ${lowerItem}`, 2);
   }
 
-  if (biz.category && biz.category.trim()) {
-    const cat = biz.category.toLowerCase().trim();
-    if (
-      !cat.includes("retail shop") &&
-      !cat.includes("retail & business") &&
-      !cat.includes("other") &&
-      !cat.includes("general")
-    ) {
-      return sanitizeVariableValue(`special pricing on ${cat} services`, 2);
+  // 2. Fallback to category label of this business
+  const category = (biz.category || "").trim();
+  if (
+    category &&
+    !category.toLowerCase().includes("retail shop") &&
+    !category.toLowerCase().includes("retail & business") &&
+    !category.toLowerCase().includes("other") &&
+    category.toLowerCase() !== "general"
+  ) {
+    const lowerCat = category.toLowerCase();
+    if (lowerCat.endsWith("services") || lowerCat.endsWith("products")) {
+      return sanitizeVariableValue(`special pricing on ${lowerCat}`, 2);
     }
+    return sanitizeVariableValue(`special pricing on ${lowerCat} services`, 2);
   }
 
+  // 3. Fallback to business name of this business
+  const name = (biz.name || "").trim();
+  if (name && name.toLowerCase() !== "oneample" && name.toLowerCase() !== "your business") {
+    return sanitizeVariableValue(`special pricing at ${name}`, 2);
+  }
+
+  // 4. Default fallback when profile is completely empty
   return "special pricing on our services";
 }
 
@@ -439,10 +456,17 @@ export function getGenericFallbackForVariable(
       const extractedDate = details?.valid_till
         ? (details.valid_from ? `${details.valid_from} to ${details.valid_till}` : details.valid_till)
         : null;
+
+      const { beforeSnippet } = extractVariableContext(bodyText, varNum);
+      const isTillOrUntil = /\b(valid\s+(till|until)|till|until)\b/i.test(beforeSnippet);
+
+      const primaryDateFallback = isTillOrUntil ? "slots last" : "a limited time";
+      const secondaryDateFallback = isTillOrUntil ? "stocks last" : "this week";
+
       return selectUnique([
         extractedDate,
-        "a limited time",
-        "this week",
+        primaryDateFallback,
+        secondaryDateFallback,
         "a limited period",
         "the festive season",
       ]);

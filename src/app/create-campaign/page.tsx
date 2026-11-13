@@ -29,6 +29,7 @@ import {
   ChevronUp
 } from "lucide-react";
 import {
+  detectVariableSlotType,
   getGenericFallbackForVariable,
   sanitizeVariableValue,
 } from "@/lib/template-variables";
@@ -81,6 +82,7 @@ export default function CreateCampaignPage() {
   const lastAnalyzedSourceRef = React.useRef<string | null>(null);
   const [offerText, setOfferText] = useState("");
   const [businessProfile, setBusinessProfile] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
   // Step 3 State (Contacts)
   const [fileData, setFileData] = useState<any>(null);
@@ -119,6 +121,7 @@ export default function CreateCampaignPage() {
 
   useEffect(() => {
     // Load business profile to prefill business name and default booking link
+    setLoadingProfile(true);
     fetch("/api/business/profile")
       .then((res) => res.json())
       .then((profile) => {
@@ -135,7 +138,8 @@ export default function CreateCampaignPage() {
           }
         }
       })
-      .catch((e) => console.error("Error loading business profile:", e));
+      .catch((e) => console.error("Error loading business profile:", e))
+      .finally(() => setLoadingProfile(false));
 
     setLoadingTemplates(true);
     fetch("/api/templates?sync=true&approvedOnly=true", { cache: "no-store" })
@@ -452,20 +456,23 @@ export default function CreateCampaignPage() {
 
   // Auto-fill template variables with safe generic fallbacks whenever active template or bodyVariables change
   useEffect(() => {
-    if (!activeTemplate?.id || bodyVariables.length === 0) return;
+    if (loadingProfile || !activeTemplate?.id || bodyVariables.length === 0) return;
     setTemplateVarValues((prev) => {
       const next = { ...prev };
       const used = new Set<string>();
       let changed = false;
 
+      // Keep manually edited variables in used set so fallbacks don't collide with them
       for (const v of bodyVariables) {
-        if (next[v] && next[v].trim()) {
+        if (next[v] && next[v].trim() && varMetaRef.current[v]?.manualEdited) {
           used.add(next[v].trim().toLowerCase());
         }
       }
 
       for (const v of bodyVariables) {
-        if (!next[v] || !next[v].trim()) {
+        const isManual = varMetaRef.current[v]?.manualEdited;
+        // Fill if empty OR refresh AI value when real business profile arrives
+        if (!isManual && (!next[v] || !next[v].trim() || varMetaRef.current[v]?.aiFilled)) {
           const fallback = getGenericFallbackForVariable(
             v,
             activeTemplate.bodyText,
@@ -473,12 +480,14 @@ export default function CreateCampaignPage() {
             businessContext,
             used
           );
-          next[v] = fallback;
-          used.add(fallback.toLowerCase());
-          changed = true;
-          if (v === 2 && !offerText) {
-            setOfferText(fallback);
+          if (next[v] !== fallback) {
+            next[v] = fallback;
+            changed = true;
+            if (v === 2 && (!offerText || !isManual)) {
+              setOfferText(fallback);
+            }
           }
+          used.add(fallback.toLowerCase());
         }
       }
       return changed ? next : prev;
@@ -495,7 +504,7 @@ export default function CreateCampaignPage() {
       }
       return changed ? next : prev;
     });
-  }, [activeTemplate?.id, bodyVariables, businessContext]);
+  }, [loadingProfile, activeTemplate?.id, bodyVariables, businessContext]);
 
   // Automatically run Gemini Vision analysis & auto-fill when Step 2 uses an uploaded or template default image
   useEffect(() => {
@@ -516,40 +525,31 @@ export default function CreateCampaignPage() {
 
   const describeNeededVariable = (bodyText: string | null | undefined, varNum: number): string => {
     if (!bodyText) return `variable {{${varNum}}}`;
-    const token = `{{${varNum}}}`;
-    const pos = bodyText.indexOf(token);
-    const before = pos >= 0 ? bodyText.slice(Math.max(0, pos - 65), pos).toLowerCase() : "";
-    const after = pos >= 0 ? bodyText.slice(pos + token.length, Math.min(bodyText.length, pos + token.length + 45)).toLowerCase() : "";
-    const ctx = `${before} ${after}`;
-
-    if (/\b(valid|till|until|expir|last date|ends on|end date|validity|date)\b/.test(ctx)) {
-      return "valid-till date";
+    const slot = detectVariableSlotType(bodyText, varNum);
+    switch (slot) {
+      case "NAME":
+        return "contact name";
+      case "DATE":
+        return "valid-till date";
+      case "OFFER":
+        return "offer details";
+      case "BUSINESS_NAME":
+        return "business name";
+      case "LINK":
+        return "booking link";
+      case "PHONE":
+        return "phone number";
+      case "PRICE":
+        return "price";
+      case "DISCOUNT":
+        return "discount";
+      case "PRODUCT_OR_SERVICE":
+        return "service or product";
+      case "LOCATION":
+        return "location";
+      default:
+        return `value for {{${varNum}}}`;
     }
-    if (/\b(link|url|website|book here|order here|visit us at|click)\b/.test(ctx)) {
-      return "booking link";
-    }
-    if (/\b(phone|call|mobile|whatsapp|helpline|contact us at|dial)\b/.test(ctx)) {
-      return "phone number";
-    }
-    if (/\b(price|cost|fee|rate|mrp|rs\.?|inr|₹|starting at|only at)\b/.test(ctx)) {
-      return "price";
-    }
-    if (/\b(discount|off|save|cashback)\b/.test(ctx) && !/\boffer\b/.test(ctx)) {
-      return "discount";
-    }
-    if (/\b(product|service|package|item|course|treatment|plan)\b/.test(ctx) && !/\boffer\b/.test(ctx)) {
-      return "product or service";
-    }
-    if (/\b(shopping with|welcome to|team|brand|shop name|store name|company)\b/.test(ctx)) {
-      return "business name";
-    }
-    if (/\b(location|address|venue|branch|city)\b/.test(ctx)) {
-      return "location";
-    }
-    if (/\b(offer|deal|promo|announce|special)\b/.test(ctx)) {
-      return "offer text";
-    }
-    return `value for {{${varNum}}}`;
   };
 
   const hasMissingStep2Fields =
