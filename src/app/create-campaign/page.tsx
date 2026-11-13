@@ -80,6 +80,7 @@ export default function CreateCampaignPage() {
   varMetaRef.current = varMeta;
   const lastAnalyzedSourceRef = React.useRef<string | null>(null);
   const [offerText, setOfferText] = useState("");
+  const [businessProfile, setBusinessProfile] = useState<any>(null);
 
   // Step 3 State (Contacts)
   const [fileData, setFileData] = useState<any>(null);
@@ -122,6 +123,7 @@ export default function CreateCampaignPage() {
       .then((res) => res.json())
       .then((profile) => {
         if (profile) {
+          setBusinessProfile(profile);
           if (profile.name && profile.name.trim()) {
             setBusinessName(profile.name.trim());
             setIsBusinessNameMissing(false);
@@ -204,6 +206,49 @@ export default function CreateCampaignPage() {
     reader.readAsDataURL(file);
   };
 
+  const activeTemplate = approvedTemplates.find((tpl) => tpl.id === selectedTemplateId) || null;
+  const selectedTemplateName = activeTemplate?.name || "None selected";
+  const selectedTemplateLang = activeTemplate?.language || "—";
+  const isImageHeader = activeTemplate?.headerType === "IMAGE";
+  const defaultTemplateImageUrl = isImageHeader
+    ? activeTemplate?.headerImageUrl || activeTemplate?.headerMediaUrl || null
+    : null;
+  const effectivePreviewImage = isImageHeader ? posterImage || defaultTemplateImageUrl : null;
+  const isApproved = Boolean(activeTemplate && String(activeTemplate.status).toUpperCase() === "APPROVED");
+  const has24hContacts = (windowAnalysis?.windowCount || 0) > 0;
+  const firstContactName = parsedResult?.contacts?.[0]?.name?.trim() || "Customer";
+
+  const businessContext = React.useMemo(() => ({
+    name: businessName.trim(),
+    bookingLink: bookingLink.trim(),
+    recipientName: firstContactName || "Customer",
+    servicesAndPricing: businessProfile?.servicesAndPricing,
+    businessDescription: businessProfile?.businessDescription,
+    category: businessProfile?.category,
+  }), [businessName, bookingLink, firstContactName, businessProfile]);
+
+  const templateBodyExamples: string[] = React.useMemo(() => {
+    if (!activeTemplate?.bodyExamplesJson) return [];
+    try {
+      const parsed = JSON.parse(activeTemplate.bodyExamplesJson);
+      return Array.isArray(parsed) ? parsed.map((x) => String(x ?? "")) : [];
+    } catch {
+      return [];
+    }
+  }, [activeTemplate?.bodyExamplesJson]);
+
+  const bodyVariables: number[] = React.useMemo(() => {
+    const body = activeTemplate?.bodyText || "";
+    let maxIdx = 0;
+    const regex = /\{\{(\d+)\}\}/g;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(body)) !== null) {
+      const idx = parseInt(match[1], 10);
+      if (!Number.isNaN(idx) && idx > maxIdx) maxIdx = idx;
+    }
+    return maxIdx > 0 ? Array.from({ length: maxIdx }, (_, i) => i + 1) : [];
+  }, [activeTemplate?.bodyText]);
+
   const applySuggestedVariables = (
     suggested: Record<string, string | null> | undefined,
     opts?: { onlyVar?: number; respectManual?: boolean }
@@ -214,23 +259,41 @@ export default function CreateCampaignPage() {
 
     setTemplateVarValues((prev) => {
       const next = { ...prev };
+      const used = new Set<string>();
+
+      // Record any variables that are not being updated so fallbacks don't collide
+      for (const v of bodyVariables) {
+        if (!varsToUpdate.includes(v) && next[v] && next[v].trim()) {
+          used.add(next[v].trim().toLowerCase());
+        }
+      }
+
       for (const v of varsToUpdate) {
-        if (!opts?.onlyVar && v === 1 && var1UseContactName) continue;
-        if (opts?.respectManual && currentMetaSnapshot[v]?.manualEdited) continue;
+        if (!opts?.onlyVar && v === 1 && var1UseContactName) {
+          used.add((firstContactName || "Customer").toLowerCase());
+          continue;
+        }
+        if (opts?.respectManual && currentMetaSnapshot[v]?.manualEdited) {
+          if (next[v]) used.add(next[v].trim().toLowerCase());
+          continue;
+        }
 
         const raw = suggested[String(v)];
         if (raw && String(raw).trim()) {
           const cleaned = sanitizeVariableValue(raw, 2);
           next[v] = cleaned;
+          used.add(cleaned.toLowerCase());
           if (v === 2) setOfferText(cleaned);
         } else {
           const fallback = getGenericFallbackForVariable(
             v,
             activeTemplate?.bodyText,
             extractedDetails,
-            { name: businessName, bookingLink: bookingLink.trim(), recipientName: firstContactName }
+            businessContext,
+            used
           );
           next[v] = fallback;
+          used.add(fallback.toLowerCase());
           if (v === 2) setOfferText(fallback);
         }
       }
@@ -387,55 +450,31 @@ export default function CreateCampaignPage() {
     a.click();
   };
 
-  const activeTemplate = approvedTemplates.find((tpl) => tpl.id === selectedTemplateId) || null;
-  const selectedTemplateName = activeTemplate?.name || "None selected";
-  const selectedTemplateLang = activeTemplate?.language || "—";
-  const isImageHeader = activeTemplate?.headerType === "IMAGE";
-  const defaultTemplateImageUrl = isImageHeader
-    ? activeTemplate?.headerImageUrl || activeTemplate?.headerMediaUrl || null
-    : null;
-  const effectivePreviewImage = isImageHeader ? posterImage || defaultTemplateImageUrl : null;
-  const isApproved = Boolean(activeTemplate && String(activeTemplate.status).toUpperCase() === "APPROVED");
-  const has24hContacts = (windowAnalysis?.windowCount || 0) > 0;
-  const firstContactName = parsedResult?.contacts?.[0]?.name?.trim() || "Customer";
-
-  const templateBodyExamples: string[] = React.useMemo(() => {
-    if (!activeTemplate?.bodyExamplesJson) return [];
-    try {
-      const parsed = JSON.parse(activeTemplate.bodyExamplesJson);
-      return Array.isArray(parsed) ? parsed.map((x) => String(x ?? "")) : [];
-    } catch {
-      return [];
-    }
-  }, [activeTemplate?.bodyExamplesJson]);
-
-  const bodyVariables: number[] = React.useMemo(() => {
-    const body = activeTemplate?.bodyText || "";
-    let maxIdx = 0;
-    const regex = /\{\{(\d+)\}\}/g;
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(body)) !== null) {
-      const idx = parseInt(match[1], 10);
-      if (!Number.isNaN(idx) && idx > maxIdx) maxIdx = idx;
-    }
-    return maxIdx > 0 ? Array.from({ length: maxIdx }, (_, i) => i + 1) : [];
-  }, [activeTemplate?.bodyText]);
-
   // Auto-fill template variables with safe generic fallbacks whenever active template or bodyVariables change
   useEffect(() => {
     if (!activeTemplate?.id || bodyVariables.length === 0) return;
     setTemplateVarValues((prev) => {
       const next = { ...prev };
+      const used = new Set<string>();
       let changed = false;
+
+      for (const v of bodyVariables) {
+        if (next[v] && next[v].trim()) {
+          used.add(next[v].trim().toLowerCase());
+        }
+      }
+
       for (const v of bodyVariables) {
         if (!next[v] || !next[v].trim()) {
           const fallback = getGenericFallbackForVariable(
             v,
             activeTemplate.bodyText,
             extractedDetails,
-            { name: businessName, bookingLink: bookingLink.trim(), recipientName: firstContactName }
+            businessContext,
+            used
           );
           next[v] = fallback;
+          used.add(fallback.toLowerCase());
           changed = true;
           if (v === 2 && !offerText) {
             setOfferText(fallback);
@@ -456,7 +495,7 @@ export default function CreateCampaignPage() {
       }
       return changed ? next : prev;
     });
-  }, [activeTemplate?.id, bodyVariables, businessName, bookingLink, firstContactName]);
+  }, [activeTemplate?.id, bodyVariables, businessContext]);
 
   // Automatically run Gemini Vision analysis & auto-fill when Step 2 uses an uploaded or template default image
   useEffect(() => {
@@ -651,13 +690,18 @@ export default function CreateCampaignPage() {
       varNum,
       activeTemplate?.bodyText,
       extractedDetails,
-      { name: businessName, bookingLink: bookingLink.trim(), recipientName: firstContactName }
+      businessContext
     );
   };
 
   const buildCustomBodyParameters = (): string[] | undefined => {
     if (bodyVariables.length === 0) return undefined;
     const maxIdx = Math.max(...bodyVariables);
+    const used = new Set<string>();
+    for (let i = 1; i <= maxIdx; i++) {
+      const t = (templateVarValues[i] || "").trim();
+      if (t) used.add(t.toLowerCase());
+    }
     return Array.from({ length: maxIdx }, (_, idx) => {
       const num = idx + 1;
       if (num === 1 && var1UseContactName) {
@@ -665,12 +709,15 @@ export default function CreateCampaignPage() {
       }
       const typed = (templateVarValues[num] || "").trim();
       if (typed) return typed;
-      return getGenericFallbackForVariable(
+      const fallback = getGenericFallbackForVariable(
         num,
         activeTemplate?.bodyText,
         extractedDetails,
-        { name: businessName, bookingLink: bookingLink.trim(), recipientName: firstContactName }
+        businessContext,
+        used
       );
+      used.add(fallback.toLowerCase());
+      return fallback;
     });
   };
 
@@ -1384,14 +1431,21 @@ export default function CreateCampaignPage() {
                   // Safety net: ensure any blank variable is safely filled with fallback before advancing
                   setTemplateVarValues((prev) => {
                     const next = { ...prev };
+                    const used = new Set<string>();
+                    for (const v of bodyVariables) {
+                      if (next[v] && next[v].trim()) used.add(next[v].trim().toLowerCase());
+                    }
                     for (const v of bodyVariables) {
                       if (!next[v] || !next[v].trim()) {
-                        next[v] = getGenericFallbackForVariable(
+                        const fallback = getGenericFallbackForVariable(
                           v,
                           activeTemplate?.bodyText,
                           extractedDetails,
-                          { name: businessName, bookingLink: bookingLink.trim(), recipientName: firstContactName }
+                          businessContext,
+                          used
                         );
+                        next[v] = fallback;
+                        used.add(fallback.toLowerCase());
                       }
                     }
                     return next;

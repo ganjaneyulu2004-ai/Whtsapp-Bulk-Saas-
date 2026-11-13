@@ -16,6 +16,8 @@ export async function GET() {
         address: true,
         website: true,
         defaultBookingLink: true,
+        servicesAndPricing: true,
+        businessDescription: true,
       },
     });
 
@@ -68,6 +70,8 @@ export async function PUT(req: Request) {
         address: true,
         website: true,
         defaultBookingLink: true,
+        servicesAndPricing: true,
+        businessDescription: true,
       },
     });
 

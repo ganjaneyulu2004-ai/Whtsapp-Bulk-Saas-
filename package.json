@@ -10,6 +10,7 @@
     "db:push": "prisma db push",
     "db:seed": "node --import tsx/esm prisma/seed.ts || npx tsx prisma/seed.ts",
     "tunnel": "npx cloudflared tunnel --url http://localhost:3000",
+    "test": "npx tsx tests/template-variables.test.ts",
     "test:webhook": "npx tsx scripts/test-webhook.ts"
   },
   "dependencies": {

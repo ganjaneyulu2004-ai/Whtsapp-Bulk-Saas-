@@ -158,6 +158,10 @@ export async function POST(req: Request) {
           templateBodyText: resolvedBodyText,
           templateExamples: resolvedExamples,
           targetVariable: parsedTargetVar,
+          businessName: business.name,
+          servicesAndPricing: business.servicesAndPricing,
+          businessDescription: business.businessDescription,
+          category: business.category,
         }
       );
 
@@ -175,6 +179,10 @@ export async function POST(req: Request) {
         ? mapExtractedDetailsToTemplateVariables(extractedDetails, resolvedBodyText, {
             bookingLink: finalBookingLink || undefined,
             targetVariable: parsedTargetVar,
+            businessName: business.name,
+            servicesAndPricing: business.servicesAndPricing,
+            businessDescription: business.businessDescription,
+            category: business.category,
           })
         : undefined;
 
@@ -194,6 +202,9 @@ export async function POST(req: Request) {
         {
           bookingLink: finalBookingLink || undefined,
           businessName: business.name,
+          servicesAndPricing: business.servicesAndPricing,
+          businessDescription: business.businessDescription,
+          category: business.category,
           targetVariable: parsedTargetVar,
         }
       );

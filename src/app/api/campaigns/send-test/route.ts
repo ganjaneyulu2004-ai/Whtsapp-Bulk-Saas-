@@ -17,6 +17,7 @@ export async function POST(req: Request) {
       recipientName,
       offerText,
       businessName,
+      bookingLink,
       templateName,
       languageCode,
       headerImageUrl,
@@ -191,6 +192,12 @@ export async function POST(req: Request) {
 
       const bodyVarCount = countTemplateBodyVariables(matched.bodyText);
       const incomingList = Array.isArray(customBodyParameters) ? customBodyParameters : [];
+      const used = new Set<string>();
+      for (const item of incomingList) {
+        if (item && String(item).trim() && String(item).trim() !== "__CONTACT_NAME__") {
+          used.add(String(item).trim().toLowerCase());
+        }
+      }
       const resolvedCustomVars = bodyVarCount > 0
         ? Array.from({ length: bodyVarCount }, (_, idx) => {
             const num = idx + 1;
@@ -201,10 +208,22 @@ export async function POST(req: Request) {
             if (raw && String(raw).trim() !== "") {
               return raw === "__CONTACT_NAME__" ? (recipientName || "Customer") : String(raw).trim();
             }
-            return getGenericFallbackForVariable(num, matched.bodyText, undefined, {
-              name: bName,
-              recipientName: recipientName || "Customer",
-            });
+            const fallback = getGenericFallbackForVariable(
+              num,
+              matched.bodyText,
+              undefined,
+              {
+                name: bName,
+                recipientName: recipientName || "Customer",
+                bookingLink: bookingLink?.trim() || business.defaultBookingLink || undefined,
+                servicesAndPricing: business.servicesAndPricing,
+                businessDescription: business.businessDescription,
+                category: business.category,
+              },
+              used
+            );
+            used.add(fallback.toLowerCase());
+            return fallback;
           })
         : undefined;
 

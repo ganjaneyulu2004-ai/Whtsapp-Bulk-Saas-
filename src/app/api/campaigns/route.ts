@@ -179,6 +179,12 @@ export async function POST(req: Request) {
 
     if (expectedVarCount > 0) {
       const incomingList = Array.isArray(bodyVariables) ? bodyVariables : [];
+      const used = new Set<string>();
+      for (const item of incomingList) {
+        if (item && String(item).trim() && String(item).trim() !== "__CONTACT_NAME__") {
+          used.add(String(item).trim().toLowerCase());
+        }
+      }
       normalizedBodyVariables = Array.from({ length: expectedVarCount }, (_, idx) => {
         const num = idx + 1;
         const raw = incomingList[idx];
@@ -188,10 +194,21 @@ export async function POST(req: Request) {
         const val = raw ? String(raw).trim() : "";
         if (val) return val;
         // Auto-fill fallback so server never blocks launch
-        return getGenericFallbackForVariable(num, selectedTemplate.bodyText, undefined, {
-          name: businessName?.trim() || business.name,
-          bookingLink: bookingLink?.trim(),
-        });
+        const fallback = getGenericFallbackForVariable(
+          num,
+          selectedTemplate.bodyText,
+          undefined,
+          {
+            name: businessName?.trim() || business.name,
+            bookingLink: bookingLink?.trim(),
+            servicesAndPricing: business.servicesAndPricing,
+            businessDescription: business.businessDescription,
+            category: business.category,
+          },
+          used
+        );
+        used.add(fallback.toLowerCase());
+        return fallback;
       });
     }
 

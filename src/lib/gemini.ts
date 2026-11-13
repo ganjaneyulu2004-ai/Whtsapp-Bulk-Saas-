@@ -78,7 +78,14 @@ function buildBalancedOffer(
 export function mapExtractedDetailsToTemplateVariables(
   details: ExtractedPosterDetails,
   templateBodyText?: string | null,
-  options?: { bookingLink?: string; businessName?: string; targetVariable?: number }
+  options?: {
+    bookingLink?: string;
+    businessName?: string;
+    servicesAndPricing?: string | null;
+    businessDescription?: string | null;
+    category?: string | null;
+    targetVariable?: number;
+  }
 ): Record<string, string> {
   const result: Record<string, string> = {};
   if (!templateBodyText) return result;
@@ -91,15 +98,26 @@ export function mapExtractedDetailsToTemplateVariables(
     if (!Number.isNaN(idx) && idx > maxIdx) maxIdx = idx;
   }
 
+  const used = new Set<string>();
   for (let varNum = 1; varNum <= maxIdx; varNum++) {
     // Keep {{1}} as Contact Name unless user specifically regenerates {{1}}
     if (varNum === 1 && options?.targetVariable !== 1) continue;
     if (options?.targetVariable && options.targetVariable !== varNum) continue;
 
-    const val = getGenericFallbackForVariable(varNum, templateBodyText, details, {
-      bookingLink: options?.bookingLink,
-      name: options?.businessName,
-    });
+    const val = getGenericFallbackForVariable(
+      varNum,
+      templateBodyText,
+      details,
+      {
+        bookingLink: options?.bookingLink,
+        name: options?.businessName,
+        servicesAndPricing: options?.servicesAndPricing,
+        businessDescription: options?.businessDescription,
+        category: options?.category,
+      },
+      used
+    );
+    used.add(val.toLowerCase());
     result[String(varNum)] = val;
   }
 
@@ -117,6 +135,10 @@ export async function analyzePosterWithGemini(
     templateBodyText?: string;
     templateExamples?: string[];
     targetVariable?: number;
+    businessName?: string;
+    servicesAndPricing?: string | null;
+    businessDescription?: string | null;
+    category?: string | null;
   }
 ): Promise<PosterAnalysisResponse> {
   const geminiKey = apiKey || process.env.GEMINI_API_KEY;
@@ -270,20 +292,35 @@ Return ONLY a valid JSON object matching this EXACT structure:
       const heuristicVars = mapExtractedDetailsToTemplateVariables(
         extractedDetails,
         templateOptions.templateBodyText,
-        { bookingLink, targetVariable: templateOptions.targetVariable }
+        {
+          bookingLink,
+          targetVariable: templateOptions.targetVariable,
+          businessName: templateOptions.businessName,
+          servicesAndPricing: templateOptions.servicesAndPricing,
+          businessDescription: templateOptions.businessDescription,
+          category: templateOptions.category,
+        }
       );
       const rawSuggested =
         parsed.suggestedVariables && typeof parsed.suggestedVariables === "object"
           ? parsed.suggestedVariables
           : {};
 
+      const usedInSuggested = new Set<string>();
       for (const varKey of Object.keys(heuristicVars)) {
         const raw = rawSuggested[varKey];
         const aiVal =
           raw && String(raw).trim() && raw !== "null"
             ? sanitizeVariableValue(raw, 2)
             : "";
-        suggestedVariables[varKey] = aiVal || heuristicVars[varKey];
+        const candidate = aiVal || heuristicVars[varKey];
+        if (!usedInSuggested.has(candidate.toLowerCase())) {
+          suggestedVariables[varKey] = candidate;
+          usedInSuggested.add(candidate.toLowerCase());
+        } else {
+          suggestedVariables[varKey] = heuristicVars[varKey];
+          usedInSuggested.add(heuristicVars[varKey].toLowerCase());
+        }
       }
     }
 

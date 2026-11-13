@@ -180,7 +180,13 @@ export async function processCampaignSending(campaignId: string) {
           } catch {}
         }
 
-        // Final safety net: ensure every slot 1..bodyVarCount has a non-empty value
+        // Final safety net: ensure every slot 1..bodyVarCount has a non-empty, unique value
+        const used = new Set<string>();
+        for (const r of rawList) {
+          if (r && r.trim() && r.trim() !== "__CONTACT_NAME__") {
+            used.add(r.trim().toLowerCase());
+          }
+        }
         customBodyParameters = Array.from({ length: bodyVarCount }, (_, idx) => {
           const num = idx + 1;
           const raw = rawList[idx];
@@ -191,11 +197,22 @@ export async function processCampaignSending(campaignId: string) {
             return raw === "__CONTACT_NAME__" ? recipientName : raw.trim();
           }
           // Safety net fallback
-          return getGenericFallbackForVariable(num, campaign.template.bodyText, undefined, {
-            name: bName,
-            bookingLink: bLink,
-            recipientName,
-          });
+          const val = getGenericFallbackForVariable(
+            num,
+            campaign.template.bodyText,
+            undefined,
+            {
+              name: bName,
+              bookingLink: bLink,
+              recipientName,
+              servicesAndPricing: campaign.business.servicesAndPricing,
+              businessDescription: campaign.business.businessDescription,
+              category: campaign.business.category,
+            },
+            used
+          );
+          used.add(val.toLowerCase());
+          return val;
         });
       }
 
