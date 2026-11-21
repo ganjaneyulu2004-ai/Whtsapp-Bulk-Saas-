@@ -159,6 +159,7 @@ model Contact {
   phone       String
   leadTag     String?      @default("NEW_ENQUIRY")
   optedOut    Boolean      @default(false)
+  isTest      Boolean      @default(false)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   messageLogs MessageLog[]
@@ -185,6 +186,7 @@ model Campaign {
   contactList       ContactList? @relation(fields: [contactListId], references: [id])
   scheduledAt       DateTime?
   status            String       @default("DRAFT") // DRAFT, SCHEDULED, WAITING_APPROVAL, SENDING, COMPLETED, PAUSED, CANCELLED
+  isTest            Boolean      @default(false)
   totalRecipients   Int          @default(0)
   sentCount         Int          @default(0)
   deliveredCount    Int          @default(0)

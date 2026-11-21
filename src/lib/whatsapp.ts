@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { decryptToken } from "./encryption";
 import { getMetaGraphVersion } from "./meta-config";
 
@@ -390,8 +391,21 @@ export async function sendWhatsAppTemplateMessage(
     headerType?: string;
     headerText?: string;
     allowPlatformFallback?: boolean;
+    isTest?: boolean;
   }
-): Promise<{ success: boolean; waMessageId?: string; errorCode?: string; errorMessage?: string }> {
+): Promise<{ success: boolean; waMessageId?: string; messages?: Array<{ id: string }>; errorCode?: string; errorMessage?: string }> {
+  // Safe Dry-Run mode: When campaign is marked isTest=true, NEVER call Meta API!
+  if (params?.isTest) {
+    const delay = Math.floor(Math.random() * (400 - 150 + 1)) + 150;
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    const dryRunId = `dryrun_${crypto.randomUUID()}`;
+    return {
+      success: true,
+      waMessageId: dryRunId,
+      messages: [{ id: dryRunId }],
+    };
+  }
+
   const token =
     decryptToken(config.waToken) ||
     (params?.allowPlatformFallback ? process.env.WA_TOKEN || FALLBACK_WA_TOKEN : undefined);
@@ -738,6 +752,8 @@ export async function sendWhatsAppTemplateMessage(
     };
   }
 }
+
+export const sendWhatsAppMessage = sendWhatsAppTemplateMessage;
 
 export async function testWhatsAppConnection(config: {
   waToken: string;

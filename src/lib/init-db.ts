@@ -111,6 +111,7 @@ export async function initializeDatabase() {
       "name" TEXT NOT NULL,
       "phone" TEXT NOT NULL,
       "optedOut" BOOLEAN NOT NULL DEFAULT false,
+      "isTest" BOOLEAN NOT NULL DEFAULT false,
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
     );`,
@@ -129,6 +130,7 @@ export async function initializeDatabase() {
       "alwaysUseTemplate" BOOLEAN NOT NULL DEFAULT true,
       "templateId" TEXT NOT NULL REFERENCES "Template"("id"),
       "contactListId" TEXT REFERENCES "ContactList"("id"),
+      "isTest" BOOLEAN NOT NULL DEFAULT false,
       "scheduledAt" TIMESTAMP(3),
       "status" TEXT NOT NULL DEFAULT 'DRAFT',
       "totalRecipients" INTEGER NOT NULL DEFAULT 0,
@@ -189,6 +191,10 @@ export async function initializeDatabase() {
     `ALTER TABLE "WhatsAppConfig" ADD COLUMN IF NOT EXISTS "ownerBusinessName" TEXT;`,
     `ALTER TABLE "WhatsAppConfig" ADD COLUMN IF NOT EXISTS "wabaName" TEXT;`,
     `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "ownerBusinessId" TEXT;`,
+    `ALTER TABLE "Campaign" ADD COLUMN IF NOT EXISTS "isTest" BOOLEAN NOT NULL DEFAULT false;`,
+    `ALTER TABLE "Contact" ADD COLUMN IF NOT EXISTS "isTest" BOOLEAN NOT NULL DEFAULT false;`,
+    `CREATE INDEX IF NOT EXISTS "Campaign_isTest_idx" ON "Campaign"("isTest");`,
+    `CREATE INDEX IF NOT EXISTS "Contact_isTest_idx" ON "Contact"("isTest");`,
 
     // Clean up any legacy Meta API card billing columns (OneAmple never stores card data)
     `ALTER TABLE "Business" DROP COLUMN IF EXISTS "apiCardLinked";`,
@@ -353,6 +359,14 @@ export async function initializeDatabase() {
         adminNote: "VIP Partner Lifetime Free Platform Access",
       },
     });
+  }
+
+  // Resume any campaigns that were interrupted during a restart
+  try {
+    const { resumeInterruptedCampaigns } = await import("./queue");
+    await resumeInterruptedCampaigns();
+  } catch (recErr) {
+    console.warn("Queue recovery notice during DB initialization:", recErr);
   }
 
   return { success: true, message: "Database schema and default business initialized successfully!" };

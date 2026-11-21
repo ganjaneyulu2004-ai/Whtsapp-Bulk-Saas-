@@ -699,8 +699,15 @@ export default function DashboardPage() {
                     className="hover:bg-slate-50/70 transition-colors duration-150 cursor-pointer group"
                   >
                     <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-900 group-hover:text-purple-600 transition-colors text-xs">
-                        {c.name}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-slate-900 group-hover:text-purple-600 transition-colors text-xs">
+                          {c.name}
+                        </span>
+                        {c.isTest && (
+                          <span className="inline-block px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-rose-100 text-rose-700 border border-rose-300">
+                            TEST
+                          </span>
+                        )}
                       </div>
                       <span className="text-[11px] text-slate-400">
                         {c.type} • {c.status}

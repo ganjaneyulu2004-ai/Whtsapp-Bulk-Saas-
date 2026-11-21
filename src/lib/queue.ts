@@ -177,7 +177,7 @@ export async function processCampaignSending(campaignId: string) {
             } else if (parsedVars && typeof parsedVars === "object") {
               rawList = Array.from({ length: bodyVarCount }, (_, idx) => String(parsedVars[String(idx + 1)] || ""));
             }
-          } catch {}
+          } catch { }
         }
 
         // Final safety net: ensure every slot 1..bodyVarCount has a non-empty, unique value
@@ -248,11 +248,15 @@ export async function processCampaignSending(campaignId: string) {
           customBodyParameters,
           headerType: campaign.template.headerType,
           headerText: campaign.template.headerText || undefined,
+          isTest: Boolean(campaign.isTest),
         }
       );
 
       if (result.success) {
         const now = new Date();
+        const isTestCampaign = Boolean(campaign.isTest);
+
+        // Mark SENT first
         await prisma.messageLog.update({
           where: { id: log.id },
           data: {
@@ -274,6 +278,24 @@ export async function processCampaignSending(campaignId: string) {
             sentCount: { increment: 1 },
           },
         });
+
+        // For load-test / dry-run campaigns, simulate successful webhook delivery immediately
+        if (isTestCampaign) {
+          const deliveredAt = new Date();
+          await prisma.messageLog.update({
+            where: { id: log.id },
+            data: {
+              status: "DELIVERED",
+              deliveredAt,
+            },
+          });
+          await prisma.campaign.update({
+            where: { id: campaignId },
+            data: {
+              deliveredCount: { increment: 1 },
+            },
+          });
+        }
       } else {
         await prisma.messageLog.update({
           where: { id: log.id },
@@ -314,5 +336,47 @@ export async function processCampaignSending(campaignId: string) {
   } catch (err) {
     console.error(`Error processing sending for campaign ${campaignId}:`, err);
     activeCampaignJobs.delete(campaignId);
+  }
+}
+
+/**
+ * Resumes campaigns stuck in SENDING status after server restarts.
+ * Processes PENDING logs only, guaranteeing zero duplicate sends.
+ */
+export async function resumeInterruptedCampaigns(): Promise<number> {
+  try {
+    const interrupted = await prisma.campaign.findMany({
+      where: { status: "SENDING" },
+      select: { id: true, name: true, isTest: true },
+    });
+
+    if (interrupted.length === 0) return 0;
+
+    console.log(`[Queue Recovery] Found ${interrupted.length} campaign(s) in SENDING status upon startup.`);
+    let resumedCount = 0;
+
+    for (const c of interrupted) {
+      const pendingCount = await prisma.messageLog.count({
+        where: { campaignId: c.id, status: { in: ["PENDING", "WAITING_APPROVAL"] } },
+      });
+
+      if (pendingCount > 0) {
+        console.log(`[Queue Recovery] Resuming campaign "${c.name}" (${c.id}) with ${pendingCount} remaining pending logs...`);
+        resumedCount++;
+        processCampaignSending(c.id).catch((err) => {
+          console.error(`[Queue Recovery] Error resuming campaign ${c.id}:`, err);
+        });
+      } else {
+        await prisma.campaign.update({
+          where: { id: c.id },
+          data: { status: "COMPLETED" },
+        });
+      }
+    }
+
+    return resumedCount;
+  } catch (err) {
+    console.error("[Queue Recovery] Failed to check for interrupted campaigns:", err);
+    return 0;
   }
 }

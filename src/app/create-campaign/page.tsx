@@ -34,6 +34,7 @@ import {
   sanitizeVariableValue,
 } from "@/lib/template-variables";
 import { MetaBillingButton } from "@/components/MetaBillingButton";
+import { getTierDailyLimit, formatTierName } from "@/lib/meta-tiers";
 
 export default function CreateCampaignPage() {
   const router = useRouter();
@@ -862,9 +863,21 @@ export default function CreateCampaignPage() {
       if (!optInConfirmed) alert("Please confirm customer opt-in agreement checkbox.");
       return;
     }
+    const validContacts = parsedResult?.contacts?.filter((c: any) => c.isValid && !c.isDuplicate) || [];
+    const currentTier = waConfig?.messagingLimitTier || "TIER_250";
+    const tierLimit = getTierDailyLimit(currentTier);
+
+    if (validContacts.length > tierLimit) {
+      const proceed = confirm(
+        `⚠️ Daily Tier Limit Notice:\n\nYour campaign has ${validContacts.length} recipients, which exceeds your WhatsApp Business daily limit of ${tierLimit} unique contacts / 24h (${currentTier}).\n\nMeta may throttle, queue, or fail deliveries exceeding this quota.\n\nDo you want to proceed with launching?`
+      );
+      if (!proceed) {
+        return;
+      }
+    }
+
     setSubmittingCampaign(true);
     try {
-      const validContacts = parsedResult?.contacts?.filter((c: any) => c.isValid && !c.isDuplicate) || [];
 
       const payload = {
         name: campaignName || `${campaignType} Campaign`,
@@ -1979,6 +1992,29 @@ export default function CreateCampaignPage() {
               </div>
             </div>
           </div>
+
+          {/* Tier Limit Warning in Step 4 Review */}
+          {(() => {
+            const validCount = parsedResult?.contacts?.filter((c: any) => c.isValid && !c.isDuplicate)?.length || 0;
+            const currentTier = waConfig?.messagingLimitTier || "TIER_250";
+            const tierLimit = getTierDailyLimit(currentTier);
+            if (validCount > tierLimit) {
+              return (
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 flex items-start gap-3 text-xs mb-4">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-heading font-bold text-sm text-amber-950">
+                      Recipient Count ({validCount}) Exceeds WhatsApp Daily Tier Limit ({tierLimit} / 24h)
+                    </p>
+                    <p className="text-xs text-amber-900 mt-0.5">
+                      Your connected number is on <strong>{formatTierName(currentTier)}</strong>. Meta enforces daily unique recipient quotas per 24 hours. Messages exceeding {tierLimit} may be throttled or rejected by Meta until your tier is upgraded.
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           <div className="flex items-center justify-between pt-6 border-t border-slate-100">
             <button

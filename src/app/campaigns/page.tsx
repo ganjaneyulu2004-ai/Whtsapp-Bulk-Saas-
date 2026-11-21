@@ -176,7 +176,14 @@ export default function CampaignsHistoryPage() {
                 {campaigns.map((camp) => (
                   <tr key={camp.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-4 px-4 font-semibold font-heading text-slate-heading">
-                      {camp.name}
+                      <div className="flex flex-col gap-1 items-start">
+                        <span>{camp.name}</span>
+                        {camp.isTest && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300">
+                            TEST CAMPAIGN - not really sent
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-4">
                       <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-dark text-[11px] font-medium">

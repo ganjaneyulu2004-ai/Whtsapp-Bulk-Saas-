@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { processCampaignSending } from "@/lib/queue";
+import { getTierDailyLimit } from "@/lib/meta-tiers";
 
 export async function GET(req: Request) {
   try {
@@ -268,6 +269,13 @@ export async function POST(req: Request) {
 
     const initialStatus = requestedStatus || (scheduledAt ? "SCHEDULED" : "SENDING");
 
+    const isTestCampaign = Boolean(body.isTest);
+    const currentTier = business.whatsappConfig?.messagingLimitTier || "TIER_250";
+    const tierLimit = getTierDailyLimit(currentTier);
+    const tierWarning = targetContacts.length > tierLimit
+      ? `Contact count (${targetContacts.length}) exceeds your WhatsApp Business daily limit of ${tierLimit} unique contacts / 24h (${currentTier}).`
+      : null;
+
     const campaign = await prisma.campaign.create({
       data: {
         businessId: business.id,
@@ -284,6 +292,7 @@ export async function POST(req: Request) {
         contactListId: targetContactListId,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
         status: initialStatus,
+        isTest: isTestCampaign,
         totalRecipients: targetContacts.length,
       },
     });
@@ -305,7 +314,7 @@ export async function POST(req: Request) {
       processCampaignSending(campaign.id).catch((e) => console.error(e));
     }
 
-    return NextResponse.json(campaign);
+    return NextResponse.json({ ...campaign, warning: tierWarning });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

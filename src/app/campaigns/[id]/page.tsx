@@ -240,6 +240,11 @@ export default function CampaignDetailPage() {
               >
                 {campaign.status}
               </span>
+              {campaign.isTest && (
+                <span className="px-3 py-1 rounded-full text-xs font-heading font-bold bg-rose-100 text-rose-700 border border-rose-300">
+                  TEST CAMPAIGN - not really sent
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-muted mt-0.5">
               Type: <span className="font-semibold text-text-main">{campaign.type}</span> • Created on{" "}

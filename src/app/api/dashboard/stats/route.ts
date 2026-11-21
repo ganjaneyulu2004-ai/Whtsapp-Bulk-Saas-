@@ -96,6 +96,7 @@ export async function GET(req: Request) {
         name: c.name,
         type: c.type,
         status: c.status,
+        isTest: Boolean(c.isTest),
         sentCount: c.sentCount,
         deliveredCount: c.deliveredCount,
         readCount: c.readCount,
