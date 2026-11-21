@@ -26,7 +26,8 @@ import {
   Zap,
   Clock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  X
 } from "lucide-react";
 import {
   detectVariableSlotType,
@@ -109,6 +110,7 @@ export default function CreateCampaignPage() {
   const [submittingCampaign, setSubmittingCampaign] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [waConnected, setWaConnected] = useState(false);
+  const [showTierModal, setShowTierModal] = useState(false);
 
   const [waConfig, setWaConfig] = useState<any>(null);
 
@@ -838,7 +840,7 @@ export default function CreateCampaignPage() {
     }
   };
 
-  const handleLaunchCampaign = async () => {
+  const handleLaunchCampaign = async (bypassTierCheck: boolean = false) => {
     if (!businessName.trim()) {
       alert("Please add your business name in Step 1 before launching.");
       setStep(1);
@@ -867,13 +869,9 @@ export default function CreateCampaignPage() {
     const currentTier = waConfig?.messagingLimitTier || "TIER_250";
     const tierLimit = getTierDailyLimit(currentTier);
 
-    if (validContacts.length > tierLimit) {
-      const proceed = confirm(
-        `⚠️ Daily Tier Limit Notice:\n\nYour campaign has ${validContacts.length} recipients, which exceeds your WhatsApp Business daily limit of ${tierLimit} unique contacts / 24h (${currentTier}).\n\nMeta may throttle, queue, or fail deliveries exceeding this quota.\n\nDo you want to proceed with launching?`
-      );
-      if (!proceed) {
-        return;
-      }
+    if (!bypassTierCheck && validContacts.length > tierLimit) {
+      setShowTierModal(true);
+      return;
     }
 
     setSubmittingCampaign(true);
@@ -893,6 +891,7 @@ export default function CreateCampaignPage() {
         bodyVariables: buildCustomBodyParameters(),
         scheduledAt: sendOption === "SCHEDULE" ? scheduledDateTime : null,
         contactsData: validContacts,
+        duplicatesSkipped: parsedResult?.duplicateCount || 0,
         status: "SENDING",
       };
 
@@ -1790,6 +1789,14 @@ export default function CreateCampaignPage() {
                   <span className="text-slate-muted font-heading font-bold">Recipients:</span>
                   <span className="font-semibold text-slate-heading">{parsedResult?.validCount || 0} customers</span>
                 </div>
+                {Boolean(parsedResult?.duplicateCount && parsedResult.duplicateCount > 0) && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-muted font-heading font-bold">Duplicates:</span>
+                    <span className="inline-flex items-center gap-1 font-semibold text-xs text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full">
+                      {parsedResult.duplicateCount} duplicates skipped
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between border-t border-slate-200 pt-2">
                   <span className="text-slate-heading font-heading font-bold">{t("createCampaign.estimatedCost")}:</span>
                   <span className="font-heading font-semibold text-xs text-blue-700">
@@ -2025,7 +2032,7 @@ export default function CreateCampaignPage() {
             </button>
 
             <button
-              onClick={handleLaunchCampaign}
+              onClick={() => handleLaunchCampaign(false)}
               disabled={!isApproved || submittingCampaign}
               className="flex items-center gap-2 bg-coral-500 hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-extrabold text-base px-8 py-4 rounded-2xl shadow-xl shadow-coral-500/30 hover:-translate-y-0.5 transition-all"
             >
@@ -2040,6 +2047,75 @@ export default function CreateCampaignPage() {
                       : "Launch Campaign Now 🚀"}
               </span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* In-Page Modal for Meta Messaging Daily Tier Limit Notice */}
+      {showTierModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-heading font-bold text-slate-900">
+                    Daily Messaging Tier Limit Notice
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    WhatsApp Business Quota Warning
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTierModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 space-y-2.5 text-xs text-amber-950">
+              <div className="flex items-center justify-between font-semibold border-b border-amber-200/60 pb-2">
+                <span>Campaign Recipients:</span>
+                <span className="font-bold text-amber-900 text-sm">
+                  {parsedResult?.contacts?.filter((c: any) => c.isValid && !c.isDuplicate)?.length || 0} contacts
+                </span>
+              </div>
+              <div className="flex items-center justify-between font-semibold border-b border-amber-200/60 pb-2">
+                <span>Daily Account Limit:</span>
+                <span className="font-bold text-amber-900">
+                  {getTierDailyLimit(waConfig?.messagingLimitTier)} / 24h
+                </span>
+              </div>
+              <p className="text-[11px] text-amber-900/90 leading-relaxed pt-1">
+                Your recipient count exceeds your connected WhatsApp number&apos;s current tier limit ({formatTierName(waConfig?.messagingLimitTier)}). Meta enforces daily unique recipient quotas; messages exceeding this quota may be queued, throttled, or rejected until your tier is upgraded.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowTierModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-heading font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancel / Adjust List
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTierModal(false);
+                  handleLaunchCampaign(true);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-heading font-bold shadow-md shadow-amber-600/20 transition-all cursor-pointer"
+              >
+                Proceed &amp; Launch Anyway
+              </button>
+            </div>
           </div>
         </div>
       )}

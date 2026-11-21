@@ -270,6 +270,10 @@ export async function POST(req: Request) {
     const initialStatus = requestedStatus || (scheduledAt ? "SCHEDULED" : "SENDING");
 
     const isTestCampaign = Boolean(body.isTest);
+    const duplicatesSkipped =
+      typeof body.duplicatesSkipped === "number"
+        ? Math.max(0, body.duplicatesSkipped)
+        : Math.max(0, (contactsData?.length || 0) - targetContacts.length);
     const currentTier = business.whatsappConfig?.messagingLimitTier || "TIER_250";
     const tierLimit = getTierDailyLimit(currentTier);
     const tierWarning = targetContacts.length > tierLimit
@@ -293,6 +297,7 @@ export async function POST(req: Request) {
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
         status: initialStatus,
         isTest: isTestCampaign,
+        duplicatesSkipped,
         totalRecipients: targetContacts.length,
       },
     });

@@ -191,7 +191,12 @@ export default function CampaignsHistoryPage() {
                       </span>
                     </td>
                     <td className="py-4 px-4 font-semibold">
-                      {camp.totalRecipients}
+                      <div>{camp.totalRecipients}</div>
+                      {Boolean(camp.duplicatesSkipped && camp.duplicatesSkipped > 0) && (
+                        <div className="text-[10px] text-amber-700 font-medium whitespace-nowrap">
+                          {camp.duplicatesSkipped} dupes skipped
+                        </div>
+                      )}
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex flex-wrap items-center gap-2 text-[11px]">

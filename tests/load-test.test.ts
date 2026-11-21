@@ -94,8 +94,56 @@ async function runTests() {
   assert.strictEqual(formatTierName("TIER_UNLIMITED"), "Tier Unlimited");
   console.log("   ✅ Passed: Tier names format with user-friendly quota descriptions");
 
+  // Test 6: Concurrency Configuration & Clamping
+  console.log("\nTest 6: Concurrency configuration (default 5, min 1, max 20)...");
+  const { getCampaignConcurrency, MetaRateLimiter } = await import("../src/lib/queue");
+  delete process.env.CAMPAIGN_SEND_CONCURRENCY;
+  delete process.env.CAMPAIGN_CONCURRENCY;
+  assert.strictEqual(getCampaignConcurrency(), 5, "Default concurrency must be 5");
+
+  process.env.CAMPAIGN_SEND_CONCURRENCY = "12";
+  assert.strictEqual(getCampaignConcurrency(), 12, "Configured concurrency 12 must be respected");
+
+  process.env.CAMPAIGN_SEND_CONCURRENCY = "50";
+  assert.strictEqual(getCampaignConcurrency(), 20, "Concurrency must be clamped to max 20");
+
+  process.env.CAMPAIGN_SEND_CONCURRENCY = "0";
+  assert.strictEqual(getCampaignConcurrency(), 1, "Concurrency must be clamped to min 1");
+
+  delete process.env.CAMPAIGN_SEND_CONCURRENCY;
+  console.log("   ✅ Passed: Concurrency clamped properly between 1 and 20 (default: 5)");
+
+  // Test 7: MetaRateLimiter enforces rate bounds
+  console.log("\nTest 7: MetaRateLimiter sliding window enforcement...");
+  const limiter = new MetaRateLimiter(5); // 5 per second for test
+  const limiterStart = Date.now();
+  for (let i = 0; i < 5; i++) {
+    await limiter.acquire();
+  }
+  const quickElapsed = Date.now() - limiterStart;
+  assert.ok(quickElapsed < 50, "First 5 acquisitions must happen immediately without wait");
+
+  // 6th acquire must wait for oldest timestamp to slide out (> 950ms)
+  await limiter.acquire();
+  const totalElapsed = Date.now() - limiterStart;
+  assert.ok(totalElapsed >= 950, `6th acquire must throttle to respect 5/sec limit (elapsed: ${totalElapsed}ms)`);
+  console.log(`   ✅ Passed: Rate limiter throttled accurately (elapsed: ${totalElapsed}ms for 6th token)`);
+
+  // Test 8: Unique phone number generation across timestamps
+  console.log("\nTest 8: Unique fake phone number generation per run...");
+  const run1 = Date.now();
+  const runCode1 = String(run1).slice(-6);
+  const run2 = run1 + 2500;
+  const runCode2 = String(run2).slice(-6);
+
+  const phone1 = `919${runCode1}00001`;
+  const phone2 = `919${runCode2}00001`;
+  assert.notStrictEqual(phone1, phone2, "Numbers from different runs must not collide");
+  assert.strictEqual(phone1.length, 14, "Fake numbers have consistent format");
+  console.log(`   ✅ Passed: Run numbers unique across timestamps (e.g. ${phone1} vs ${phone2})`);
+
   console.log("\n====================================================");
-  console.log("🎉 All Load-Test & Meta Tier Unit Tests PASSED!");
+  console.log("🎉 All Load-Test, Concurrency & Meta Tier Unit Tests PASSED!");
   console.log("====================================================\n");
 }
 

@@ -187,6 +187,7 @@ model Campaign {
   scheduledAt       DateTime?
   status            String       @default("DRAFT") // DRAFT, SCHEDULED, WAITING_APPROVAL, SENDING, COMPLETED, PAUSED, CANCELLED
   isTest            Boolean      @default(false)
+  duplicatesSkipped Int          @default(0)
   totalRecipients   Int          @default(0)
   sentCount         Int          @default(0)
   deliveredCount    Int          @default(0)

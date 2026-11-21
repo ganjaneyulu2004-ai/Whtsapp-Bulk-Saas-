@@ -245,10 +245,24 @@ export default function CampaignDetailPage() {
                   TEST CAMPAIGN - not really sent
                 </span>
               )}
+              {Boolean(campaign.duplicatesSkipped && campaign.duplicatesSkipped > 0) && (
+                <span className="px-3 py-1 rounded-full text-xs font-heading font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                  {campaign.duplicatesSkipped} duplicates skipped
+                </span>
+              )}
             </div>
-            <p className="text-xs text-slate-muted mt-0.5">
-              Type: <span className="font-semibold text-text-main">{campaign.type}</span> • Created on{" "}
-              {new Date(campaign.createdAt).toLocaleDateString()}
+            <p className="text-xs text-slate-muted mt-0.5 flex items-center gap-2 flex-wrap">
+              <span>Type: <strong className="font-semibold text-text-main">{campaign.type}</strong></span>
+              <span>•</span>
+              <span>Total Recipients: <strong className="font-semibold text-text-main">{campaign.totalRecipients}</strong></span>
+              {Boolean(campaign.duplicatesSkipped && campaign.duplicatesSkipped > 0) && (
+                <>
+                  <span>•</span>
+                  <span className="text-amber-800 font-semibold">{campaign.duplicatesSkipped} duplicates skipped</span>
+                </>
+              )}
+              <span>•</span>
+              <span>Created on {new Date(campaign.createdAt).toLocaleDateString()}</span>
             </p>
           </div>
         </div>
