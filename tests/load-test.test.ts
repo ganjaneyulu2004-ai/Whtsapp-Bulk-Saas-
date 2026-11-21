@@ -15,7 +15,7 @@ async function runTests() {
       waToken: "FAKE_OR_EMPTY_TOKEN",
       waPhoneNumberId: "FAKE_PHONE_ID",
     },
-    "919000000001",
+    "910000000001",
     "Test User",
     "sample_template",
     "en_US",
@@ -46,7 +46,7 @@ async function runTests() {
   console.log("\nTest 2: sendWhatsAppMessage alias with isTest=true...");
   const aliasRes = await sendWhatsAppMessage(
     {},
-    "919000000002",
+    "910000000002",
     "Test User 2",
     "sample_template",
     "en_US",
@@ -129,18 +129,19 @@ async function runTests() {
   assert.ok(totalElapsed >= 950, `6th acquire must throttle to respect 5/sec limit (elapsed: ${totalElapsed}ms)`);
   console.log(`   ✅ Passed: Rate limiter throttled accurately (elapsed: ${totalElapsed}ms for 6th token)`);
 
-  // Test 8: Unique phone number generation across timestamps
-  console.log("\nTest 8: Unique fake phone number generation per run...");
+  // Test 8: Unique fake phone number generation per run (clearly invalid: starts with 910000)
+  console.log("\nTest 8: Unique fake phone number generation per run (+91 0000xxxxxx)...");
   const run1 = Date.now();
-  const runCode1 = String(run1).slice(-6);
+  const runCode1 = String(run1).slice(-4);
   const run2 = run1 + 2500;
-  const runCode2 = String(run2).slice(-6);
+  const runCode2 = String(run2).slice(-4);
 
-  const phone1 = `919${runCode1}00001`;
-  const phone2 = `919${runCode2}00001`;
+  const phone1 = `910000${runCode1}0001`;
+  const phone2 = `910000${runCode2}0001`;
   assert.notStrictEqual(phone1, phone2, "Numbers from different runs must not collide");
-  assert.strictEqual(phone1.length, 14, "Fake numbers have consistent format");
-  console.log(`   ✅ Passed: Run numbers unique across timestamps (e.g. ${phone1} vs ${phone2})`);
+  assert.ok(phone1.startsWith("910000"), "Fake numbers must clearly be invalid (start with 910000)");
+  assert.ok(!phone1.startsWith("919"), "Fake numbers must never look like real 919... numbers");
+  console.log(`   ✅ Passed: Invalid fake numbers generated uniquely (e.g. ${phone1} vs ${phone2})`);
 
   console.log("\n====================================================");
   console.log("🎉 All Load-Test, Concurrency & Meta Tier Unit Tests PASSED!");

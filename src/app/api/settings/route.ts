@@ -12,10 +12,10 @@ export async function GET() {
       where: { businessId: business.id },
     });
     const optOutCount = await prisma.contact.count({
-      where: { businessId: business.id, optedOut: true },
+      where: { businessId: business.id, optedOut: true, isTest: false },
     });
     const optOutContacts = await prisma.contact.findMany({
-      where: { businessId: business.id, optedOut: true },
+      where: { businessId: business.id, optedOut: true, isTest: false },
       take: 50,
       orderBy: { updatedAt: "desc" },
     });

@@ -95,6 +95,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
     }
 
+    if (campaign.isTest && (action === "resend_not_read" || action === "resend_failed" || action === "resume" || action === "pause")) {
+      return NextResponse.json(
+        { error: "Send and resend actions are disabled for test campaigns." },
+        { status: 400 }
+      );
+    }
+
     if (action === "pause") {
       const updated = await prisma.campaign.update({
         where: { id: campaign.id },

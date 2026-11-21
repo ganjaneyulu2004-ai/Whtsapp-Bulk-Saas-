@@ -6,9 +6,18 @@ export async function GET() {
   try {
     const business = await getCurrentBusiness();
     const lists = await prisma.contactList.findMany({
-      where: { businessId: business.id },
+      where: {
+        businessId: business.id,
+        NOT: [{ name: { startsWith: "LOADTEST_" } }],
+      },
       include: {
-        _count: { select: { contacts: true } },
+        _count: {
+          select: {
+            contacts: {
+              where: { isTest: false },
+            },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });

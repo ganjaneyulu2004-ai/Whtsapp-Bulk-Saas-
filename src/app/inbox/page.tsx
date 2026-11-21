@@ -263,7 +263,7 @@ export default function InboxPage() {
       if (clean.startsWith("91") && clean.length === 12) {
         clean = clean.slice(2);
       }
-      if (!clean) return;
+      if (!clean || clean.startsWith("0000") || clean.includes("00000")) return;
 
       const isFromAi = msg.customerName === "__BUSINESS_AI__";
       const isFromBusiness = msg.customerName === "__BUSINESS_REPLY__";

@@ -51,7 +51,9 @@ export default function CampaignsHistoryPage() {
 
   const exportCSV = () => {
     let csv = "Name,Type,Recipients,Sent,Delivered,Read,Failed,Failed Reasons,Status,Date\n";
-    campaigns.forEach((c) => {
+    // Exclude isTest campaigns from CSV exports
+    const realCampaigns = campaigns.filter((c) => !c.isTest);
+    realCampaigns.forEach((c) => {
       const reasons = (c.messageLogs || [])
         .map((l: any) => `+${l.phone}: ${l.errorCode ? `[${l.errorCode}] ` : ""}${l.errorMessage || "Failed"}`)
         .join(" | ")

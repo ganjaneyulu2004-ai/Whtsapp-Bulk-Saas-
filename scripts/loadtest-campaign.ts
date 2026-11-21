@@ -136,17 +136,17 @@ async function main() {
 
   console.log(`👥 Created test contact list: "${listName}" (${contactList.id})`);
 
-  // 4. Batch create fake contacts (+91 90000xxxxx range, isTest: true)
+  // 4. Batch create fake contacts (clearly invalid numbers: +91 0000xxxxxx, isTest: true)
   // Use run timestamp in number range so every run has unique numbers and --count 1000 always creates 1000 logs
   const runTs = Date.now();
-  const runCode = String(runTs).slice(-6);
+  const runCode = String(runTs).slice(-4);
   console.log(`⚙️ Generating ${count} fake test contacts (runTimestamp=${runTs}, isTest=true)...`);
   const fakeContactsData = Array.from({ length: count }, (_, i) => ({
     id: `test_contact_${runTs}_${i}_${Math.random().toString(36).substring(2, 6)}`,
     businessId: business.id,
     listId: contactList.id,
     name: `LoadTest User ${i + 1}`,
-    phone: `919${runCode}${String(i).padStart(5, "0")}`,
+    phone: `910000${runCode}${String(i).padStart(4, "0")}`,
     isTest: true,
   }));
 

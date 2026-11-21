@@ -17,10 +17,20 @@ export async function GET() {
       return NextResponse.json({ error: "Business account not found" }, { status: 403 });
     }
 
-    // Strictly isolate to the logged-in user's businessId (never return null or other businesses)
+    // Strictly isolate to the logged-in user's businessId, excluding test contacts & fake load-test numbers
+    const testContacts = await prisma.contact.findMany({
+      where: { businessId: business.id, isTest: true },
+      select: { phone: true },
+    });
+    const testPhones = testContacts.map((c) => c.phone.replace(/[^0-9]/g, ""));
+
     const messages = await prisma.incomingMessage.findMany({
       where: {
         businessId: business.id,
+        NOT: [
+          { fromPhone: { contains: "0000" } },
+          ...(testPhones.length > 0 ? [{ fromPhone: { in: testPhones } }] : []),
+        ],
       },
       orderBy: { timestamp: "desc" },
       take: 100,

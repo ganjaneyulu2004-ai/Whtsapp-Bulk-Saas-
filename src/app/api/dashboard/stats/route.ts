@@ -64,6 +64,7 @@ export async function GET(req: Request) {
 
     const campaignWhere: any = {
       ...businessWhere,
+      isTest: false,
       ...(startDate ? { createdAt: campaignDateFilter } : {}),
     };
 
@@ -158,7 +159,20 @@ export async function GET(req: Request) {
 
     const currentBiz = await getCurrentBusiness();
 
-    // Check for Meta Billing 131042 failures in the last 24 hours
+    // Billing banner requirement:
+    // Hide the "add a payment method" banner when the business had a successful template send in the last 7 days;
+    // show it only after a 131042 error.
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const recentSuccess = await prisma.messageLog.findFirst({
+      where: {
+        status: { in: ["SENT", "DELIVERED", "READ"] },
+        sentAt: { gte: sevenDaysAgo },
+        campaign: { businessId: currentBiz.id, isTest: false },
+      },
+      orderBy: { sentAt: "desc" },
+      select: { sentAt: true },
+    });
+
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const recent131042 = await prisma.messageLog.findFirst({
       where: {
@@ -167,9 +181,14 @@ export async function GET(req: Request) {
         createdAt: { gte: oneDayAgo },
         campaign: { businessId: currentBiz.id },
       },
-      select: { id: true },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
     });
-    const has131042Failure = Boolean(recent131042);
+
+    const has131042Failure = Boolean(
+      recent131042 && (!recentSuccess?.sentAt || recent131042.createdAt > recentSuccess.sentAt)
+    );
+    const showBillingBanner = has131042Failure;
 
     let waConfig = await prisma.whatsAppConfig.findUnique({
       where: { businessId: currentBiz.id },
@@ -297,6 +316,7 @@ export async function GET(req: Request) {
       },
       failureReasons,
       has131042Failure,
+      showBillingBanner,
       chartData,
       recentCampaigns: formattedCampaigns,
       whatsappConfig: waConfig,

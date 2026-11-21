@@ -395,31 +395,19 @@ export default function DashboardPage() {
         onConfigUpdated={() => fetchStats(true)}
       />
 
-      {/* 2. Meta Billing Hub Notice (shown ONLY after WhatsApp is connected) */}
-      {isWhatsAppConnected && (
-        <div className={`p-4 sm:p-5 rounded-2xl ${
-          statsData?.has131042Failure
-            ? "bg-rose-50 border border-rose-300 text-rose-950"
-            : "bg-blue-50/80 border border-blue-200 text-blue-950"
-        } flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-2xs`}>
+      {/* 2. Meta Billing Hub Notice (shown ONLY after a 131042 error occurs, hidden when successful send in last 7 days) */}
+      {isWhatsAppConnected && statsData?.showBillingBanner && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-rose-50 border border-rose-300 text-rose-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-2xs">
           <div className="flex items-start gap-3">
-            <div className={`w-10 h-10 rounded-xl ${
-              statsData?.has131042Failure ? "bg-rose-100 text-rose-700" : "bg-blue-100 text-blue-700"
-            } flex items-center justify-center shrink-0 mt-0.5`}>
+            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 mt-0.5">
               <CreditCard className="w-5 h-5" />
             </div>
             <div>
-              <p className={`font-heading font-bold text-xs sm:text-sm ${
-                statsData?.has131042Failure ? "text-rose-950" : "text-blue-950"
-              }`}>
-                {statsData?.has131042Failure
-                  ? "Action Required: Meta Delivery Paused (Payment Error 131042)"
-                  : t("dashboard.metaBillingNotice")}
+              <p className="font-heading font-bold text-xs sm:text-sm text-rose-950">
+                Action Required: Meta Delivery Paused (Payment Error 131042)
               </p>
               <p className="text-xs text-slate-600 mt-0.5">
-                {statsData?.has131042Failure
-                  ? "Meta requires an active payment card attached to this messaging account to dispatch broadcast messages."
-                  : "Meta charges per-message conversation fees directly to your payment card."}
+                Meta requires an active payment card attached to this messaging account to dispatch broadcast messages.
               </p>
             </div>
           </div>

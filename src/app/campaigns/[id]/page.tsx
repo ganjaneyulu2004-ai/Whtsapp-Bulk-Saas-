@@ -114,7 +114,7 @@ export default function CampaignDetailPage() {
   };
 
   const exportCSV = () => {
-    if (!data?.campaign?.messageLogs) return;
+    if (!data?.campaign?.messageLogs || data.campaign.isTest) return;
     const logs = data.campaign.messageLogs;
 
     const headers = [
@@ -269,8 +269,8 @@ export default function CampaignDetailPage() {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Resend to Not Read Button */}
-          {notReadCount > 0 && (
+          {/* Resend to Not Read Button (hidden for isTest campaigns) */}
+          {notReadCount > 0 && !campaign.isTest && (
             <button
               onClick={() => setShowResendModal(true)}
               className="flex items-center gap-1.5 bg-brand-gradient hover:opacity-95 text-white font-heading font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-brand-purple/20 transition-all cursor-pointer"
@@ -280,7 +280,7 @@ export default function CampaignDetailPage() {
             </button>
           )}
 
-          {campaign.status === "SENDING" && (
+          {campaign.status === "SENDING" && !campaign.isTest && (
             <button
               onClick={() => handleAction("pause")}
               className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-heading font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
@@ -290,7 +290,7 @@ export default function CampaignDetailPage() {
             </button>
           )}
 
-          {campaign.status === "PAUSED" && (
+          {campaign.status === "PAUSED" && !campaign.isTest && (
             <button
               onClick={() => handleAction("resume")}
               className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
@@ -300,7 +300,7 @@ export default function CampaignDetailPage() {
             </button>
           )}
 
-          {campaign.failedCount > 0 && (
+          {campaign.failedCount > 0 && !campaign.isTest && (
             <button
               onClick={() => handleAction("resend_failed")}
               className="flex items-center gap-1.5 bg-rose-500 hover:bg-rose-600 text-white font-heading font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
@@ -310,13 +310,15 @@ export default function CampaignDetailPage() {
             </button>
           )}
 
-          <button
-            onClick={exportCSV}
-            className="flex items-center gap-1.5 bg-white border border-brand-soft text-brand-purple hover:bg-brand-50 font-heading font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export CSV</span>
-          </button>
+          {!campaign.isTest && (
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-1.5 bg-white border border-brand-soft text-brand-purple hover:bg-brand-50 font-heading font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export CSV</span>
+            </button>
+          )}
 
           <button
             onClick={() => fetchDetail(true)}
