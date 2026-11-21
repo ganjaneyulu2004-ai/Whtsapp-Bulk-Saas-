@@ -22,13 +22,26 @@ export async function GET() {
       where: { businessId: business.id, isTest: true },
       select: { phone: true },
     });
-    const testPhones = testContacts.map((c) => c.phone.replace(/[^0-9]/g, ""));
+    const testPhoneSet = new Set<string>();
+    testContacts.forEach((c) => {
+      if (c.phone) {
+        const raw = c.phone.trim();
+        testPhoneSet.add(raw);
+        const digits = raw.replace(/[^0-9]/g, "");
+        if (digits) {
+          testPhoneSet.add(digits);
+          testPhoneSet.add(`+${digits}`);
+        }
+      }
+    });
+    const testPhones = Array.from(testPhoneSet);
 
     const messages = await prisma.incomingMessage.findMany({
       where: {
         businessId: business.id,
         NOT: [
-          { fromPhone: { contains: "0000" } },
+          { fromPhone: { startsWith: "910000" } },
+          { fromPhone: { startsWith: "+910000" } },
           ...(testPhones.length > 0 ? [{ fromPhone: { in: testPhones } }] : []),
         ],
       },

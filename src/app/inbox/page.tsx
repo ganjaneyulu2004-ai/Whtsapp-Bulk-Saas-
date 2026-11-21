@@ -259,11 +259,15 @@ export default function InboxPage() {
 
     // Group incoming messages (including AI replies and business sent messages)
     rawMessages.forEach((msg) => {
-      let clean = String(msg.fromPhone || "").replace(/[^0-9]/g, "");
+      const rawPhone = String(msg.fromPhone || "");
+      const digits = rawPhone.replace(/[^0-9]/g, "");
+      // Exclude invalid empty numbers or loadtest range (starts with 910000)
+      if (!digits || digits.startsWith("910000") || rawPhone.startsWith("+910000")) return;
+
+      let clean = digits;
       if (clean.startsWith("91") && clean.length === 12) {
         clean = clean.slice(2);
       }
-      if (!clean || clean.startsWith("0000") || clean.includes("00000")) return;
 
       const isFromAi = msg.customerName === "__BUSINESS_AI__";
       const isFromBusiness = msg.customerName === "__BUSINESS_REPLY__";

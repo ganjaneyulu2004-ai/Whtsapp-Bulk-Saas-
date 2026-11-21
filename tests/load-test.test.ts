@@ -143,6 +143,67 @@ async function runTests() {
   assert.ok(!phone1.startsWith("919"), "Fake numbers must never look like real 919... numbers");
   console.log(`   ✅ Passed: Invalid fake numbers generated uniquely (e.g. ${phone1} vs ${phone2})`);
 
+  // Test 9: Inbox filter isolation (919800001234 must stay visible, 9100001234567 must be hidden)
+  console.log("\nTest 9: Inbox filter isolation (real customer numbers with zeros vs fake loadtest range)...");
+  const { isInboxVisiblePhone, isExcludedInboxPhone, isLoadTestPhone } = await import("../src/lib/inbox-filter");
+
+  // Real customer whose number has consecutive zeros (e.g. 919800001234 or 9800001234)
+  const realCustomerPhone = "919800001234";
+  assert.strictEqual(
+    isInboxVisiblePhone(realCustomerPhone),
+    true,
+    "919800001234 must stay visible in inbox (should not be excluded by zeros rule)"
+  );
+  assert.strictEqual(
+    isExcludedInboxPhone(realCustomerPhone),
+    false,
+    "919800001234 must NOT be excluded from inbox"
+  );
+  assert.strictEqual(
+    isLoadTestPhone(realCustomerPhone),
+    false,
+    "919800001234 is a real phone and must NOT be considered loadtest"
+  );
+
+  // Fake loadtest number starting with 910000
+  const fakeLoadtestPhone = "9100001234567";
+  assert.strictEqual(
+    isInboxVisiblePhone(fakeLoadtestPhone),
+    false,
+    "9100001234567 must be hidden from inbox"
+  );
+  assert.strictEqual(
+    isExcludedInboxPhone(fakeLoadtestPhone),
+    true,
+    "9100001234567 must be excluded from inbox"
+  );
+  assert.strictEqual(
+    isLoadTestPhone(fakeLoadtestPhone),
+    true,
+    "9100001234567 must be flagged as loadtest number"
+  );
+
+  // Fake loadtest number with leading plus (+910000...)
+  assert.strictEqual(
+    isInboxVisiblePhone("+9100001234567"),
+    false,
+    "+9100001234567 must be hidden from inbox"
+  );
+
+  // isTest contact exact match
+  const testContactSet = new Set(["919999988888"]);
+  assert.strictEqual(
+    isInboxVisiblePhone("919999988888", testContactSet),
+    false,
+    "Exact phone of isTest contact must be hidden"
+  );
+  assert.strictEqual(
+    isInboxVisiblePhone("919999977777", testContactSet),
+    true,
+    "Normal customer not in isTest set must stay visible"
+  );
+  console.log("   ✅ Passed: 919800001234 stays visible, 9100001234567 is hidden");
+
   console.log("\n====================================================");
   console.log("🎉 All Load-Test, Concurrency & Meta Tier Unit Tests PASSED!");
   console.log("====================================================\n");
