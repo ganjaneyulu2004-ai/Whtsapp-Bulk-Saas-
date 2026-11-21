@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
 import { encryptToken, decryptToken, maskToken } from "@/lib/encryption";
 import { getMetaGraphVersion } from "@/lib/meta-config";
+import { fetchWabaOwnerInfo } from "@/lib/whatsapp";
 
 export async function GET() {
   try {
@@ -133,6 +134,10 @@ export async function PUT(req: Request) {
       tokenToWrite = null;
     }
 
+    const effectiveWabaId = (waBusinessAccountId !== undefined ? waBusinessAccountId : existingConfig?.waBusinessAccountId)?.trim();
+    const resolvedPlainToken = isNewTokenProvided ? effectivePlainToken : decryptToken(existingConfig?.waToken);
+    const wabaOwner = effectiveWabaId && resolvedPlainToken ? await fetchWabaOwnerInfo(effectiveWabaId, resolvedPlainToken) : null;
+
     // Update WhatsApp credentials
     const updatedConfig = await prisma.whatsAppConfig.upsert({
       where: { businessId: business.id },
@@ -145,6 +150,9 @@ export async function PUT(req: Request) {
         displayPhoneNumber: displayPhoneNumber || undefined,
         verifiedName: verifiedName || undefined,
         qualityRating: qualityRating || undefined,
+        ...(wabaOwner?.ownerBusinessId ? { ownerBusinessId: wabaOwner.ownerBusinessId } : {}),
+        ...(wabaOwner?.ownerBusinessName ? { ownerBusinessName: wabaOwner.ownerBusinessName } : {}),
+        ...(wabaOwner?.wabaName ? { wabaName: wabaOwner.wabaName } : {}),
         isConnected: !!((tokenToWrite !== undefined ? tokenToWrite : existingConfig?.waToken) && (waPhoneNumberId || existingConfig?.waPhoneNumberId)),
         connectionMethod: "MANUAL",
       },
@@ -158,10 +166,20 @@ export async function PUT(req: Request) {
         displayPhoneNumber,
         verifiedName,
         qualityRating,
+        ownerBusinessId: wabaOwner?.ownerBusinessId || null,
+        ownerBusinessName: wabaOwner?.ownerBusinessName || null,
+        wabaName: wabaOwner?.wabaName || null,
         isConnected: !!(tokenToWrite && waPhoneNumberId),
         connectionMethod: "MANUAL",
       },
     });
+
+    if (wabaOwner?.ownerBusinessId) {
+      await prisma.business.update({
+        where: { id: business.id },
+        data: { ownerBusinessId: wabaOwner.ownerBusinessId },
+      }).catch(() => {});
+    }
 
     const safeConfig = {
       ...updatedConfig,

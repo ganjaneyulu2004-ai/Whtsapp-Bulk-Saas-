@@ -185,6 +185,10 @@ export async function initializeDatabase() {
     `DROP INDEX IF EXISTS "ContactTag_phone_key";`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "ContactTag_businessId_phone_key" ON "ContactTag"("businessId", "phone");`,
     `CREATE INDEX IF NOT EXISTS "ContactTag_businessId_idx" ON "ContactTag"("businessId");`,
+    `ALTER TABLE "WhatsAppConfig" ADD COLUMN IF NOT EXISTS "ownerBusinessId" TEXT;`,
+    `ALTER TABLE "WhatsAppConfig" ADD COLUMN IF NOT EXISTS "ownerBusinessName" TEXT;`,
+    `ALTER TABLE "WhatsAppConfig" ADD COLUMN IF NOT EXISTS "wabaName" TEXT;`,
+    `ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "ownerBusinessId" TEXT;`,
 
     // Clean up any legacy Meta API card billing columns (OneAmple never stores card data)
     `ALTER TABLE "Business" DROP COLUMN IF EXISTS "apiCardLinked";`,

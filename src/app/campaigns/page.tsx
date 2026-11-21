@@ -11,8 +11,10 @@ import {
   ChevronRight,
   RefreshCw,
   PlusCircle,
-  Clock
+  Clock,
+  ExternalLink
 } from "lucide-react";
+import { buildMetaBillingUrl } from "@/lib/meta-billing";
 
 export default function CampaignsHistoryPage() {
   const { t } = useLanguage();
@@ -199,7 +201,7 @@ export default function CampaignsHistoryPage() {
                         )}
                       </div>
                       {Array.isArray(camp.messageLogs) && camp.messageLogs.length > 0 && (
-                        <div className="mt-1.5 space-y-0.5 text-[11px] text-rose-700 bg-rose-50/80 border border-rose-200/80 rounded-lg px-2.5 py-1.5 max-w-md">
+                        <div className="mt-1.5 space-y-1 text-[11px] text-rose-700 bg-rose-50/80 border border-rose-200/80 rounded-lg px-2.5 py-1.5 max-w-md">
                           {camp.messageLogs.slice(0, 3).map((m: any) => (
                             <div key={m.id} className="truncate">
                               <span className="font-mono font-semibold">+{m.phone}</span>:{" "}
@@ -211,6 +213,20 @@ export default function CampaignsHistoryPage() {
                             <div className="text-[10px] text-rose-600 font-medium">
                               +{camp.messageLogs.length - 3} more failed — click View Analytics
                             </div>
+                          )}
+                          {camp.messageLogs.some((m: any) => m.errorCode === "131042" || String(m.errorMessage || "").includes("131042")) && (
+                            <a
+                              href={buildMetaBillingUrl({
+                                ownerBusinessId: camp.business?.whatsappConfig?.ownerBusinessId,
+                                wabaId: camp.business?.whatsappConfig?.waBusinessAccountId,
+                              })}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 font-bold text-rose-800 hover:text-rose-950 underline mt-0.5 text-[10px]"
+                            >
+                              <span>Fix Payment: Add card to WhatsApp account</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
                           )}
                         </div>
                       )}

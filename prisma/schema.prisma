@@ -60,6 +60,7 @@ model Business {
   logoUrl              String?
   phone                String?
   address              String?
+  ownerBusinessId      String? // Meta WABA owner business ID
   website              String?
   defaultBookingLink   String?
   locationMapLink      String?
@@ -102,6 +103,9 @@ model WhatsAppConfig {
   embeddedSignupAt    DateTime?
   pin                 String?
   status              String?   @default("CONNECTED")
+  ownerBusinessId     String?   // Meta WABA owner business ID (e.g. "1031619844957884")
+  ownerBusinessName   String?   // Meta WABA owner business name
+  wabaName            String?   // Meta WABA account name
   updatedAt           DateTime  @updatedAt
 }
 

@@ -19,6 +19,7 @@ import {
   Lock
 } from "lucide-react";
 import { PlanConfig, SUBSCRIPTION_PLANS } from "@/config/plans";
+import { MetaBillingButton } from "@/components/MetaBillingButton";
 
 function CompletePaymentContent() {
   const router = useRouter();
@@ -26,6 +27,7 @@ function CompletePaymentContent() {
   const { data: session, update } = useSession();
 
   const [plans, setPlans] = useState<PlanConfig[]>(SUBSCRIPTION_PLANS);
+  const [waConfig, setWaConfig] = useState<any>(null);
 
   const [selectedItem, setSelectedItem] = useState<{
     id: string;
@@ -86,6 +88,13 @@ function CompletePaymentContent() {
         if (data?.paymentPhone) setPaymentPhone(data.paymentPhone);
         if (data?.razorpayKeyId) setRazorpayKeyId(data.razorpayKeyId);
         if (data?.metaNote) setMetaNote(data.metaNote);
+      })
+      .catch(() => {});
+
+    fetch("/api/whatsapp/embedded-signup")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.config?.isConnected) setWaConfig(data.config);
       })
       .catch(() => {});
   }, []);
@@ -442,20 +451,25 @@ function CompletePaymentContent() {
         </div>
 
         {/* Meta Official Cloud API Notice Card */}
-        <div className="mt-6 p-4 rounded-2xl bg-blue-50/70 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-700">
-          <div className="flex items-center gap-2.5">
-            <Info className="w-4 h-4 text-blue-700 shrink-0" />
-            <span>{metaNote}</span>
+        <div className="mt-6 p-4 sm:p-5 rounded-2xl bg-blue-50/70 border border-blue-200 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs text-slate-700">
+          <div className="flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-slate-900">{metaNote}</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                OneAmple only bills for your flat platform subscription. WhatsApp message conversation fees are billed directly by Meta.
+              </p>
+            </div>
           </div>
-          <a
-            href="https://business.facebook.com/billing_hub"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-blue-700 font-bold hover:underline shrink-0"
-          >
-            <span>Open Meta Billing Hub</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+          <MetaBillingButton
+            wabaId={waConfig?.waBusinessAccountId}
+            ownerBusinessId={waConfig?.ownerBusinessId}
+            ownerBusinessName={waConfig?.ownerBusinessName}
+            wabaName={waConfig?.wabaName}
+            verifiedName={waConfig?.verifiedName}
+            businessName={session?.user?.businessName || session?.user?.name}
+            showNotesBelow={true}
+          />
         </div>
       </section>
 

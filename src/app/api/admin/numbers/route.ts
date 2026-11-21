@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
+import { sendWhatsAppTemplateMessage, fetchWabaOwnerInfo } from "@/lib/whatsapp";
 import { encryptToken, decryptToken, maskToken } from "@/lib/encryption";
 import { getMetaGraphVersion } from "@/lib/meta-config";
 
@@ -58,13 +58,18 @@ export async function GET() {
 
           // If found and not active or phoneId missing, automatically link & activate!
           if (matchBiz && (!matchBiz.whatsappConfig?.isConnected || matchBiz.whatsappConfig?.waPhoneNumberId !== metaPhone.id)) {
+            const effectiveWabaId = matchBiz.whatsappConfig?.waBusinessAccountId || wabaId;
+            const wabaOwner = await fetchWabaOwnerInfo(effectiveWabaId, token);
             const updatedConfig = await prisma.whatsAppConfig.upsert({
               where: { businessId: matchBiz.id },
               update: {
                 isConnected: true,
                 connectionMethod: "OFFICIAL_DIRECT",
                 waPhoneNumberId: metaPhone.id,
-                waBusinessAccountId: matchBiz.whatsappConfig?.waBusinessAccountId || wabaId,
+                waBusinessAccountId: effectiveWabaId,
+                ownerBusinessId: wabaOwner.ownerBusinessId || matchBiz.whatsappConfig?.ownerBusinessId,
+                ownerBusinessName: wabaOwner.ownerBusinessName || matchBiz.whatsappConfig?.ownerBusinessName,
+                wabaName: wabaOwner.wabaName || matchBiz.whatsappConfig?.wabaName,
                 ...(!matchBiz.whatsappConfig?.waToken ? { waToken: encryptToken(token) } : {}),
                 displayPhoneNumber: metaPhone.display_phone_number,
                 verifiedName: metaPhone.verified_name || matchBiz.name,
@@ -75,7 +80,10 @@ export async function GET() {
                 isConnected: true,
                 connectionMethod: "OFFICIAL_DIRECT",
                 waPhoneNumberId: metaPhone.id,
-                waBusinessAccountId: matchBiz.whatsappConfig?.waBusinessAccountId || wabaId,
+                waBusinessAccountId: effectiveWabaId,
+                ownerBusinessId: wabaOwner.ownerBusinessId,
+                ownerBusinessName: wabaOwner.ownerBusinessName,
+                wabaName: wabaOwner.wabaName,
                 ...(!matchBiz.whatsappConfig?.waToken ? { waToken: encryptToken(token) } : {}),
                 displayPhoneNumber: metaPhone.display_phone_number,
                 verifiedName: metaPhone.verified_name || matchBiz.name,
@@ -83,6 +91,12 @@ export async function GET() {
               },
             });
             matchBiz.whatsappConfig = updatedConfig;
+            if (wabaOwner.ownerBusinessId) {
+              await prisma.business.update({
+                where: { id: matchBiz.id },
+                data: { ownerBusinessId: wabaOwner.ownerBusinessId },
+              }).catch(() => {});
+            }
           }
         }
       } catch (metaErr) {
@@ -168,6 +182,9 @@ export async function POST(req: Request) {
       const cleanPhoneId = waPhoneNumberId.trim();
       const phoneDisplay = displayPhoneNumber?.trim() || business.phone || business.whatsappConfig?.displayPhoneNumber || "+91 (Active)";
       const brandDisplay = verifiedName?.trim() || business.name;
+      const targetWaba = process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581";
+      const targetToken = process.env.WA_TOKEN || null;
+      const wabaOwner = await fetchWabaOwnerInfo(targetWaba, targetToken);
 
       const updated = await prisma.whatsAppConfig.upsert({
         where: { businessId: business.id },
@@ -179,9 +196,12 @@ export async function POST(req: Request) {
           verifiedName: brandDisplay,
           qualityRating: "High (Green)",
           messagingLimitTier: "TIER_250",
-          waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-          waToken: encryptToken(process.env.WA_TOKEN || null),
+          waBusinessAccountId: targetWaba,
+          waToken: encryptToken(targetToken),
           waApiVersion: getMetaGraphVersion(),
+          ownerBusinessId: wabaOwner.ownerBusinessId,
+          ownerBusinessName: wabaOwner.ownerBusinessName,
+          wabaName: wabaOwner.wabaName,
         },
         create: {
           businessId: business.id,
@@ -192,11 +212,21 @@ export async function POST(req: Request) {
           verifiedName: brandDisplay,
           qualityRating: "High (Green)",
           messagingLimitTier: "TIER_250",
-          waBusinessAccountId: process.env.WA_BUSINESS_ACCOUNT_ID || "2367270804076581",
-          waToken: encryptToken(process.env.WA_TOKEN || null),
+          waBusinessAccountId: targetWaba,
+          waToken: encryptToken(targetToken),
           waApiVersion: getMetaGraphVersion(),
+          ownerBusinessId: wabaOwner.ownerBusinessId,
+          ownerBusinessName: wabaOwner.ownerBusinessName,
+          wabaName: wabaOwner.wabaName,
         },
       });
+
+      if (wabaOwner.ownerBusinessId) {
+        await prisma.business.update({
+          where: { id: business.id },
+          data: { ownerBusinessId: wabaOwner.ownerBusinessId },
+        }).catch(() => {});
+      }
 
       return NextResponse.json({
         success: true,

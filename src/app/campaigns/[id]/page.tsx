@@ -23,8 +23,10 @@ import {
   Clock,
   Sparkles,
   HelpCircle,
-  Repeat
+  Repeat,
+  CreditCard
 } from "lucide-react";
+import { MetaBillingButton } from "@/components/MetaBillingButton";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 export default function CampaignDetailPage() {
@@ -307,6 +309,34 @@ export default function CampaignDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* 131042 Meta Billing Warning Banner */}
+      {logs.some((l: any) => l.errorCode === "131042" || l.errorMessage?.includes("131042")) && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-rose-50 border border-rose-300 text-rose-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 mt-0.5">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-heading font-bold text-sm text-rose-950">
+                Meta Payment Issue Detected (Error 131042)
+              </h4>
+              <p className="text-xs text-rose-900 mt-0.5">
+                Failed messages were rejected by Meta because no active payment method is attached to this WhatsApp messaging account. Add a card to resume sending.
+              </p>
+            </div>
+          </div>
+          <MetaBillingButton
+            wabaId={campaign?.business?.whatsappConfig?.waBusinessAccountId}
+            ownerBusinessId={campaign?.business?.whatsappConfig?.ownerBusinessId}
+            ownerBusinessName={campaign?.business?.whatsappConfig?.ownerBusinessName}
+            wabaName={campaign?.business?.whatsappConfig?.wabaName}
+            verifiedName={campaign?.business?.whatsappConfig?.verifiedName}
+            businessName={campaign?.business?.name || campaign?.businessName}
+            showNotesBelow={true}
+          />
+        </div>
+      )}
 
       {/* Info Note on WhatsApp Privacy Settings */}
       <div className="p-4 rounded-2xl bg-brand-light border border-brand-soft flex items-start gap-3 text-xs text-text-main">

@@ -26,6 +26,7 @@ import {
   Trash2
 } from "lucide-react";
 import WhatsAppEmbeddedSignup from "@/components/WhatsAppEmbeddedSignup";
+import { MetaBillingButton } from "@/components/MetaBillingButton";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -396,24 +397,41 @@ export default function DashboardPage() {
 
       {/* 2. Meta Billing Hub Notice (shown ONLY after WhatsApp is connected) */}
       {isWhatsAppConnected && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/80 border border-blue-200 text-blue-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-700">
+        <div className={`p-4 sm:p-5 rounded-2xl ${
+          statsData?.has131042Failure
+            ? "bg-rose-50 border border-rose-300 text-rose-950"
+            : "bg-blue-50/80 border border-blue-200 text-blue-950"
+        } flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-2xs`}>
+          <div className="flex items-start gap-3">
+            <div className={`w-10 h-10 rounded-xl ${
+              statsData?.has131042Failure ? "bg-rose-100 text-rose-700" : "bg-blue-100 text-blue-700"
+            } flex items-center justify-center shrink-0 mt-0.5`}>
               <CreditCard className="w-5 h-5" />
             </div>
-            <p className="font-heading font-semibold text-xs sm:text-sm text-blue-950">
-              {t("dashboard.metaBillingNotice")}
-            </p>
+            <div>
+              <p className={`font-heading font-bold text-xs sm:text-sm ${
+                statsData?.has131042Failure ? "text-rose-950" : "text-blue-950"
+              }`}>
+                {statsData?.has131042Failure
+                  ? "Action Required: Meta Delivery Paused (Payment Error 131042)"
+                  : t("dashboard.metaBillingNotice")}
+              </p>
+              <p className="text-xs text-slate-600 mt-0.5">
+                {statsData?.has131042Failure
+                  ? "Meta requires an active payment card attached to this messaging account to dispatch broadcast messages."
+                  : "Meta charges per-message conversation fees directly to your payment card."}
+              </p>
+            </div>
           </div>
-          <a
-            href="https://business.facebook.com/billing_hub"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2.5 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-heading font-bold text-xs shadow-xs transition-all shrink-0 flex items-center gap-1.5"
-          >
-            <span>{t("dashboard.openMetaBillingHub")}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </a>
+          <MetaBillingButton
+            wabaId={waConfig?.waBusinessAccountId}
+            ownerBusinessId={waConfig?.ownerBusinessId}
+            ownerBusinessName={waConfig?.ownerBusinessName}
+            wabaName={waConfig?.wabaName}
+            verifiedName={waConfig?.verifiedName}
+            businessName={session?.user?.businessName || session?.user?.name}
+            showNotesBelow={true}
+          />
         </div>
       )}
 
@@ -763,6 +781,29 @@ export default function DashboardPage() {
             <p className="text-xs text-slate-muted mb-4">
               These are the error responses received from Meta WhatsApp Cloud API during message transmission:
             </p>
+
+            {failureReasons.some((fr: any) => fr.code === "131042" || String(fr.message || "").includes("131042")) && (
+              <div className="mb-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 space-y-2">
+                <div className="flex items-center gap-2 font-heading font-bold text-xs text-amber-900">
+                  <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>Meta Payment Issue Detected (Error 131042)</span>
+                </div>
+                <p className="text-xs text-amber-800">
+                  Messages failed because a payment card is missing from this WhatsApp messaging account. Add a card to resume deliveries:
+                </p>
+                <div className="pt-1">
+                  <MetaBillingButton
+                    wabaId={waConfig?.waBusinessAccountId}
+                    ownerBusinessId={waConfig?.ownerBusinessId}
+                    ownerBusinessName={waConfig?.ownerBusinessName}
+                    wabaName={waConfig?.wabaName}
+                    verifiedName={waConfig?.verifiedName}
+                    businessName={session?.user?.businessName || session?.user?.name}
+                    showNotesBelow={true}
+                  />
+                </div>
+              </div>
+            )}
 
             {failureReasons.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-muted bg-brand-light rounded-2xl">

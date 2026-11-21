@@ -33,6 +33,7 @@ import {
   getGenericFallbackForVariable,
   sanitizeVariableValue,
 } from "@/lib/template-variables";
+import { MetaBillingButton } from "@/components/MetaBillingButton";
 
 export default function CreateCampaignPage() {
   const router = useRouter();
@@ -108,12 +109,15 @@ export default function CreateCampaignPage() {
   const [sendingTest, setSendingTest] = useState(false);
   const [waConnected, setWaConnected] = useState(false);
 
+  const [waConfig, setWaConfig] = useState<any>(null);
+
   useEffect(() => {
     fetch("/api/whatsapp/embedded-signup")
       .then((res) => res.json())
       .then((data) => {
         if (data?.config?.isConnected) {
           setWaConnected(true);
+          setWaConfig(data.config);
         }
       })
       .catch(() => {});
@@ -929,24 +933,29 @@ export default function CreateCampaignPage() {
 
       {/* Meta Billing Hub Notice (shown only when WhatsApp is connected) */}
       {waConnected && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/80 border border-blue-200 text-blue-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-700">
+        <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/80 border border-blue-200 text-blue-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-2xs">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-700 mt-0.5">
               <CreditCard className="w-5 h-5" />
             </div>
-            <p className="font-heading font-semibold text-xs sm:text-sm text-blue-950">
-              {t("dashboard.metaBillingNotice")}
-            </p>
+            <div>
+              <p className="font-heading font-semibold text-xs sm:text-sm text-blue-950">
+                {t("dashboard.metaBillingNotice")}
+              </p>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Meta charges per-message conversation fees directly to your payment card.
+              </p>
+            </div>
           </div>
-          <a
-            href="https://business.facebook.com/billing_hub"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2.5 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-heading font-bold text-xs shadow-xs transition-all shrink-0 flex items-center gap-1.5"
-          >
-            <span>{t("dashboard.openMetaBillingHub")}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </a>
+          <MetaBillingButton
+            wabaId={waConfig?.waBusinessAccountId}
+            ownerBusinessId={waConfig?.ownerBusinessId}
+            ownerBusinessName={waConfig?.ownerBusinessName}
+            wabaName={waConfig?.wabaName}
+            verifiedName={waConfig?.verifiedName}
+            businessName={businessName}
+            showNotesBelow={true}
+          />
         </div>
       )}
 

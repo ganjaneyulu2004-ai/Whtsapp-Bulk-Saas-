@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness } from "@/lib/session";
-import { encryptToken } from "@/lib/encryption";
+import { encryptToken, decryptToken } from "@/lib/encryption";
+import { fetchWabaOwnerInfo } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -155,6 +156,20 @@ export async function GET(req: Request) {
     const chartData = Object.values(dailyMap);
 
     const currentBiz = await getCurrentBusiness();
+
+    // Check for Meta Billing 131042 failures in the last 24 hours
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recent131042 = await prisma.messageLog.findFirst({
+      where: {
+        status: "FAILED",
+        errorCode: "131042",
+        createdAt: { gte: oneDayAgo },
+        campaign: { businessId: currentBiz.id },
+      },
+      select: { id: true },
+    });
+    const has131042Failure = Boolean(recent131042);
+
     let waConfig = await prisma.whatsAppConfig.findUnique({
       where: { businessId: currentBiz.id },
       select: {
@@ -167,8 +182,49 @@ export async function GET(req: Request) {
         waPhoneNumberId: true,
         waBusinessAccountId: true,
         metaAppId: true,
+        ownerBusinessId: true,
+        ownerBusinessName: true,
+        wabaName: true,
       },
     });
+
+    // Opportunistically fetch & cache WABA owner business ID if missing for connected account
+    if (waConfig?.isConnected && waConfig?.waBusinessAccountId && !waConfig?.ownerBusinessId) {
+      try {
+        const rawWa = await prisma.whatsAppConfig.findUnique({
+          where: { businessId: currentBiz.id },
+          select: { waToken: true },
+        });
+        const plainToken = decryptToken(rawWa?.waToken);
+        if (plainToken) {
+          const wabaOwner = await fetchWabaOwnerInfo(waConfig.waBusinessAccountId, plainToken);
+          if (wabaOwner.ownerBusinessId || wabaOwner.wabaName) {
+            await prisma.whatsAppConfig.update({
+              where: { businessId: currentBiz.id },
+              data: {
+                ownerBusinessId: wabaOwner.ownerBusinessId,
+                ownerBusinessName: wabaOwner.ownerBusinessName,
+                wabaName: wabaOwner.wabaName,
+              },
+            });
+            if (wabaOwner.ownerBusinessId) {
+              await prisma.business.update({
+                where: { id: currentBiz.id },
+                data: { ownerBusinessId: wabaOwner.ownerBusinessId },
+              }).catch(() => {});
+            }
+            waConfig = {
+              ...waConfig,
+              ownerBusinessId: wabaOwner.ownerBusinessId,
+              ownerBusinessName: wabaOwner.ownerBusinessName,
+              wabaName: wabaOwner.wabaName,
+            };
+          }
+        }
+      } catch (lazyErr) {
+        console.warn("[Dashboard Stats] Lazy WABA owner fetch notice:", lazyErr);
+      }
+    }
 
     // If regular user has the old hardcoded demo office credentials, update to their real business name & pending status
     if (!isAdmin && waConfig && currentBiz.name !== "SaaS by IBrainLabs" && waConfig.connectionMethod === "OFFICIAL_OFFICE_API") {
@@ -190,6 +246,9 @@ export async function GET(req: Request) {
           waPhoneNumberId: true,
           waBusinessAccountId: true,
           metaAppId: true,
+          ownerBusinessId: true,
+          ownerBusinessName: true,
+          wabaName: true,
         },
       });
     }
@@ -219,6 +278,9 @@ export async function GET(req: Request) {
           waPhoneNumberId: true,
           waBusinessAccountId: true,
           metaAppId: true,
+          ownerBusinessId: true,
+          ownerBusinessName: true,
+          wabaName: true,
         },
       });
     }
@@ -233,6 +295,7 @@ export async function GET(req: Request) {
         readRate: overallReadRate,
       },
       failureReasons,
+      has131042Failure,
       chartData,
       recentCampaigns: formattedCampaigns,
       whatsappConfig: waConfig,

@@ -29,12 +29,31 @@ export async function GET() {
       }
     }
 
+    const business = await prisma.business.findFirst({
+      where: { userId: session.user.id },
+      include: {
+        whatsappConfig: {
+          select: {
+            isConnected: true,
+            waBusinessAccountId: true,
+            ownerBusinessId: true,
+            ownerBusinessName: true,
+            wabaName: true,
+            verifiedName: true,
+            displayPhoneNumber: true,
+          },
+        },
+      },
+    });
+
     return NextResponse.json({
       subscriptions,
       currentSubscription: activeSub || subscriptions[0] || null,
       daysRemaining,
       isExpiringSoon,
       isAdmin: session.user.role === "ADMIN",
+      whatsappConfig: business?.whatsappConfig || null,
+      businessName: business?.name || null,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

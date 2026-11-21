@@ -29,6 +29,21 @@ export async function GET(req: Request) {
       include: {
         template: true,
         contactList: true,
+        business: {
+          select: {
+            id: true,
+            name: true,
+            whatsappConfig: {
+              select: {
+                waBusinessAccountId: true,
+                ownerBusinessId: true,
+                ownerBusinessName: true,
+                wabaName: true,
+                verifiedName: true,
+              },
+            },
+          },
+        },
         messageLogs: {
           where: { status: "FAILED" },
           select: {

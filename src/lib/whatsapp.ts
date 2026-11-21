@@ -26,6 +26,9 @@ export interface MetaTemplatePayload {
 // Map Meta error codes to friendly human-readable messages
 export function mapMetaErrorCode(code: string | number, defaultMsg?: string): string {
   const codeStr = String(code);
+  if (codeStr === "131042") {
+    return "Payment issue: Add a payment card to this WhatsApp messaging account in Meta Billing Hub.";
+  }
   if (codeStr === "132001") {
     return "This template is not approved yet in Meta (or wrong language code).";
   }
@@ -39,6 +42,49 @@ export function mapMetaErrorCode(code: string | number, defaultMsg?: string): st
     return "Rate limit exceeded. System will retry automatically with backoff.";
   }
   return defaultMsg || `Meta Error Code ${codeStr}`;
+}
+
+/**
+ * Fetches Meta WABA details including owner_business_info (ID & name) and account name.
+ * GET https://graph.facebook.com/v21.0/{WABA_ID}?fields=owner_business_info,name
+ */
+export async function fetchWabaOwnerInfo(
+  wabaId?: string | null,
+  token?: string | null
+): Promise<{
+  ownerBusinessId: string | null;
+  ownerBusinessName: string | null;
+  wabaName: string | null;
+}> {
+  const cleanWaba = wabaId?.trim();
+  const cleanToken = token?.trim();
+  if (!cleanWaba || !cleanToken) {
+    return { ownerBusinessId: null, ownerBusinessName: null, wabaName: null };
+  }
+
+  try {
+    const url = `https://graph.facebook.com/v21.0/${cleanWaba}?fields=owner_business_info,name`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${cleanToken}` },
+      cache: "no-store",
+    });
+
+    const data = await res.json();
+    if (!res.ok || data?.error) {
+      console.warn(`[fetchWabaOwnerInfo] Meta API warning for WABA ${cleanWaba}:`, data?.error?.message || data);
+      return { ownerBusinessId: null, ownerBusinessName: null, wabaName: null };
+    }
+
+    const owner = data?.owner_business_info;
+    const ownerBusinessId = owner?.id ? String(owner.id).trim() : null;
+    const ownerBusinessName = owner?.name ? String(owner.name).trim() : null;
+    const wabaName = data?.name ? String(data.name).trim() : null;
+
+    return { ownerBusinessId, ownerBusinessName, wabaName };
+  } catch (err: any) {
+    console.warn(`[fetchWabaOwnerInfo] Exception for WABA ${cleanWaba}:`, err?.message || err);
+    return { ownerBusinessId: null, ownerBusinessName: null, wabaName: null };
+  }
 }
 
 export async function submitTemplateToMeta(
@@ -569,10 +615,10 @@ export async function sendWhatsAppTemplateMessage(
         typeof params?.bodyVarCount === "number"
           ? Math.max(0, params.bodyVarCount)
           : suppliedParams
-          ? suppliedParams.length
-          : templateName === "offer_poster_v1" || templateName === "offer_update_v1"
-          ? 3
-          : 0;
+            ? suppliedParams.length
+            : templateName === "offer_poster_v1" || templateName === "offer_update_v1"
+              ? 3
+              : 0;
 
       const components: any[] = [];
       if (varCount > 0) {

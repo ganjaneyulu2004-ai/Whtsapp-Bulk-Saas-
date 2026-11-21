@@ -22,6 +22,21 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       include: {
         template: true,
         contactList: true,
+        business: {
+          select: {
+            id: true,
+            name: true,
+            whatsappConfig: {
+              select: {
+                waBusinessAccountId: true,
+                ownerBusinessId: true,
+                ownerBusinessName: true,
+                wabaName: true,
+                verifiedName: true,
+              },
+            },
+          },
+        },
         messageLogs: {
           include: { contact: true },
           orderBy: { createdAt: "desc" },

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { encryptToken, maskToken } from "@/lib/encryption";
 import { getMetaGraphVersion } from "@/lib/meta-config";
+import { fetchWabaOwnerInfo } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -214,6 +215,8 @@ export async function POST(req: Request) {
       existingConfig?.verifiedName ||
       targetBusiness.name;
 
+    const wabaOwner = await fetchWabaOwnerInfo(targetWabaId, rawToken);
+
     const updated = await prisma.whatsAppConfig.upsert({
       where: { businessId: targetBusiness.id },
       update: {
@@ -226,6 +229,9 @@ export async function POST(req: Request) {
         qualityRating: phoneData.quality_rating || existingConfig?.qualityRating || "GREEN",
         messagingLimitTier:
           phoneData.messaging_limit_tier || existingConfig?.messagingLimitTier || "TIER_250",
+        ownerBusinessId: wabaOwner.ownerBusinessId || existingConfig?.ownerBusinessId,
+        ownerBusinessName: wabaOwner.ownerBusinessName || existingConfig?.ownerBusinessName,
+        wabaName: wabaOwner.wabaName || existingConfig?.wabaName,
         isConnected: true,
         status: "CONNECTED",
       },
@@ -239,11 +245,21 @@ export async function POST(req: Request) {
         verifiedName: resolvedVerifiedName,
         qualityRating: phoneData.quality_rating || "GREEN",
         messagingLimitTier: phoneData.messaging_limit_tier || "TIER_250",
+        ownerBusinessId: wabaOwner.ownerBusinessId,
+        ownerBusinessName: wabaOwner.ownerBusinessName,
+        wabaName: wabaOwner.wabaName,
         isConnected: true,
         status: "CONNECTED",
         connectionMethod: "MANUAL",
       },
     });
+
+    if (wabaOwner.ownerBusinessId) {
+      await prisma.business.update({
+        where: { id: targetBusiness.id },
+        data: { ownerBusinessId: wabaOwner.ownerBusinessId },
+      }).catch(() => {});
+    }
 
     const last4 = rawToken.slice(-4);
 

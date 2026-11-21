@@ -15,6 +15,7 @@ import {
   History,
   Loader2
 } from "lucide-react";
+import { MetaBillingButton } from "@/components/MetaBillingButton";
 
 export default function BillingPage() {
   const router = useRouter();
@@ -26,6 +27,8 @@ export default function BillingPage() {
     daysRemaining: number;
     isExpiringSoon: boolean;
     isAdmin: boolean;
+    whatsappConfig?: any;
+    businessName?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -184,6 +187,30 @@ export default function BillingPage() {
         )}
       </div>
 
+      {/* Meta Messaging Direct Billing Card */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-base font-heading font-bold text-text-main uppercase tracking-wider flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-blue-600" />
+              <span>WhatsApp Conversation Billing (Meta Platforms)</span>
+            </h2>
+            <p className="text-xs text-slate-muted mt-1 max-w-2xl">
+              OneAmple charges only your flat software platform subscription. WhatsApp message delivery and conversation fees are billed directly to your business by Meta in Meta Billing Hub.
+            </p>
+          </div>
+          <MetaBillingButton
+            wabaId={data?.whatsappConfig?.waBusinessAccountId}
+            ownerBusinessId={data?.whatsappConfig?.ownerBusinessId}
+            ownerBusinessName={data?.whatsappConfig?.ownerBusinessName}
+            wabaName={data?.whatsappConfig?.wabaName}
+            verifiedName={data?.whatsappConfig?.verifiedName}
+            businessName={data?.businessName}
+            showNotesBelow={true}
+          />
+        </div>
+      </div>
+
       {/* Payment History */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card">
         <h2 className="text-base font-heading font-bold text-text-main uppercase tracking-wider mb-6 flex items-center gap-2">
@@ -247,6 +274,30 @@ export default function BillingPage() {
             </table>
           </div>
         )}
+      </div>
+
+      {/* Meta Messaging Direct Billing Card */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-brand-soft shadow-card space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-base font-heading font-bold text-text-main uppercase tracking-wider flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-blue-600" />
+              <span>WhatsApp Conversation Billing (Meta Platforms)</span>
+            </h2>
+            <p className="text-xs text-slate-muted mt-1 max-w-2xl">
+              OneAmple charges only your flat software platform subscription. WhatsApp message delivery and conversation fees are billed directly to your business by Meta in Meta Billing Hub.
+            </p>
+          </div>
+          <MetaBillingButton
+            wabaId={data?.whatsappConfig?.waBusinessAccountId}
+            ownerBusinessId={data?.whatsappConfig?.ownerBusinessId}
+            ownerBusinessName={data?.whatsappConfig?.ownerBusinessName}
+            wabaName={data?.whatsappConfig?.wabaName}
+            verifiedName={data?.whatsappConfig?.verifiedName}
+            businessName={data?.businessName}
+            showNotesBelow={true}
+          />
+        </div>
       </div>
     </div>
   );

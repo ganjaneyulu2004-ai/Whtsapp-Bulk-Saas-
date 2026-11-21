@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness, getCurrentUserSession } from "@/lib/session";
 import { encryptToken, decryptToken, maskToken } from "@/lib/encryption";
 import { getMetaGraphVersion } from "@/lib/meta-config";
+import { fetchWabaOwnerInfo } from "@/lib/whatsapp";
 
 export async function GET() {
   try {
@@ -37,6 +38,9 @@ export async function GET() {
         connectionMethod: config.connectionMethod,
         waPhoneNumberId: config.waPhoneNumberId,
         waBusinessAccountId: config.waBusinessAccountId,
+        ownerBusinessId: config.ownerBusinessId,
+        ownerBusinessName: config.ownerBusinessName,
+        wabaName: config.wabaName,
         maskedToken: maskToken(config.waToken),
         embeddedSignupAt: config.embeddedSignupAt,
       },
@@ -234,7 +238,10 @@ export async function POST(req: Request) {
       console.warn("[Embedded Signup] Registration exception (continuing connection):", regErr);
     }
 
-    // 5. Save per client in the database with encrypted access token
+    // 5. Fetch WABA owner business info (to direct Meta Billing accurately)
+    const wabaOwner = await fetchWabaOwnerInfo(targetWabaId, clientAccessToken);
+
+    // 6. Save per client in the database with encrypted access token
     const config = await prisma.whatsAppConfig.upsert({
       where: { businessId: business.id },
       update: {
@@ -250,6 +257,9 @@ export async function POST(req: Request) {
         verifiedName: verifiedName || business.name,
         qualityRating: qualityRating,
         messagingLimitTier: messagingLimitTier,
+        ownerBusinessId: wabaOwner.ownerBusinessId,
+        ownerBusinessName: wabaOwner.ownerBusinessName,
+        wabaName: wabaOwner.wabaName,
         embeddedSignupAt: new Date(),
         pin: pin,
       },
@@ -267,10 +277,20 @@ export async function POST(req: Request) {
         verifiedName: verifiedName || business.name,
         qualityRating: qualityRating,
         messagingLimitTier: messagingLimitTier,
+        ownerBusinessId: wabaOwner.ownerBusinessId,
+        ownerBusinessName: wabaOwner.ownerBusinessName,
+        wabaName: wabaOwner.wabaName,
         embeddedSignupAt: new Date(),
         pin: pin,
       },
     });
+
+    if (wabaOwner.ownerBusinessId) {
+      await prisma.business.update({
+        where: { id: business.id },
+        data: { ownerBusinessId: wabaOwner.ownerBusinessId },
+      }).catch(() => {});
+    }
 
     return NextResponse.json({
       success: true,
