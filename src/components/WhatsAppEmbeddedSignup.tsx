@@ -621,7 +621,15 @@ export default function WhatsAppEmbeddedSignup({
                   <span className="text-[11px] text-slate-muted font-medium block">Quality & Tier</span>
                   <span className="text-xs font-heading font-bold text-emerald-600 flex items-center gap-1.5 mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    {config?.qualityRating || "High (Green)"} • {config?.messagingLimitTier || "Tier 250/day"}
+                    {(!config?.qualityRating || config.qualityRating.toUpperCase() === "UNKNOWN"
+                      ? "Not rated yet"
+                      : config.qualityRating.toUpperCase() === "GREEN"
+                      ? "High (Green)"
+                      : config.qualityRating.toUpperCase() === "YELLOW"
+                      ? "Medium (Yellow)"
+                      : config.qualityRating.toUpperCase() === "RED"
+                      ? "Low (Red)"
+                      : config.qualityRating)} • {config?.messagingLimitTier || "Tier 250/day"}
                   </span>
                 </div>
               </div>
@@ -734,7 +742,7 @@ export default function WhatsAppEmbeddedSignup({
 
                   <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                     <span className="text-[11px] text-slate-500">
-                      💡 Tip: WhatsApp Meta delivers test template messages to WhatsApp in ~0.3 seconds.
+                      💡 Tip: Test messages are dispatched directly through official Meta WhatsApp Cloud API.
                     </span>
 
                     <button
@@ -938,23 +946,32 @@ export default function WhatsAppEmbeddedSignup({
               </span>
 
               <div className="flex items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={handleConnectWhatsApp}
-                  disabled={connecting}
-                  className="px-4 py-2 text-xs font-semibold text-brand-purple hover:bg-brand-light rounded-xl transition border border-brand-soft cursor-pointer"
-                >
-                  Reconnect / Switch Number
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDisconnect}
-                  disabled={disconnecting}
-                  className="px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition border border-rose-200 flex items-center gap-1.5 cursor-pointer"
-                >
-                  {disconnecting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                  <span>Disconnect</span>
-                </button>
+                {config?.connectionMethod === "ADMIN_SYSTEM_USER" ? (
+                  <span className="px-3.5 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-xl border border-indigo-200 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Managed by admin</span>
+                  </span>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleConnectWhatsApp}
+                      disabled={connecting}
+                      className="px-4 py-2 text-xs font-semibold text-brand-purple hover:bg-brand-light rounded-xl transition border border-brand-soft cursor-pointer"
+                    >
+                      Reconnect / Switch Number
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDisconnect}
+                      disabled={disconnecting}
+                      className="px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition border border-rose-200 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {disconnecting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      <span>Disconnect</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

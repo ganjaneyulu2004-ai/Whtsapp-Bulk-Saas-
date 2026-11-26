@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { recordAiAssistantError, recordAiAssistantSuccess } from "./ai-assistant";
 import {
   limitEmojis,
   sanitizeVariableValue,
@@ -155,7 +156,7 @@ export async function analyzePosterWithGemini(
 
   try {
     const genAI = new GoogleGenerativeAI(geminiKey);
-    const candidateModels = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash", "gemini-2.5-flash"];
+    const candidateModels = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite"];
     let responseText = "";
 
     const bookingRule = bookingLink && bookingLink.trim()
@@ -248,7 +249,10 @@ Return ONLY a valid JSON object matching this EXACT structure:
         const model = genAI.getGenerativeModel({ model: modelName });
         const result = await model.generateContent([prompt, imagePart]);
         responseText = result.response.text();
-        if (responseText) break;
+        if (responseText) {
+          recordAiAssistantSuccess();
+          break;
+        }
       } catch (err: any) {
         console.warn(`⚠️ Model ${modelName} failed, trying fallback. Reason:`, err.message);
         lastError = err;
@@ -256,6 +260,9 @@ Return ONLY a valid JSON object matching this EXACT structure:
     }
 
     if (!responseText) {
+      if (lastError) {
+        recordAiAssistantError(lastError);
+      }
       throw lastError || new Error("All Gemini vision model candidates failed.");
     }
 

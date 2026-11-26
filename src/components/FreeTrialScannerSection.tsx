@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { 
-  Send, 
-  CheckCircle2, 
-  AlertCircle, 
-  RefreshCw, 
-  Sparkles, 
-  ShieldCheck, 
-  Zap, 
+import {
+  Send,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  Sparkles,
+  ShieldCheck,
+  Zap,
   Smartphone,
   Check,
   TrendingUp,
@@ -126,7 +126,7 @@ export default function FreeTrialScannerSection({
         setTestCount(newCount);
         try {
           localStorage.setItem("oneample_free_test_count", String(newCount));
-        } catch {}
+        } catch { }
 
         // Instant sub-second response
         setSending(false);
@@ -182,7 +182,7 @@ export default function FreeTrialScannerSection({
           setTestCount(maxTestLimit);
           try {
             localStorage.setItem("oneample_free_test_count", String(maxTestLimit));
-          } catch {}
+          } catch { }
         }
         setSendResult({
           ok: false,
@@ -212,11 +212,10 @@ export default function FreeTrialScannerSection({
             <ShieldCheck className="w-4 h-4 text-brand-300" />
             Built on the official WhatsApp Business Platform (Cloud API)
           </span>
-          <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
-            isLimitReached 
-              ? "bg-rose-500/20 text-rose-300 border-rose-400/40" 
-              : "bg-amber-400/20 text-amber-300 border-amber-400/30"
-          }`}>
+          <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${isLimitReached
+            ? "bg-rose-500/20 text-rose-300 border-rose-400/40"
+            : "bg-amber-400/20 text-amber-300 border-amber-400/30"
+            }`}>
             {isLimitReached ? (
               <>
                 <Lock className="w-3.5 h-3.5 text-rose-400" />
@@ -240,7 +239,7 @@ export default function FreeTrialScannerSection({
 
       {/* Main Interactive Demo Container */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-8 relative z-10">
-        
+
         {/* Left Form: Test Sender (7 Cols) */}
         <div className="lg:col-span-7 bg-white/5 backdrop-blur-md rounded-2xl p-6 sm:p-7 border border-white/10 shadow-xl space-y-5">
           <div>
@@ -253,11 +252,10 @@ export default function FreeTrialScannerSection({
                   key={p.id}
                   type="button"
                   onClick={() => handleSelectPreset(p.id, p.text)}
-                  className={`px-3 py-2.5 rounded-xl text-xs font-heading font-bold transition text-left cursor-pointer border ${
-                    selectedPreset === p.id
-                      ? "bg-brand-purple text-white border-brand-purple shadow-md shadow-brand-purple/40"
-                      : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10"
-                  }`}
+                  className={`px-3 py-2.5 rounded-xl text-xs font-heading font-bold transition text-left cursor-pointer border ${selectedPreset === p.id
+                    ? "bg-brand-purple text-white border-brand-purple shadow-md shadow-brand-purple/40"
+                    : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10"
+                    }`}
                 >
                   {p.label}
                 </button>
@@ -286,14 +284,14 @@ export default function FreeTrialScannerSection({
 
               {/* Phone Outer Metallic Bezel */}
               <div className="relative rounded-[44px] p-2 bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-950 border-[3px] border-zinc-600/90 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.12)]">
-                
+
                 {/* Phone Inner Screen Display */}
                 <div className="relative rounded-[36px] overflow-hidden bg-[#ECE5DD] border border-black/40 flex flex-col shadow-inner">
-                  
+
                   {/* Top Status Bar with Center Punch-Hole Camera */}
                   <div className="relative bg-[#075E54] text-white px-5 pt-2 pb-1.5 flex items-center justify-between text-[11px] font-medium select-none">
                     <span>11:33</span>
-                    
+
                     {/* Center Punch-Hole Selfie Camera */}
                     <div className="absolute left-1/2 -translate-x-1/2 top-2 w-3.5 h-3.5 bg-black rounded-full ring-2 ring-zinc-800/80 flex items-center justify-center">
                       <div className="w-1.5 h-1.5 bg-[#0a1526] rounded-full border border-blue-900/40" />
@@ -334,7 +332,7 @@ export default function FreeTrialScannerSection({
                   </div>
 
                   {/* WhatsApp Chat Body */}
-                  <div 
+                  <div
                     className="p-3 space-y-2 min-h-[220px] relative"
                     style={{
                       backgroundColor: "#ECE5DD",
@@ -479,11 +477,10 @@ export default function FreeTrialScannerSection({
               onClick={() => {
                 if (!sending && !isLimitReached) playClickSound();
               }}
-              className={`w-full py-4 px-6 rounded-2xl font-heading font-extrabold text-sm sm:text-base transition-all duration-300 shadow-xl shadow-brand-purple/40 flex items-center justify-center gap-2.5 transform active:scale-[0.98] cursor-pointer ${
-                isLimitReached
-                  ? "bg-white/10 text-slate-400 border border-white/15 cursor-not-allowed shadow-none"
-                  : "bg-gradient-to-r from-[#6B2D8F] via-[#8538B5] to-[#4A66B0] hover:opacity-95 text-white hover:shadow-2xl hover:shadow-brand-purple/50"
-              }`}
+              className={`w-full py-4 px-6 rounded-2xl font-heading font-extrabold text-sm sm:text-base transition-all duration-300 shadow-xl shadow-brand-purple/40 flex items-center justify-center gap-2.5 transform active:scale-[0.98] cursor-pointer ${isLimitReached
+                ? "bg-white/10 text-slate-400 border border-white/15 cursor-not-allowed shadow-none"
+                : "bg-gradient-to-r from-[#6B2D8F] via-[#8538B5] to-[#4A66B0] hover:opacity-95 text-white hover:shadow-2xl hover:shadow-brand-purple/50"
+                }`}
             >
               {isLimitReached ? (
                 <>
@@ -508,11 +505,10 @@ export default function FreeTrialScannerSection({
             </button>
 
             {sendResult && (
-              <div className={`p-4 rounded-xl text-xs flex items-start gap-3 animate-in fade-in ${
-                sendResult.ok
-                  ? "bg-brand-purple/30 text-white border border-brand-purple/50 shadow-lg"
-                  : "bg-rose-500/20 text-rose-100 border border-rose-400/50"
-              }`}>
+              <div className={`p-4 rounded-xl text-xs flex items-start gap-3 animate-in fade-in ${sendResult.ok
+                ? "bg-brand-purple/30 text-white border border-brand-purple/50 shadow-lg"
+                : "bg-rose-500/20 text-rose-100 border border-rose-400/50"
+                }`}>
                 {sendResult.ok ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                 ) : (
@@ -529,7 +525,7 @@ export default function FreeTrialScannerSection({
 
         {/* Right Side: Trust & Customer Satisfaction Badges (5 Cols) */}
         <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
-          
+
           <div className="bg-white/5 backdrop-blur-md rounded-2xl p-5 border border-white/10 space-y-4">
             <h4 className="text-xs font-heading font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
               <Award className="w-4 h-4 text-amber-400" />

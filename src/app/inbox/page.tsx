@@ -33,11 +33,14 @@ import {
   Tag,
   ChevronDown,
   Check,
-  MousePointerClick
+  MousePointerClick,
+  Settings,
+  Edit2,
+  Trash2
 } from "lucide-react";
+import { toE164, formatE164Display } from "@/lib/inbox-filter";
 
-const LEAD_TAGS: Record<string, { label: string; emoji: string; badgeClass: string; dotColor: string }> = {
-  ALL: { label: "All Chats", emoji: "💬", badgeClass: "bg-slate-100 text-slate-700 border-slate-300", dotColor: "#64748b" },
+const PHOTOGRAPHY_TAGS: Record<string, { label: string; emoji: string; badgeClass: string; dotColor: string }> = {
   HOT_LEAD: { label: "Hot Lead", emoji: "🔥", badgeClass: "bg-rose-50 text-rose-700 border-rose-200", dotColor: "#e11d48" },
   WEDDING_ENQUIRY: { label: "Wedding Enquiry", emoji: "💍", badgeClass: "bg-purple-50 text-purple-700 border-purple-200", dotColor: "#9333ea" },
   ADVANCE_PAID: { label: "Advance Paid", emoji: "💰", badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200", dotColor: "#16a34a" },
@@ -45,6 +48,17 @@ const LEAD_TAGS: Record<string, { label: string; emoji: string; badgeClass: stri
   VIP_CLIENT: { label: "VIP Client", emoji: "⭐", badgeClass: "bg-blue-50 text-blue-700 border-blue-200", dotColor: "#2563eb" },
   NEW_ENQUIRY: { label: "New Enquiry", emoji: "🆕", badgeClass: "bg-slate-50 text-slate-700 border-slate-200", dotColor: "#64748b" },
 };
+
+const GENERAL_BUSINESS_TAGS: Record<string, { label: string; emoji: string; badgeClass: string; dotColor: string }> = {
+  HOT_LEAD: { label: "Hot Lead", emoji: "🔥", badgeClass: "bg-rose-50 text-rose-700 border-rose-200", dotColor: "#e11d48" },
+  ORDER_ENQUIRY: { label: "Order Enquiry", emoji: "📦", badgeClass: "bg-indigo-50 text-indigo-700 border-indigo-200", dotColor: "#4f46e5" },
+  PAYMENT_RECEIVED: { label: "Payment Received", emoji: "💰", badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200", dotColor: "#16a34a" },
+  PENDING_FOLLOWUP: { label: "Pending Follow-up", emoji: "⏳", badgeClass: "bg-amber-50 text-amber-700 border-amber-200", dotColor: "#d97706" },
+  VIP_CLIENT: { label: "VIP Client", emoji: "⭐", badgeClass: "bg-blue-50 text-blue-700 border-blue-200", dotColor: "#2563eb" },
+  NEW_ENQUIRY: { label: "New Enquiry", emoji: "🆕", badgeClass: "bg-slate-50 text-slate-700 border-slate-200", dotColor: "#64748b" },
+};
+
+const DEFAULT_ALL_TAG = { label: "All Chats", emoji: "💬", badgeClass: "bg-slate-100 text-slate-700 border-slate-300", dotColor: "#64748b" };
 
 const PRESET_INTERACTIVE_BUTTONS = [
   { id: "btn_book", title: "📅 Book Slot" },
@@ -102,7 +116,22 @@ export default function InboxPage() {
   const [isSending, setIsSending] = useState(false);
   const isSendingRef = useRef(false);
 
-  // Customer Lead Stage Tags
+  // Customer Lead Stage Tags (Category defaults & User Customizable)
+  const [customTags, setCustomTags] = useState<Record<string, { label: string; emoji: string; badgeClass: string; dotColor: string }>>(GENERAL_BUSINESS_TAGS);
+  const [isManageTagsOpen, setIsManageTagsOpen] = useState(false);
+  const [newTagLabel, setNewTagLabel] = useState("");
+  const [newTagEmoji, setNewTagEmoji] = useState("🏷️");
+  const [editingTagKey, setEditingTagKey] = useState<string | null>(null);
+  const [editingTagLabel, setEditingTagLabel] = useState("");
+  const [aiStatus, setAiStatus] = useState<{ isOnline: boolean; offlineReason?: string }>({ isOnline: true });
+
+  const activeTags = React.useMemo<Record<string, { label: string; emoji: string; badgeClass: string; dotColor: string }>>(() => {
+    return {
+      ALL: DEFAULT_ALL_TAG,
+      ...customTags,
+    };
+  }, [customTags]);
+
   const [contactTags, setContactTags] = useState<Record<string, { tag: string; notes?: string }>>({});
   const [selectedTagFilter, setSelectedTagFilter] = useState<string>("ALL");
   const [showTagMenuForPhone, setShowTagMenuForPhone] = useState<string | null>(null);
@@ -175,6 +204,78 @@ export default function InboxPage() {
     });
   };
 
+  const initTagsForCategory = (category: string) => {
+    try {
+      const saved = localStorage.getItem("wa_inbox_custom_tags_v2");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+          setCustomTags(parsed);
+          return;
+        }
+      }
+    } catch {}
+
+    const catLower = (category || "").toLowerCase();
+    const isPhotoOrEvent =
+      catLower.includes("photo") ||
+      catLower.includes("wedding") ||
+      catLower.includes("event") ||
+      catLower.includes("studio");
+
+    setCustomTags(isPhotoOrEvent ? PHOTOGRAPHY_TAGS : GENERAL_BUSINESS_TAGS);
+  };
+
+  const handleAddCustomTag = () => {
+    const trimmed = newTagLabel.trim();
+    if (!trimmed) return;
+    const key = trimmed.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+    const updated = {
+      ...customTags,
+      [key]: {
+        label: trimmed,
+        emoji: newTagEmoji || "🏷️",
+        badgeClass: "bg-indigo-50 text-indigo-700 border-indigo-200",
+        dotColor: "#6366f1",
+      },
+    };
+    setCustomTags(updated);
+    try {
+      localStorage.setItem("wa_inbox_custom_tags_v2", JSON.stringify(updated));
+    } catch {}
+    setNewTagLabel("");
+  };
+
+  const handleRenameCustomTag = (key: string, newLabel: string) => {
+    const trimmed = newLabel.trim();
+    if (!trimmed || !customTags[key]) return;
+    const updated = {
+      ...customTags,
+      [key]: {
+        ...customTags[key],
+        label: trimmed,
+      },
+    };
+    setCustomTags(updated);
+    try {
+      localStorage.setItem("wa_inbox_custom_tags_v2", JSON.stringify(updated));
+    } catch {}
+    setEditingTagKey(null);
+    setEditingTagLabel("");
+  };
+
+  const handleDeleteCustomTag = (key: string) => {
+    const updated = { ...customTags };
+    delete updated[key];
+    setCustomTags(updated);
+    try {
+      localStorage.setItem("wa_inbox_custom_tags_v2", JSON.stringify(updated));
+    } catch {}
+    if (selectedTagFilter === key) {
+      setSelectedTagFilter("ALL");
+    }
+  };
+
   const fetchInbox = () => {
     fetch("/api/inbox", { cache: "no-store" })
       .then((res) => res.json())
@@ -182,6 +283,9 @@ export default function InboxPage() {
         if (data.messages) {
           setRawMessages(data.messages);
           setActiveWindowCount(data.activeWindowCount || 0);
+        }
+        if (data.aiStatus) {
+          setAiStatus(data.aiStatus);
         }
         setLoading(false);
       })
@@ -197,6 +301,9 @@ export default function InboxPage() {
       .then((data) => {
         if (data.tags) {
           setContactTags(data.tags);
+        }
+        if (data.businessCategory !== undefined) {
+          initTagsForCategory(data.businessCategory);
         }
       })
       .catch((e) => console.error(e));
@@ -408,6 +515,14 @@ export default function InboxPage() {
       (a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
     );
   }, [rawMessages, sentReplies, contactTags]);
+
+  const activeCount = React.useMemo(() => {
+    return conversations.filter((c) => c.isWindowActive).length;
+  }, [conversations]);
+
+  const expiredCount = React.useMemo(() => {
+    return conversations.filter((c) => !c.isWindowActive).length;
+  }, [conversations]);
 
   // Auto-select first conversation on desktop if none selected
   useEffect(() => {
@@ -780,9 +895,17 @@ export default function InboxPage() {
                 <h2 className="font-heading font-extrabold text-sm text-[#111b21] leading-tight">
                   WhatsApp Chats
                 </h2>
-                <div className="flex items-center gap-1 text-[11px] text-[#00a884] font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] animate-pulse" />
-                  <span>{activeWindowCount} Active 24h</span>
+                <div className="flex items-center gap-1.5 text-[11px] font-bold">
+                  <span className="flex items-center gap-1 text-[#00a884]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] animate-pulse" />
+                    <span>{activeCount} Active 24h</span>
+                  </span>
+                  {!aiStatus.isOnline && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
+                      <span>AI offline</span>
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -848,7 +971,7 @@ export default function InboxPage() {
                   }`}
               >
                 <Zap className="w-3 h-3 fill-current" />
-                <span>24h Active ({activeWindowCount})</span>
+                <span>24h Active ({activeCount})</span>
               </button>
               <button
                 onClick={() => setFilterTab("expired")}
@@ -858,7 +981,7 @@ export default function InboxPage() {
                   }`}
               >
                 <Clock className="w-3 h-3" />
-                <span>Expired</span>
+                <span>Expired ({expiredCount})</span>
               </button>
             </div>
 
@@ -868,7 +991,7 @@ export default function InboxPage() {
                 <Tag className="w-3 h-3 text-[#00a884]" />
                 Tags:
               </span>
-              {Object.entries(LEAD_TAGS).map(([k, t]) => {
+              {Object.entries(activeTags).map(([k, t]) => {
                 const isSelected = selectedTagFilter === k;
                 return (
                   <button
@@ -887,6 +1010,15 @@ export default function InboxPage() {
                   </button>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => setIsManageTagsOpen(true)}
+                className="px-2 py-0.5 rounded-full text-[10px] font-heading font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 shrink-0 flex items-center gap-1 cursor-pointer"
+                title="Add, rename or delete tags"
+              >
+                <Settings className="w-3 h-3 text-slate-500" />
+                <span>Manage</span>
+              </button>
             </div>
           </div>
 
@@ -901,7 +1033,7 @@ export default function InboxPage() {
                 <MessageCircle className="w-9 h-9 text-slate-300 mx-auto" />
                 <p className="text-xs font-heading font-bold text-slate-700">No conversations found</p>
                 <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
-                  {selectedTagFilter !== "ALL" ? `No contacts tagged under "${LEAD_TAGS[selectedTagFilter]?.label}".` : searchQuery ? "No contacts match your query." : "Incoming customer messages appear here in real-time!"}
+                  {selectedTagFilter !== "ALL" ? `No contacts tagged under "${activeTags[selectedTagFilter]?.label || selectedTagFilter}".` : searchQuery ? "No contacts match your query." : "Incoming customer messages appear here in real-time!"}
                 </p>
                 <button
                   onClick={() => {
@@ -917,7 +1049,7 @@ export default function InboxPage() {
               filteredConversations.map((c) => {
                 const isSelected = selectedPhone === c.cleanPhone;
                 const contactTagKey = contactTags[c.cleanPhone]?.tag || c.leadTag || "NEW_ENQUIRY";
-                const contactTagInfo = LEAD_TAGS[contactTagKey] || LEAD_TAGS.NEW_ENQUIRY;
+                const contactTagInfo = activeTags[contactTagKey] || activeTags.NEW_ENQUIRY || { label: contactTagKey, emoji: "🏷️", badgeClass: "bg-slate-50 text-slate-700 border-slate-200", dotColor: "#64748b" };
 
                 return (
                   <div
@@ -973,7 +1105,7 @@ export default function InboxPage() {
 
                       <div className="flex items-center justify-between gap-2 mt-1">
                         <span className="text-[10px] font-mono text-[#8696a0] truncate">
-                          +{c.cleanPhone}
+                          {formatE164Display(c.phone || c.cleanPhone)}
                         </span>
 
                         {/* Customer Lead Stage Tag Pill */}
@@ -1022,7 +1154,7 @@ export default function InboxPage() {
                       {activeConversation.customerName || "Customer"}
                     </span>
                     <span className="font-mono text-xs text-[#667781] font-semibold truncate">
-                      +{activeConversation.cleanPhone}
+                      {formatE164Display(activeConversation.phone || activeConversation.cleanPhone)}
                     </span>
                   </div>
 
@@ -1045,7 +1177,7 @@ export default function InboxPage() {
                 {/* Lead Stage Tag Selector Dropdown */}
                 {(() => {
                   const currentTag = contactTags[activeConversation.cleanPhone]?.tag || activeConversation.leadTag || "NEW_ENQUIRY";
-                  const currentInfo = LEAD_TAGS[currentTag] || LEAD_TAGS.NEW_ENQUIRY;
+                  const currentInfo = activeTags[currentTag] || activeTags.NEW_ENQUIRY || { label: currentTag, emoji: "🏷️", badgeClass: "bg-slate-50 text-slate-700 border-slate-200", dotColor: "#64748b" };
                   const isOpen = showTagMenuForPhone === activeConversation.cleanPhone;
 
                   return (
@@ -1065,7 +1197,7 @@ export default function InboxPage() {
                           <div className="px-2.5 py-1 text-[10px] uppercase font-heading font-extrabold text-slate-400 tracking-wider">
                             Set Lead Stage Tag
                           </div>
-                          {Object.entries(LEAD_TAGS)
+                          {Object.entries(activeTags)
                             .filter(([k]) => k !== "ALL")
                             .map(([k, t]) => (
                               <button
@@ -1083,6 +1215,19 @@ export default function InboxPage() {
                                 {currentTag === k && <Check className="w-3.5 h-3.5" />}
                               </button>
                             ))}
+                          <div className="border-t border-slate-100 pt-1 mt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowTagMenuForPhone(null);
+                                setIsManageTagsOpen(true);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Settings className="w-3 h-3 text-slate-500" />
+                              <span>Manage / Add Tags...</span>
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1090,7 +1235,7 @@ export default function InboxPage() {
                 })()}
 
                 <a
-                  href={`tel:+${activeConversation.cleanPhone}`}
+                  href={`tel:${toE164(activeConversation.phone || activeConversation.cleanPhone)}`}
                   className="p-2 rounded-full text-[#54656f] hover:text-[#00a884] hover:bg-white transition cursor-pointer"
                   title="Call Customer"
                 >
@@ -2037,6 +2182,147 @@ export default function InboxPage() {
                   <span>Attach Media</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage / Custom Tags Modal */}
+      {isManageTagsOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-extrabold text-sm text-slate-900">Manage Inbox Tags</h3>
+                  <p className="text-[11px] text-slate-500">Customize, rename or remove tags for your business.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setIsManageTagsOpen(false);
+                  setEditingTagKey(null);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+              {Object.entries(customTags).map(([key, item]) => {
+                const isEditing = editingTagKey === key;
+                return (
+                  <div key={key} className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center justify-between gap-2">
+                    {isEditing ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-base">{item.emoji}</span>
+                        <input
+                          type="text"
+                          value={editingTagLabel}
+                          onChange={(e) => setEditingTagLabel(e.target.value)}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-white flex-1 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder="Tag label"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRenameCustomTag(key, editingTagLabel)}
+                          className="px-2 py-1 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 cursor-pointer"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingTagKey(null)}
+                          className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">{item.emoji}</span>
+                          <span className="text-xs font-heading font-bold text-slate-800">{item.label}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingTagKey(key);
+                              setEditingTagLabel(item.label);
+                            }}
+                            className="p-1.5 rounded-lg text-slate-500 hover:bg-white hover:text-slate-800 cursor-pointer"
+                            title="Rename Tag"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCustomTag(key)}
+                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 cursor-pointer"
+                            title="Delete Tag"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 space-y-2.5">
+              <label className="block text-xs font-heading font-bold text-slate-700">Add New Tag</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newTagEmoji}
+                  onChange={(e) => setNewTagEmoji(e.target.value)}
+                  className="w-12 px-2 py-2 text-center text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Emoji"
+                  title="Emoji"
+                />
+                <input
+                  type="text"
+                  value={newTagLabel}
+                  onChange={(e) => setNewTagLabel(e.target.value)}
+                  placeholder="e.g. In Negotiations, Follow-up Tomorrow"
+                  className="flex-1 px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddCustomTag();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomTag}
+                  disabled={!newTagLabel.trim()}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#00a884] hover:bg-[#008f6f] disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+                >
+                  Add Tag
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsManageTagsOpen(false);
+                  setEditingTagKey(null);
+                }}
+                className="px-5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>

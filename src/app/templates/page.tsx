@@ -59,7 +59,7 @@ export default function TemplatesPage() {
       const res = await fetch(url);
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
-        setTemplates(data.filter((tpl: any) => tpl.name !== "hello_world"));
+        setTemplates(data.filter((tpl: any) => tpl.name !== "hello_world" && tpl.status !== "NOT_IN_WABA"));
       }
     } catch (e) {
       console.warn("Error fetching templates:", e);

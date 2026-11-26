@@ -4,6 +4,76 @@ import { sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
 import { decryptToken } from "./encryption";
 import { getMetaGraphVersion } from "./meta-config";
 
+export interface AiAssistantHealth {
+  isOnline: boolean;
+  offlineReason?: string;
+  lastChecked?: number;
+}
+
+let aiHealthState: {
+  isOnline: boolean;
+  offlineReason?: string;
+  lastChecked?: number;
+  lastLogged?: number;
+} = {
+  isOnline: true,
+};
+
+export function getAiAssistantHealth(): AiAssistantHealth {
+  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!key || !key.trim()) {
+    return {
+      isOnline: false,
+      offlineReason: "GEMINI_API_KEY not configured in environment",
+      lastChecked: Date.now(),
+    };
+  }
+  return {
+    isOnline: aiHealthState.isOnline,
+    offlineReason: aiHealthState.offlineReason,
+    lastChecked: aiHealthState.lastChecked,
+  };
+}
+
+export function recordAiAssistantError(err: any) {
+  const errMsg = String(err?.message || err || "");
+  const status = err?.status || err?.statusCode;
+  const isAuthOrQuota =
+    status === 401 ||
+    status === 403 ||
+    status === 429 ||
+    errMsg.includes("401") ||
+    errMsg.includes("403") ||
+    errMsg.includes("429") ||
+    errMsg.includes("API key") ||
+    errMsg.includes("quota") ||
+    errMsg.includes("RESOURCE_EXHAUSTED");
+
+  if (isAuthOrQuota) {
+    const reason =
+      errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("RESOURCE_EXHAUSTED")
+        ? "Gemini API Quota Exceeded (429)"
+        : "Gemini API Key Invalid or Unauthorized (401/403)";
+
+    aiHealthState.isOnline = false;
+    aiHealthState.offlineReason = reason;
+    aiHealthState.lastChecked = Date.now();
+
+    // Log once, not every message (throttle to once per 10 minutes)
+    const now = Date.now();
+    if (!aiHealthState.lastLogged || now - aiHealthState.lastLogged > 10 * 60 * 1000) {
+      aiHealthState.lastLogged = now;
+      console.error(`🚨 [AI Assistant Offline] ${reason}: ${errMsg}`);
+    }
+  }
+}
+
+export function recordAiAssistantSuccess() {
+  aiHealthState.isOnline = true;
+  aiHealthState.offlineReason = undefined;
+  aiHealthState.lastChecked = Date.now();
+}
+
 interface GenerateAiReplyParams {
   fromPhone: string;
   customerName: string;
@@ -251,26 +321,31 @@ Write your short, warm WhatsApp reply now (NO square-bracket placeholders):
 `;
 
     const candidateModels = [
-      "gemini-2.5-flash-lite",
       "gemini-2.5-flash",
-      "gemini-3.5-flash-lite",
-      "gemini-3.5-flash",
       "gemini-flash-latest",
+      "gemini-2.5-flash-lite",
     ];
 
     let replyText = "";
+    let lastError: any = null;
     for (const m of candidateModels) {
       try {
         const model = genAI.getGenerativeModel({ model: m });
         const result = await model.generateContent(systemPrompt);
         replyText = result.response.text().trim();
-        if (replyText) break;
+        if (replyText) {
+          recordAiAssistantSuccess();
+          break;
+        }
       } catch (err: any) {
-        console.warn(`Model ${m} failed in AI Assistant:`, err?.message || err);
+        lastError = err;
       }
     }
 
     if (!replyText) {
+      if (lastError) {
+        recordAiAssistantError(lastError);
+      }
       return null;
     }
 

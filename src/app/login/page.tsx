@@ -145,7 +145,7 @@ function LoginForm() {
         setTestSending(false);
         setTestSendResult({
           ok: true,
-          message: `⚡ Sent to WhatsApp in 0.3s! Verified by Meta Cloud API for +91 ${cleanPhone}.`,
+          message: `⚡ Sent to WhatsApp! Verified by Meta Cloud API for +91 ${cleanPhone}.`,
           waMessageId: data.waMessageId,
         });
         fireBrandConfetti();

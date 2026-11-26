@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentBusiness, getCurrentUserSession } from "@/lib/session";
+import { getAiAssistantHealth } from "@/lib/ai-assistant";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -64,11 +65,22 @@ export async function GET() {
       };
     });
 
+    // Unique phone numbers for active window count so Active <= All conversations
+    const activePhoneSet = new Set<string>();
+    formatted.forEach((m) => {
+      if (m.isWindowActive && m.fromPhone) {
+        let clean = m.fromPhone.replace(/[^0-9]/g, "");
+        if (clean.startsWith("91") && clean.length === 12) clean = clean.slice(2);
+        activePhoneSet.add(clean);
+      }
+    });
+
     return NextResponse.json(
       {
         messages: formatted,
         totalCount: formatted.length,
-        activeWindowCount: formatted.filter((f) => f.isWindowActive).length,
+        activeWindowCount: activePhoneSet.size,
+        aiStatus: getAiAssistantHealth(),
       },
       {
         headers: {

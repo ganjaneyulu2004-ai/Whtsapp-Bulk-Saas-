@@ -152,10 +152,14 @@ export async function syncClientTemplatesFromMeta(businessId: string): Promise<{
       }
     }
 
-    // Any stale template previously stored under this (businessId, wabaId) that is no longer in Meta
-    // cannot be sent cleanly — mark it non-APPROVED unless present in live Meta response
+    // Any stale template previously stored under this business that is no longer in Meta (any status, e.g. deleted)
+    // mark NOT_IN_WABA and hide from lists, counts and campaign pickers
     const dbForWaba = await prisma.template.findMany({
-      where: { businessId, wabaId, status: "APPROVED" },
+      where: {
+        businessId,
+        ...(wabaId ? { wabaId } : {}),
+        status: { not: "NOT_IN_WABA" },
+      },
       select: { id: true, name: true, language: true },
     });
     const staleIds = dbForWaba
@@ -207,6 +211,7 @@ export async function getClientTemplates(
       businessId,
       wabaId,
       name: { not: "hello_world" },
+      status: { not: "NOT_IN_WABA" },
       ...(options?.approvedOnly ? { status: "APPROVED" } : {}),
     },
     orderBy: { createdAt: "desc" },

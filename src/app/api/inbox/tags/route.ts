@@ -29,7 +29,11 @@ export async function GET() {
       tagMap[t.phone] = { tag: t.tag, notes: t.notes };
     }
 
-    return NextResponse.json({ success: true, tags: tagMap });
+    return NextResponse.json({
+      success: true,
+      tags: tagMap,
+      businessCategory: business.category || "",
+    });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

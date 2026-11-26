@@ -204,6 +204,22 @@ async function runTests() {
   );
   console.log("   ✅ Passed: 919800001234 stays visible, 9100001234567 is hidden");
 
+  // Test 10: E.164 phone formatting and call number (never +6309292829)
+  console.log("\nTest 10: E.164 phone formatting & call link...");
+  const { toE164, formatE164Display } = await import("../src/lib/inbox-filter");
+  const rawNum = "6309292829";
+  const formatted = formatE164Display(rawNum);
+  const telLink = toE164(rawNum);
+
+  assert.strictEqual(formatted, "+91 63092 92829", "10-digit number must format as +91 63092 92829");
+  assert.notStrictEqual(formatted, "+6309292829", "Number must never display as +6309292829");
+  assert.strictEqual(telLink, "+916309292829", "Call button must dial full +916309292829");
+
+  // With country code already
+  assert.strictEqual(formatE164Display("916309292829"), "+91 63092 92829");
+  assert.strictEqual(toE164("916309292829"), "+916309292829");
+  console.log(`   ✅ Passed: Formatted as ${formatted}, call link ${telLink}`);
+
   console.log("\n====================================================");
   console.log("🎉 All Load-Test, Concurrency & Meta Tier Unit Tests PASSED!");
   console.log("====================================================\n");

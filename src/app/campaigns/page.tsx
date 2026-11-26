@@ -1,13 +1,16 @@
+
+
+
 "use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageContext";
-import { 
-  BarChart3, 
-  Search, 
-  Download, 
-  FileSpreadsheet, 
+import {
+  BarChart3,
+  Search,
+  Download,
+  FileSpreadsheet,
   ChevronRight,
   RefreshCw,
   PlusCircle,
@@ -70,7 +73,7 @@ export default function CampaignsHistoryPage() {
 
   return (
     <div className="space-y-8 pb-12">
-      
+
       {/* Header & Export Actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -156,10 +159,29 @@ export default function CampaignsHistoryPage() {
             Loading campaigns history...
           </div>
         ) : campaigns.length === 0 ? (
-          <div className="py-12 text-center text-xs text-slate-muted space-y-2">
-            <p className="font-heading font-bold text-sm text-slate-heading">No campaigns found</p>
-            <p>Try changing your search terms or filter selection.</p>
-          </div>
+          Boolean(search.trim() || typeFilter !== "ALL" || statusFilter !== "ALL") ? (
+            <div className="py-12 text-center text-xs text-slate-muted space-y-2">
+              <p className="font-heading font-bold text-sm text-slate-heading">No campaigns found</p>
+              <p>Try changing your search terms or filter selection.</p>
+            </div>
+          ) : (
+            <div className="py-16 text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                <BarChart3 className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="font-heading font-bold text-base text-slate-900">No campaigns yet</p>
+                <p className="text-xs text-slate-500 mt-1">Create your first broadcast to reach your customers on WhatsApp.</p>
+              </div>
+              <Link
+                href="/create-campaign"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#00a884] text-white text-xs font-heading font-bold shadow-sm hover:bg-[#008f6f] transition"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Create your first campaign</span>
+              </Link>
+            </div>
+          )
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -246,17 +268,16 @@ export default function CampaignsHistoryPage() {
                       )}
                     </td>
                     <td className="py-4 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold ${
-                        camp.status === "COMPLETED" 
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold ${camp.status === "COMPLETED"
                           ? "bg-emerald-100 text-emerald-800"
                           : camp.status === "SENDING"
-                          ? "bg-amber-100 text-amber-800 animate-pulse"
-                          : camp.status === "WAITING_APPROVAL"
-                          ? "bg-amber-100 text-amber-900 border border-amber-200"
-                          : camp.status === "SCHEDULED"
-                          ? "bg-sky-100 text-sky-800"
-                          : "bg-slate-100 text-slate-700"
-                      }`}>
+                            ? "bg-amber-100 text-amber-800 animate-pulse"
+                            : camp.status === "WAITING_APPROVAL"
+                              ? "bg-amber-100 text-amber-900 border border-amber-200"
+                              : camp.status === "SCHEDULED"
+                                ? "bg-sky-100 text-sky-800"
+                                : "bg-slate-100 text-slate-700"
+                        }`}>
                         {camp.status === "WAITING_APPROVAL" ? "Waiting Approval ⏳" : camp.status}
                       </span>
                     </td>

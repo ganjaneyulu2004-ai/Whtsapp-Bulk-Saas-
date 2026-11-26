@@ -13,6 +13,7 @@ import {
   MessageSquare, 
   Calendar, 
   AlertTriangle, 
+  AlertCircle,
   FileSpreadsheet, 
   Download,
   Send,
@@ -113,6 +114,8 @@ export default function CreateCampaignPage() {
   const [showTierModal, setShowTierModal] = useState(false);
 
   const [waConfig, setWaConfig] = useState<any>(null);
+  const [inlineError, setInlineError] = useState<string | null>(null);
+  const [inlineSuccess, setInlineSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/whatsapp/embedded-signup")
@@ -203,7 +206,7 @@ export default function CreateCampaignPage() {
 
   const handlePosterUpload = (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
-      alert("Poster image size must be less than 5 MB");
+      setInlineError("Poster image size must be less than 5 MB");
       return;
     }
     setMimeType(file.type || "image/jpeg");
@@ -445,7 +448,7 @@ export default function CreateCampaignPage() {
       setParsedResult(data);
     } catch (err) {
       console.error(err);
-      alert("Failed to parse contacts file");
+      setInlineError("Failed to parse contacts file");
     } finally {
       setParsingFile(false);
     }
@@ -800,15 +803,16 @@ export default function CreateCampaignPage() {
 
   const handleSendTestToMe = async () => {
     if (!activeTemplate || !isApproved) {
-      alert("Please select an APPROVED WhatsApp template before sending a test.");
+      setInlineError("Please select an APPROVED WhatsApp template before sending a test.");
       return;
     }
     if (isImageHeader && !effectivePreviewImage) {
-      alert("This template requires an IMAGE header. Please upload a JPG or PNG image in Step 2.");
+      setInlineError("This template requires an IMAGE header. Please upload a JPG or PNG image in Step 2.");
       setStep(2);
       return;
     }
     setSendingTest(true);
+    setInlineError(null);
     try {
       const res = await fetch("/api/campaigns/send-test", {
         method: "POST",
@@ -829,12 +833,12 @@ export default function CreateCampaignPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert(data.message || `Accepted by Meta (ID: ${data.waMessageId || "OK"}) for template ${activeTemplate.name}.`);
+        setInlineSuccess(data.message || `Accepted by Meta (ID: ${data.waMessageId || "OK"}) for template ${activeTemplate.name}.`);
       } else {
-        alert(`Test Send Error: ${data.error || "Failed to send test"}`);
+        setInlineError(`Test Send Error: ${data.error || "Failed to send test"}`);
       }
     } catch (err: any) {
-      alert(err.message || "Test send failed");
+      setInlineError(err.message || "Test send failed");
     } finally {
       setSendingTest(false);
     }
@@ -842,29 +846,30 @@ export default function CreateCampaignPage() {
 
   const handleLaunchCampaign = async (bypassTierCheck: boolean = false) => {
     if (!businessName.trim()) {
-      alert("Please add your business name in Step 1 before launching.");
+      setInlineError("Please add your business name in Step 1 before launching.");
       setStep(1);
       return;
     }
     if (bookingLink.trim() && !bookingLink.trim().startsWith("https://")) {
-      alert("Booking link must be a valid https:// URL.");
+      setInlineError("Booking link must be a valid https:// URL.");
       setStep(1);
       return;
     }
     if (!activeTemplate || !isApproved) {
-      alert("Campaign launch blocked: you must select a template that is APPROVED in Meta.");
+      setInlineError("Campaign launch blocked: you must select a template that is APPROVED in Meta.");
       setStep(2);
       return;
     }
     if (isImageHeader && !effectivePreviewImage) {
-      alert("This template requires an IMAGE header. Please upload a JPG/PNG image.");
+      setInlineError("This template requires an IMAGE header. Please upload a JPG/PNG image.");
       setStep(2);
       return;
     }
     if (!optInConfirmed || submittingCampaign) {
-      if (!optInConfirmed) alert("Please confirm customer opt-in agreement checkbox.");
+      if (!optInConfirmed) setInlineError("Please confirm customer opt-in agreement checkbox.");
       return;
     }
+    setInlineError(null);
     const validContacts = parsedResult?.contacts?.filter((c: any) => c.isValid && !c.isDuplicate) || [];
     const currentTier = waConfig?.messagingLimitTier || "TIER_250";
     const tierLimit = getTierDailyLimit(currentTier);
@@ -903,13 +908,13 @@ export default function CreateCampaignPage() {
 
       const data = await res.json();
       if (res.ok) {
-        alert(`🚀 Campaign Launched Successfully with ${activeTemplate.name}!`);
-        router.push("/campaigns");
+        setInlineSuccess(`🚀 Campaign Launched Successfully with ${activeTemplate.name}!`);
+        setTimeout(() => router.push("/campaigns"), 800);
       } else {
-        alert(`Error: ${data.error || "Failed to launch campaign"}`);
+        setInlineError(`Error: ${data.error || "Failed to launch campaign"}`);
       }
     } catch (err: any) {
-      alert(err.message || "Launch failed");
+      setInlineError(err.message || "Launch failed");
     } finally {
       setSubmittingCampaign(false);
     }
@@ -1005,6 +1010,28 @@ export default function CreateCampaignPage() {
         </div>
       </div>
 
+      {inlineError && (
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-rose-950 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <span>{inlineError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setInlineError(null)}
+            className="text-rose-600 hover:text-rose-800 text-xs font-bold px-2.5 py-1 rounded-lg hover:bg-rose-100 transition"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+      {inlineSuccess && (
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs sm:text-sm font-semibold flex items-center gap-2.5 animate-in fade-in">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <span>{inlineSuccess}</span>
+        </div>
+      )}
+
       {/* STEP 1: CAMPAIGN TYPE & DETAILS */}
       {step === 1 && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-emerald-100 shadow-card space-y-8">
@@ -1079,7 +1106,7 @@ export default function CreateCampaignPage() {
                   setBusinessName(e.target.value);
                   if (e.target.value.trim()) setIsBusinessNameMissing(false);
                 }}
-                placeholder="e.g. iBrainLabs"
+                placeholder="e.g. Your Business Name"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-body font-semibold text-slate-heading"
               />
               <p className="text-[11px] text-slate-400">Prefilled from Business Profile. You can customize it for this campaign.</p>
@@ -1093,7 +1120,7 @@ export default function CreateCampaignPage() {
                 type="text"
                 value={bookingLink}
                 onChange={(e) => setBookingLink(e.target.value)}
-                placeholder="https://ibrainlabs.com/contact/"
+                placeholder="https://yourwebsite.com"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-body font-mono"
               />
               <p className="text-[11px] text-slate-400">Prefilled from Business Profile for direct session messages.</p>
@@ -1117,13 +1144,14 @@ export default function CreateCampaignPage() {
             <button
               onClick={() => {
                 if (!businessName.trim()) {
-                  alert("Please enter your business name before proceeding.");
+                  setInlineError("Please enter your business name before proceeding.");
                   return;
                 }
                 if (bookingLink.trim() && !bookingLink.trim().startsWith("https://")) {
-                  alert("Booking link must be a valid https:// URL.");
+                  setInlineError("Booking link must be a valid https:// URL.");
                   return;
                 }
+                setInlineError(null);
                 if (!campaignName) {
                   setCampaignName(`${campaignType} Special Campaign`);
                 }
@@ -1430,6 +1458,20 @@ export default function CreateCampaignPage() {
               </div>
             )}
 
+            {campaignType === "OFFER" && activeTemplate?.category === "UTILITY" && (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-heading font-bold text-amber-900">
+                    Template Category Notice: Utility Template Selected for Offer
+                  </p>
+                  <p className="text-amber-800 text-[11px] mt-0.5">
+                    This template is categorized as <strong>UTILITY</strong> in Meta. Promotional offers sent via utility templates may trigger Meta policy warnings or template reclassification. Use a <strong>MARKETING</strong> template for promotional campaigns when possible.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between pt-2">
               <button
                 type="button"
@@ -1442,13 +1484,14 @@ export default function CreateCampaignPage() {
                 type="button"
                 onClick={() => {
                   if (!activeTemplate || !isApproved) {
-                    alert("Please select an APPROVED WhatsApp template from your connected account before proceeding.");
+                    setInlineError("Please select an APPROVED WhatsApp template from your connected account before proceeding.");
                     return;
                   }
                   if (isImageHeader && !effectivePreviewImage) {
-                    alert("Please upload a JPG or PNG campaign poster image before continuing.");
+                    setInlineError("Please upload a JPG or PNG campaign poster image before continuing.");
                     return;
                   }
+                  setInlineError(null);
                   // Safety net: ensure any blank variable is safely filled with fallback before advancing
                   setTemplateVarValues((prev) => {
                     const next = { ...prev };
@@ -1476,7 +1519,7 @@ export default function CreateCampaignPage() {
                 disabled={analyzing || hasMissingStep2Fields || loadingTemplates}
                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-bold text-sm px-6 py-3.5 rounded-2xl shadow-md transition-all"
               >
-                <span>{analyzing ? "Reading poster..." : t("createCampaign.nextStep")}</span>
+                <span>{analyzing ? "Reading poster..." : "Continue to Step 3"}</span>
               </button>
             </div>
           </div>
@@ -1678,6 +1721,17 @@ export default function CreateCampaignPage() {
             </label>
           </div>
 
+          {!Boolean(parsedResult?.contacts && parsedResult.contacts.length > 0 && optInConfirmed) && (
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                {!Boolean(parsedResult?.contacts && parsedResult.contacts.length > 0)
+                  ? "Please upload a customer contact Excel or CSV file above to continue."
+                  : "Please check the customer agreement box to proceed to review."}
+              </span>
+            </div>
+          )}
+
           <div className="flex justify-between pt-4">
             <button
               onClick={() => setStep(2)}
@@ -1686,16 +1740,22 @@ export default function CreateCampaignPage() {
               <span>{t("createCampaign.prevStep")}</span>
             </button>
             <button
+              disabled={!Boolean(parsedResult?.contacts && parsedResult.contacts.length > 0 && optInConfirmed)}
               onClick={() => {
-                if (!optInConfirmed) {
-                  alert("Please check the customer agreement box.");
+                if (!Boolean(parsedResult?.contacts && parsedResult.contacts.length > 0)) {
+                  setInlineError("Please upload a customer contact Excel or CSV file before continuing.");
                   return;
                 }
+                if (!optInConfirmed) {
+                  setInlineError("Please check the customer agreement box.");
+                  return;
+                }
+                setInlineError(null);
                 setStep(4);
               }}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-sm px-6 py-3.5 rounded-2xl shadow-md transition-all"
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-bold text-sm px-6 py-3.5 rounded-2xl shadow-md transition-all cursor-pointer"
             >
-              <span>{t("createCampaign.nextStep")}</span>
+              <span>Continue to Review</span>
             </button>
           </div>
         </div>
@@ -1707,6 +1767,20 @@ export default function CreateCampaignPage() {
           <h2 className="text-xl font-heading font-bold text-slate-heading border-b border-slate-100 pb-4">
             {t("createCampaign.summaryTitle")}
           </h2>
+
+          {campaignType === "OFFER" && activeTemplate?.category === "UTILITY" && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-start gap-3 shadow-xs">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-heading font-bold text-amber-900">
+                  Template Category Notice: Utility Template Selected for Offer
+                </p>
+                <p className="text-amber-800 text-xs mt-0.5">
+                  This template is categorized as <strong>UTILITY</strong> in Meta. Sending promotional offers or discounts through utility templates may trigger Meta policy warnings or template reclassification. Use a <strong>MARKETING</strong> template for promotional campaigns when possible.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* 24-Hour Customer Window & Template Status Breakdown Card */}
           {windowAnalysis && (
@@ -1944,7 +2018,7 @@ export default function CreateCampaignPage() {
                       {(businessName || "OB").substring(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-heading font-bold text-xs leading-none">{businessName || "iBrainLabs"}</div>
+                      <div className="font-heading font-bold text-xs leading-none">{businessName || "Your Business Name"}</div>
                       <div className="text-[9px] opacity-80 mt-0.5">Official Business Account ✅</div>
                     </div>
                   </div>

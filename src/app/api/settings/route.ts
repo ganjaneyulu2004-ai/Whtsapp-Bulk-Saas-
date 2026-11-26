@@ -4,6 +4,7 @@ import { getCurrentBusiness } from "@/lib/session";
 import { encryptToken, decryptToken, maskToken } from "@/lib/encryption";
 import { getMetaGraphVersion } from "@/lib/meta-config";
 import { fetchWabaOwnerInfo } from "@/lib/whatsapp";
+import { getAiAssistantHealth } from "@/lib/ai-assistant";
 
 export async function GET() {
   try {
@@ -32,6 +33,7 @@ export async function GET() {
       whatsappConfig: safeConfig,
       optOutCount,
       optOutContacts,
+      aiStatus: getAiAssistantHealth(),
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

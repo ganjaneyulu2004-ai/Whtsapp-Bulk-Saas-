@@ -40,6 +40,11 @@ export async function middleware(req: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
+  // 4. Handle Root "/" and /dashboard -> redirect to /
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
   // 4. Handle Root "/"
   if (pathname === "/") {
     if (!token) {

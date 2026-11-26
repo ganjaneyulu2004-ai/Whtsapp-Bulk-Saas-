@@ -18,6 +18,7 @@ import {
   FileText,
   Trash2,
   AlertTriangle,
+  AlertCircle,
   X,
   KeyRound
 } from "lucide-react";
@@ -34,7 +35,7 @@ export default function SettingsPage() {
 
   // Business Profile Form
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("Retail Shop");
+  const [category, setCategory] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [website, setWebsite] = useState("");
@@ -52,6 +53,7 @@ export default function SettingsPage() {
 
   // WhatsApp Embedded Signup & Config State
   const [waConfig, setWaConfig] = useState<any>(null);
+  const [aiStatus, setAiStatus] = useState<{ isOnline: boolean; offlineReason?: string }>({ isOnline: true });
 
   // Meta Credentials
   const [waToken, setWaToken] = useState("");
@@ -129,7 +131,7 @@ export default function SettingsPage() {
         if (data.business) {
           const b = data.business;
           setName(b.name || "");
-          setCategory(b.category || "Retail Shop");
+          setCategory(b.category || "");
           setPhone(b.phone || "");
           setAddress(b.address || "");
           setWebsite(b.website || "");
@@ -142,6 +144,9 @@ export default function SettingsPage() {
           setAiTone(b.aiTone || "friendly_respectful");
           setAiCustomInstructions(b.aiCustomInstructions || "");
           setAutoBookingEnabled(b.autoBookingEnabled !== false);
+        }
+        if (data.aiStatus) {
+          setAiStatus(data.aiStatus);
         }
         if (data.whatsappConfig) {
           const c = data.whatsappConfig;
@@ -354,13 +359,6 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* 1. WhatsApp Cloud API Connection */}
-      <WhatsAppEmbeddedSignup
-        initialConfig={waConfig}
-        metaAppId={process.env.NEXT_PUBLIC_META_APP_ID || "2068663130431385"}
-        metaConfigId={process.env.NEXT_PUBLIC_META_CONFIG_ID || "1620839459718786"}
-        onConfigUpdated={loadSettings}
-      />
 
       {/* 1B. ADMIN-ONLY: Save System User Access Token */}
       {isAdmin && (
@@ -497,6 +495,12 @@ export default function SettingsPage() {
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                   Powered by Gemini
                 </span>
+                {!aiStatus.isOnline && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                    <span>AI Assistant offline ({aiStatus.offlineReason || "Check Gemini Key/Quota"})</span>
+                  </span>
+                )}
               </h2>
               <p className="text-xs text-slate-600">
                 Chats naturally like a warm, polite human (1-3 sentences), auto-shares location/booking links, and schedules appointments.
@@ -612,6 +616,8 @@ export default function SettingsPage() {
               onChange={(e) => setCategory(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00a884] bg-white"
             >
+              <option value="">Select category</option>
+              <option value="Arts, Crafts & Gifting">Arts, Crafts & Gifting 🎨</option>
               <option value="Photography & Photo Studio">Photography & Photo Studio 📷</option>
               <option value="Wedding & Event Photography">Wedding & Event Photography 🎥</option>
               <option value="Clothing & Saree Store">Clothing & Saree Store</option>
@@ -623,6 +629,7 @@ export default function SettingsPage() {
               <option value="Retail & Supermarket">Retail & Supermarket</option>
               <option value="Real Estate">Real Estate</option>
               <option value="Education & Coaching">Education & Coaching</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 
